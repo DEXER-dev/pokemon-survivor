@@ -19,3 +19,7 @@ node sim-test.mjs 0.01
 ```
 
 音频素材来源与说明见 `assets/audio/SOURCES.md`。
+
+## 许可证
+
+原创代码采用 0BSD。该许可不覆盖第三方引擎或素材；详见 `THIRD-PARTY-NOTICES.md`。
