@@ -2521,6 +2521,15 @@ const enemies = new EnemySystem(ENEMY, makeRng(SEED));
     }, makeRng(SEED + 4));
     wave.direct(1, 0, 0, 0, 0, 500, () => 0, true);
     if (wave.n !== 400) throw new Error(`horde spawn regression: expected 400, got ${wave.n}`);
+    const trainedWave = new EnemySystem({
+        ...ENEMY, initialCapacity: 8, spawnBase: 4, spawnPerMin: 0,
+        spawnPerPet: 0, spawnLatePerMin: 0, eliteAfter: Infinity,
+    }, makeRng(SEED + 40));
+    trainedWave.direct(1, 0, 0, 0, 0, 500, () => 0, true, true, true, 1.5);
+    if (trainedWave.n !== 6) {
+        throw new Error(`Macho Brace spawn cadence regression: expected 6 at ×1.5, got ${trainedWave.n}`);
+    }
+    console.log('Macho Brace increases live wild Pokémon spawn cadence: ×1.5 yields 6 instead of 4 in one second: PASS');
     const trainerWave = new EnemySystem({
         ...ENEMY, initialCapacity: 8, spawnBase: 4, spawnPerMin: 0,
         spawnPerPet: 0, spawnLatePerMin: 0, eliteAfter: 0, eliteEvery: 1,
@@ -3884,6 +3893,19 @@ for (const e of LEVELS) {
         throw new Error('Pokémon-item upgrades did not apply their advertised effects');
     }
     console.log('Pokémon-item upgrade effects: PASS (Lucky Egg / Leftovers / Focus Sash)');
+}
+{
+    const item = LEVELS.find((entry) => entry.id === 'machoBrace');
+    const build = new Build();
+    if (!item || item.name !== '强制锻炼器' || item.icon !== 'MACHOBRACE'
+        || build.spawnRateMul !== 1 || !available(item, build, {})) {
+        throw new Error('Macho Brace item is missing or does not start at the normal spawn rate');
+    }
+    for (let i = 0; i < item.max; i++) take(item, build, {});
+    if (Math.abs(build.spawnRateMul - 1.5) > 1e-9 || available(item, build, {})) {
+        throw new Error('Macho Brace should add 10% wild spawn rate per pick and stop at five stacks');
+    }
+    console.log('Macho Brace upgrade stacks: +10% wild spawn rate per level, capped at ×1.50: PASS');
 }
 // The Australian Mouse adds one Tandemaus immediately, then doubles the live family every run-minute.
 {

@@ -1454,7 +1454,7 @@ export function createGame (cc) {
          */
         spawnWave (dt, minute, ring) {
             const ev = this.enemies.direct(dt, minute, this.chain.petTotal,
-                this.cam.x, this.cam.y, ring, null, true, true, true);
+                this.cam.x, this.cam.y, ring, null, true, true, true, this.build.spawnRateMul);
             if (ev === 'outbreak') {
                 const family = FAMILIES[this.enemies.outbreakFamIdx];
                 this.logEvent('wild.mass-outbreak', {

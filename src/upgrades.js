@@ -31,6 +31,7 @@ export class Build {
         this.splashR = 1;
         this.speedMul = 1;
         this.expMul = 1;
+        this.spawnRateMul = 1;
         this.regen = 0;
         this.sashReady = false;
         this.expShare = false;
@@ -67,6 +68,15 @@ export const LEVELS = [
         note: '投球冷却 -18%，更快连续捕捉',
         done: (b) => b.repeat <= 0.1,
         apply: (b) => { b.repeat = nextRepeat(b.repeat); },
+    },
+    {
+        id: 'machoBrace',
+        name: '强制锻炼器',
+        icon: 'MACHOBRACE',
+        max: 5,
+        delta: (b) => `×${b.spawnRateMul.toFixed(2)} → ×${(b.spawnRateMul + 0.1).toFixed(2)} 野生刷新速度`,
+        note: '野生宝可梦刷新速度 +10%，最多叠加 5 次',
+        apply: (b) => { b.spawnRateMul += 0.1; },
     },
     {
         id: 'skillSize',

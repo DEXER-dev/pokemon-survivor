@@ -299,12 +299,12 @@ export class EnemySystem {
      * catch passes a roller, and everything else gets the uniform draw the runtime uses.
      */
     direct (dt, minute, pets, px, py, ring, fam, deferBoss = false, disableElite = false,
-        enableWildBoss = false) {
+        enableWildBoss = false, spawnRateMul = 1) {
         let ev = '';
         const t = minute * 60;
         // Keep the normal world cadence during trainer battles too. `update()` diverts wild mobs into
         // the non-hostile perimeter formation, so the arena stays clear while the ring replenishes.
-        const spawnRate = this.cfg.spawnRate(minute, pets);
+        const spawnRate = this.cfg.spawnRate(minute, pets) * Math.max(0, spawnRateMul);
         this.trainerWatchCount = Math.min(BOSS.watchMaxCount,
             Math.max(BOSS.watchCount, Math.ceil(BOSS.watchCount + spawnRate * BOSS.watchRateSeconds)));
         this.spawnAcc += spawnRate * dt;

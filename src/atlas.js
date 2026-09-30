@@ -561,7 +561,7 @@ export async function loadMegaStoneAtlas (cc, forms) {
 export async function loadUpgradeItemAtlas (cc, upgrades) {
     const ids = [...new Set(upgrades.map((entry) => entry.icon).filter(Boolean))];
     const images = await Promise.all(ids.map((id) => (id === 'DYNAMAXBAND' || id === 'ZPOWERBAND'
-        || id === 'RARECANDY') ? null : loadPng(id === 'POKEBALL'
+        || id === 'RARECANDY' || id === 'MACHOBRACE') ? null : loadPng(id === 'POKEBALL'
         ? 'assets/items/POKEBALL.png' : id === 'AUSTRALIANMOUSE'
             ? 'assets/icons/TANDEMAUS.png' : `assets/items/upgrades/${id}.png`)));
     const frames = {};
@@ -597,11 +597,31 @@ export async function loadUpgradeItemAtlas (cc, upgrades) {
             canvas.height = image.height;
             canvas.getContext('2d').drawImage(image, 0, 0);
         } else {
-            // Compact in-project icons keep legendary cards drawable when the borrowed pack has no
-            // matching art for the wristbands or Rare Candy.
+            // Compact in-project icons keep items drawable when no matching image asset is present.
             canvas.width = 64;
             canvas.height = 64;
             const ctx = canvas.getContext('2d');
+            if (ids[i] === 'MACHOBRACE') {
+                // Draw a distinct steel training cuff in-project instead of relying on an
+                // untracked image asset for this new card.
+                ctx.save();
+                ctx.translate(32, 32);
+                ctx.rotate(-Math.PI / 5);
+                ctx.fillStyle = '#25243b';
+                ctx.beginPath(); ctx.ellipse(0, 0, 15, 25, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#8992a8'; ctx.lineWidth = 11;
+                ctx.beginPath(); ctx.ellipse(0, 0, 14, 23, 0, 0, Math.PI * 2); ctx.stroke();
+                ctx.strokeStyle = '#d7deeb'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.ellipse(0, 0, 14, 23, 0, -0.7, 0.7); ctx.stroke();
+                ctx.fillStyle = '#c28b48'; ctx.fillRect(-5, -10, 10, 20);
+                ctx.fillStyle = '#f1cf77'; ctx.fillRect(-2, -7, 4, 14);
+                ctx.fillStyle = '#4c5367'; ctx.fillRect(-19, -6, 5, 12); ctx.fillRect(14, -6, 5, 12);
+                ctx.restore();
+                const frame = cc.SpriteFrame.createWithImage(canvas);
+                if (frame.texture && typeof frame.texture.setFilters === 'function') frame.texture.setFilters(1, 1);
+                frames[ids[i]] = frame;
+                return;
+            }
             ctx.save();
             ctx.translate(32, 32);
             ctx.rotate(-Math.PI / 4);
