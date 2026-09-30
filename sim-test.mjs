@@ -20,6 +20,7 @@ import { EnemySystem } from './src/enemies.js';
 import { CaptureSystem, EV_POP } from './src/capture.js';
 import { CaptureSfx } from './src/capture-sfx.js';
 import { CombatSfx, resolveCombatSound } from './src/combat-sfx.js';
+import { UpgradeSfx, resolveUpgradeSound } from './src/upgrade-sfx.js';
 import { MusicManager, MUSIC_TRACKS } from './src/music-manager.js';
 import { CombatSystem, segDps, chainDps, nodeBonus, hitRect, hitHeart } from './src/combat.js';
 import { createGame } from './src/game.js';
@@ -164,6 +165,31 @@ const TAU = Math.PI * 2;
     }
     audio.destroy();
     console.log('战斗音效：属性路由、专属/大招优先级、同帧合并与全局限频 PASS');
+}
+// Level-up UI has distinct, bounded cues for the reveal, focus movement, confirm, and exit.
+{
+    const events = ['appear', 'focus', 'confirm', 'dismiss'];
+    for (const event of events) {
+        const sound = resolveUpgradeSound(event);
+        if (!sound || !existsSync(new URL(`./assets/audio/${sound.file}`, import.meta.url))
+            || sound.volume > 0.5) throw new Error(`missing or overly loud upgrade UI cue: ${event}`);
+    }
+    if (resolveUpgradeSound('unknown')) throw new Error('unknown upgrade UI sound events must stay silent');
+    const played = [];
+    class AudioSource {}
+    const cc = { AudioSource, assetManager: { loadRemote (url, _options, callback) { callback(null, { url }); } } };
+    const node = { addComponent (Type) {
+        if (Type !== AudioSource) throw new Error('UpgradeSfx should attach one Cocos AudioSource');
+        return { isValid: true, playOneShot (clip, volume) { played.push({ url: clip.url, volume }); }, stop () {} };
+    } };
+    const audio = new UpgradeSfx(cc, node);
+    if (!audio.play('appear', 100) || audio.play('appear', 200)
+        || !audio.play('focus', 200) || audio.play('focus', 250)
+        || !audio.play('confirm', 300) || !audio.play('dismiss', 310)
+        || played.length !== 4) throw new Error('upgrade UI sound events must play once and respect their cooldowns');
+    audio.destroy();
+    if (audio.play('confirm', 600)) throw new Error('destroyed upgrade UI audio must stay silent');
+    console.log('升级界面音效：开场、焦点、确认、退场四类音效与限频 PASS');
 }
 // Capture reveal plays the exact form cry once the ball opens, not on the throw or an unsuccessful hit.
 {

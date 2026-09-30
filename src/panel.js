@@ -90,6 +90,7 @@ export class Panel {
 
         this.opts = [];
         this.build = null;
+        this.onSfx = null;
         this.hover = -1;
         this.selected = -1;
         this.phase = 'closed';
@@ -108,6 +109,14 @@ export class Panel {
     setMegaStoneFrames (frames) {
         this.megaStoneFrames = frames || {};
         for (let i = 0; i < this.opts.length; i++) this._setCardIcon(i, this.opts[i]);
+    }
+
+    setSfx (callback) {
+        this.onSfx = typeof callback === 'function' ? callback : null;
+    }
+
+    _playSfx (event) {
+        if (this.onSfx) this.onSfx(event);
     }
 
     setUpgradeItemFrames (frames) {
@@ -167,6 +176,7 @@ export class Panel {
                 ? '✦ 传说道具 · 一次性' : `已取 ${n}/${e.max}`;
         }
         this.root.active = this.phase !== 'closed';
+        if (this.root.active) this._playSfx('appear');
     }
 
     hide () {
@@ -253,6 +263,7 @@ export class Panel {
                 this.hover = -1;
                 this.phase = 'closed';
                 this.root.active = false;
+                this._playSfx('dismiss');
                 return chosen;
             }
         }
@@ -263,14 +274,22 @@ export class Panel {
     /** Keyboard and pointer focus share the same highlighted card. */
     setHover (index) {
         if (this.phase !== 'entering' && this.phase !== 'open') return false;
-        this.hover = Number.isInteger(index) && index >= 0 && index < this.opts.length ? index : -1;
+        const next = Number.isInteger(index) && index >= 0 && index < this.opts.length ? index : -1;
+        if (next !== this.hover) {
+            this.hover = next;
+            if (next >= 0) this._playSfx('focus');
+        }
         return true;
     }
 
     moveFocus (direction) {
         if ((this.phase !== 'entering' && this.phase !== 'open') || !this.opts.length) return false;
         const start = this.hover < 0 ? (direction > 0 ? -1 : 0) : this.hover;
-        this.hover = (start + (direction > 0 ? 1 : -1) + this.opts.length) % this.opts.length;
+        const next = (start + (direction > 0 ? 1 : -1) + this.opts.length) % this.opts.length;
+        if (next !== this.hover) {
+            this.hover = next;
+            this._playSfx('focus');
+        }
         return true;
     }
 
@@ -283,6 +302,7 @@ export class Panel {
         this.phase = 'selecting';
         this.elapsed = 0;
         this.hint.string = `已选择：${this.opts[i].name}  ·  强化生效中`;
+        this._playSfx('confirm');
         return true;
     }
 

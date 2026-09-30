@@ -21,6 +21,7 @@ import { TrainerBossSystem } from './trainer-boss.js';
 import { CaptureSystem, EV_HIT, EV_MISS, EV_POP, EV_BOSS } from './capture.js';
 import { CaptureSfx } from './capture-sfx.js';
 import { CombatSfx } from './combat-sfx.js';
+import { UpgradeSfx } from './upgrade-sfx.js';
 import { MusicManager } from './music-manager.js';
 import { CombatSystem, chainDps, segDps, lateDamageMultiplier, hitArea } from './combat.js';
 import {
@@ -286,7 +287,9 @@ export function createGame (cc) {
 
             this.hud = new Hud(cc, this.node);
             if (this.pokeball) this.hud.setBallFrame(this.pokeball.frame);
+            this.upgradeSfx = new UpgradeSfx(cc, this.node);
             this.panel = new Panel(cc, this.node, this.pal);
+            this.panel.setSfx((event) => this.upgradeSfx.play(event));
             if (this.megaAssets) this.panel.setMegaStoneFrames(this.megaAssets.frames);
             if (this.upgradeItemAssets) this.panel.setUpgradeItemFrames(this.upgradeItemAssets.frames);
             this.furnace = new Furnace(cc, this.node, this.pal);
@@ -412,6 +415,7 @@ export function createGame (cc) {
             this.playLog.destroy();
             if (this.captureSfx) this.captureSfx.destroy();
             if (this.combatSfx) this.combatSfx.destroy();
+            if (this.upgradeSfx) this.upgradeSfx.destroy();
             if (this.music) this.music.destroy();
         }
 
