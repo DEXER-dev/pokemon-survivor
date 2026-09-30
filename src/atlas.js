@@ -532,7 +532,7 @@ export async function loadMegaStoneAtlas (cc, forms) {
 export async function loadUpgradeItemAtlas (cc, upgrades) {
     const ids = [...new Set(upgrades.map((entry) => entry.icon).filter(Boolean))];
     const images = await Promise.all(ids.map((id) => (id === 'DYNAMAXBAND' || id === 'ZPOWERBAND'
-        || id === 'RARECANDY' || id === 'ALCREMIESWEET') ? null : loadPng(id === 'POKEBALL'
+        || id === 'RARECANDY') ? null : loadPng(id === 'POKEBALL'
         ? 'assets/items/POKEBALL.png' : id === 'AUSTRALIANMOUSE'
             ? 'assets/icons/TANDEMAUS.png' : `assets/items/upgrades/${id}.png`)));
     const frames = {};
@@ -597,20 +597,6 @@ export async function loadUpgradeItemAtlas (cc, upgrades) {
                 ctx.beginPath(); ctx.ellipse(0, 0, 6, 12, 0, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#fff8ef';
                 ctx.beginPath(); ctx.arc(-8, -4, 3, 0, Math.PI * 2); ctx.fill();
-            } else if (ids[i] === 'ALCREMIESWEET') {
-                // Strawberry Sweet: a soft cream puff with a strawberry cap, distinct from the wrapped Rare Candy.
-                ctx.rotate(Math.PI / 4);
-                ctx.fillStyle = '#fff3df';
-                ctx.beginPath(); ctx.ellipse(0, 5, 20, 17, 0, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#f5a8d1';
-                ctx.beginPath(); ctx.moveTo(-14, -2); ctx.bezierCurveTo(-15, -23, 15, -23, 14, -2);
-                ctx.bezierCurveTo(10, 9, -10, 9, -14, -2); ctx.fill();
-                ctx.fillStyle = '#f04f70';
-                ctx.beginPath(); ctx.moveTo(0, -23); ctx.bezierCurveTo(19, -13, 10, -2, 0, 2);
-                ctx.bezierCurveTo(-10, -2, -19, -13, 0, -23); ctx.fill();
-                ctx.fillStyle = '#fff8d8';
-                ctx.beginPath(); ctx.arc(-6, -10, 2.4, 0, Math.PI * 2); ctx.arc(5, -14, 2.4, 0, Math.PI * 2);
-                ctx.arc(8, -5, 2.4, 0, Math.PI * 2); ctx.fill();
             } else {
                 ctx.strokeStyle = zBand ? '#a96eff' : '#f04455';
                 ctx.lineWidth = 10;
