@@ -486,7 +486,7 @@ export class Hud {
         panel.rect(-92, -38, 184, 76);
         panel.stroke();
 
-        this.ammoCaption.string = count > 0 ? '捕兽球' : '球已耗尽';
+        this.ammoCaption.string = count > 0 ? '精灵球' : '精灵球已耗尽';
         this.ammoCount.string = String(count);
         const [r, g, b] = hexToRgb(count > 0 ? COL.gold : '#e85d67');
         this.ammoCount.color = new this.cc.Color(r, g, b, 255);

@@ -107,7 +107,7 @@ function glyphPath (ctx, name, cx, cy, r) {
             break;
         }
         case 'ball': {
-            // One tint cannot paint both halves of a 捕兽球, so the groove and the hub are holes and the
+            // One tint cannot paint both halves of a 精灵球, so the groove and the hub are holes and the
             // ground shows through them - which is what makes it read as a ball with a band instead of
             // a dot with a line drawn over it. The rect stays inside the circle (0.98² + 0.13² < 1), or
             // even-odd would paint two tabs sticking out of the sides. Each arc is preceded by a moveTo

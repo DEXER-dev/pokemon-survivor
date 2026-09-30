@@ -379,7 +379,7 @@ export const BOSS = {
 export const MAX_BODY_R = Math.max(ENEMY.radius * 2, ENEMY.radius * BOSS.radiusMul * 1.5);
 
 /**
- * §6.0 捕兽球 (v0.4). The verb stopped being a vacuum and became a thrown object, so every number
+ * §6.0 精灵球 (v0.4). The verb stopped being a vacuum and became a thrown object, so every number
  * here is a flight number. `r` is the corridor half-width: a ball catches whatever its swept path
  * touches, which is why the old 准星宽度 tolerance died with the 兽魂 - an exact hit test needs no
  * slop on top of it, and slop on top of a projectile is a promise the game cannot keep.

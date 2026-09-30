@@ -1,5 +1,5 @@
 /*
- * 【掷】 - 捕兽球 (v0.4). The verb used to be a vacuum: a kill stood up a 兽魂 and the crosshair sucked
+ * 【掷】 - 精灵球 (v0.4). The verb used to be a vacuum: a kill stood up a 兽魂 and the crosshair sucked
  * it in, which is precisely what nobody could read ("没看到自己是否在捕捉"). A ball carries its own aim,
  * its own animation and its own verdict, so everything here serves one promise: the line drawn out of
  * the hero *is* the path, and the first animal that path touches is the animal you get.

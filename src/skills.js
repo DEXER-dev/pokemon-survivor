@@ -759,7 +759,7 @@ export class SkillSystem {
         }
     }
 
-    /** Flight and contact, sharing `graze` with 捕兽球 so a pet's shot cannot disagree with the ball. */
+    /** Flight and contact, sharing `graze` with 精灵球 so a pet's shot cannot disagree with the ball. */
     _fly (dt, enemies) {
         const q = this._q;
         for (let i = 0; i < this.n; i++) {

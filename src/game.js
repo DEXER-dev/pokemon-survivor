@@ -539,7 +539,7 @@ export function createGame (cc) {
                     this.support.toadTimer -= interval;
                     this.build.balls++;
                     this.emptyAmmoNotified = false;
-                    this.say(`${displayName('toad', toadTier)} · 补充 1 个捕兽球`, 2.4);
+                    this.say(`${displayName('toad', toadTier)} · 补充 1 个精灵球`, 2.4);
                 }
             } else this.support.toadTimer = 0;
 
@@ -1407,7 +1407,7 @@ export function createGame (cc) {
                     shiny: !!seg.shiny, mega: seg.mega || null, gigantamax: seg.gigantamax || null })),
             });
             this.levelUp = opts;
-            this.panel.show(`Lv ${this.level} · 捕兽球 +${BALL.levelAmmo} · 选一条成长（还剩 ${this.pending} 次）`, opts, this.build, this.ctx);
+            this.panel.show(`Lv ${this.level} · 精灵球 +${BALL.levelAmmo} · 选一条成长（还剩 ${this.pending} 次）`, opts, this.build, this.ctx);
         }
 
         chooseLevel (i) {
@@ -1503,7 +1503,7 @@ export function createGame (cc) {
             const b = this.build;
             if (b.balls <= 0) {
                 if (!this.emptyAmmoNotified) {
-                    this.say(`捕兽球用完了 · 下次升级自动补充 +${BALL.levelAmmo}`);
+                    this.say(`精灵球用完了 · 下次升级自动补充 +${BALL.levelAmmo}`);
                     this.emptyAmmoNotified = true;
                 }
                 return false;

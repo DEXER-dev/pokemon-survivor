@@ -4,7 +4,7 @@
  * the M0 pass criteria get numbers instead of opinions. Run with `node sim-test.mjs [minutes]`.
  *
  * v0.4 changed what this file is for. When capture was a vacuum the only question was "did the chain
- * grow"; with 捕兽球 the ball can miss, clang off an elite, or run out of range, so the sim's headline
+ * grow"; with 精灵球 the ball can miss, clang off an elite, or run out of range, so the sim's headline
  * row is now 命中率 - a throw that never connects is the same failure the old 兽魂 crosshair had, and
  * it would be invisible in a table that only counts pets.
  */
