@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>宝可梦幸存者</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #221f2e; color: #cfd3dd;
+      font-family: system-ui, "Segoe UI", sans-serif; overflow: hidden; }
+    #wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100vw;
+      height: 100dvh; box-sizing: border-box; padding: env(safe-area-inset-top) env(safe-area-inset-right)
+        env(safe-area-inset-bottom) env(safe-area-inset-left); gap: 4px; }
+    /* main.js owns this element's inline size (16:9); CSS only decorates it. */
+    #GameDiv { position: relative; overflow: hidden; isolation: isolate; container: game-frame / size;
+      box-shadow: 0 0 0 1px #3a3450, 0 18px 50px rgba(0,0,0,.6); }
+    #Cocos3dGameContainer { width: 100%; height: 100%; }
+    #GameCanvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; }
+    #mobileTouchControls { display: none; position: absolute; z-index: 4; inset: 0; pointer-events: none;
+      user-select: none; -webkit-user-select: none; }
+    #mobileTouchControls button { pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent;
+      color: #fff6df; border: 1px solid rgba(255,239,190,.7); background: rgba(31,25,47,.72);
+      box-shadow: 0 3px 12px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.1);
+      font: 800 clamp(10px, 1.8vw, 14px)/1.05 system-ui, sans-serif; }
+    #touchStick { position: absolute; left: max(12px, env(safe-area-inset-left)); top: 55%;
+      width: clamp(92px, 15vw, 138px); aspect-ratio: 1; padding: 0; border-radius: 50%;
+      transform: translateY(-50%); border-color: rgba(220,211,255,.58) !important;
+      background: radial-gradient(circle, rgba(40,33,58,.42) 28%, rgba(34,28,48,.7) 30%, rgba(34,28,48,.46) 72%, rgba(255,255,255,.2) 74%) !important; }
+    #touchStick span { position: absolute; left: 50%; top: 50%; width: 34%; aspect-ratio: 1; border-radius: 50%;
+      transform: translate(-50%,-50%); background: rgba(218,202,255,.7); border: 1px solid #eee2ff;
+      box-shadow: 0 0 14px rgba(193,158,255,.45); }
+    #touchActions { position: absolute; right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom));
+      display: grid; grid-template-columns: repeat(3, auto); align-items: end; justify-items: end; gap: 4px; }
+    #touchActions button { min-width: clamp(44px, 6vw, 62px); min-height: clamp(36px, 5.5vh, 48px); padding: 4px 6px;
+      border-radius: 11px; }
+    #touchActions .touch-fire { grid-column: 3; grid-row: 3;
+      min-width: clamp(78px, 9vw, 94px); min-height: clamp(82px, 11vh, 96px);
+      border-color: #ffe49b; color: #fff0bf;
+      background: linear-gradient(155deg, rgba(161,94,44,.9), rgba(54,37,49,.92)); font-size: clamp(12px, 1.6vw, 15px); }
+    #touchActions [data-touch-action="cycle"] { grid-column: 1; grid-row: 1; }
+    #touchActions [data-touch-action="skill"] { grid-column: 2; grid-row: 1; }
+    #touchActions [data-touch-action="dynamax"] { grid-column: 1; grid-row: 2; }
+    #touchActions [data-touch-action="zpower"] { grid-column: 2; grid-row: 2; }
+    #touchActions [data-touch-action="zselect"] { grid-column: 1; grid-row: 3; }
+    #touchActions .touch-skill { min-height: clamp(44px, 6vh, 52px); border-color: #b4dcff;
+      background: rgba(43,72,108,.84); }
+    #touchActions [data-touch-action="skill"] { border-color: #d5b3ff; background: rgba(94,59,132,.94); }
+    #touchActions .touch-item { min-height: 36px; }
+    #rotatePrompt { display: none; position: fixed; z-index: 10; left: 50%; top: max(8px, env(safe-area-inset-top));
+      transform: translateX(-50%); max-width: calc(100vw - 28px); padding: 8px 13px; border: 1px solid rgba(255,229,155,.48);
+      border-radius: 999px; color: #fff1c8; background: rgba(28,22,40,.86); font-size: 13px; text-align: center;
+      pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.26); }
+    @media (pointer: coarse), (hover: none) {
+      #mobileTouchControls { display: block; }
+      body { overscroll-behavior: none; }
+    }
+    @media (pointer: coarse) and (orientation: portrait), (hover: none) and (orientation: portrait) {
+      #rotatePrompt { display: block; }
+    }
+    .game-modal-open #mobileTouchControls { display: none !important; }
+    #hint { max-width: calc(100vw - 24px); font-size: 13px; line-height: 1.25; opacity: .65; text-align: center; }
+    #boot { font-size: 14px; }
+    #titleScreen { position: absolute; z-index: 5; inset: 0; display: grid; place-items: center;
+      align-content: safe center; justify-content: safe center;
+      box-sizing: border-box; overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
+      padding: clamp(14px, 4vh, 38px);
+      color: #f8f4ff; text-align: center;
+      background: radial-gradient(ellipse at 50% 28%, rgba(111, 82, 178, .38), transparent 52%),
+        radial-gradient(ellipse at 12% 92%, rgba(42, 112, 126, .28), transparent 38%),
+        linear-gradient(145deg, rgba(16, 14, 29, .97), rgba(28, 22, 47, .97) 55%, rgba(14, 27, 38, .98)); }
+    #titleScreen[hidden] { display: none; }
+    #titleScreen::-webkit-scrollbar { display: none; }
+    #titleScreen::before, #titleScreen::after { content: ""; position: absolute; pointer-events: none;
+      width: min(58vw, 660px); aspect-ratio: 1; border: 1px solid rgba(255,255,255,.075);
+      border-radius: 50%; animation: title-orbit 24s linear infinite; }
+    #titleScreen::before { transform: translate(-29%, -14%); box-shadow: 0 0 0 30px rgba(255,255,255,.018), 0 0 0 72px rgba(255,255,255,.014); }
+    #titleScreen::after { width: min(42vw, 470px); transform: translate(42%, 30%); animation-direction: reverse; }
+    .title-card { position: relative; z-index: 1; width: min(690px, 100%); box-sizing: border-box;
+      padding: clamp(22px, 4vh, 38px) clamp(18px, 5vw, 54px);
+      border: 1px solid rgba(229, 214, 255, .2); border-radius: 24px;
+      background: linear-gradient(155deg, rgba(37, 30, 58, .94), rgba(23, 24, 42, .92));
+      box-shadow: 0 24px 70px rgba(0,0,0,.44), inset 0 1px rgba(255,255,255,.08); }
+    .title-kicker { margin: 0 0 9px; color: #c6b5f4; font-size: clamp(10px, 1.5vw, 13px);
+      font-weight: 800; letter-spacing: .24em; text-transform: uppercase; }
+    .title-card h1 { margin: 0; color: #fff; font-size: clamp(34px, 6.4vw, 64px); line-height: 1.12;
+      font-weight: 950; letter-spacing: .045em; text-shadow: 0 3px 0 #47366d, 0 8px 26px rgba(173,133,255,.38); }
+    .title-subtitle { margin: 12px 0 0; color: #d3ccdf; font-size: clamp(13px, 2vw, 17px); }
+    .title-party { display: flex; justify-content: center; align-items: center; gap: clamp(8px, 2.5vw, 22px);
+      margin: clamp(15px, 3vh, 25px) 0 clamp(16px, 3vh, 25px); }
+    .starter-options { display: flex; justify-content: center; align-items: stretch; gap: clamp(8px, 1.5vw, 14px); }
+    .starter-picker { min-width: 0; }
+    /* Keep generation tabs above the three starter cards at every frame size. A horizontal
+       flex row made the two groups compete for width on tall, narrow browser viewports. */
+    .title-party.starter-picker { flex-direction: column; align-items: stretch; gap: 6px; }
+    .generation-options { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 5px;
+      margin: 0 0 7px; }
+    .generation-option { min-width: 0; padding: 5px 2px; border: 1px solid rgba(230,220,255,.16);
+      border-radius: 8px; color: #bdb4d1; background: rgba(9,11,23,.32); font: inherit;
+      font-size: clamp(9px, 1.1vw, 11px); cursor: pointer; }
+    .generation-option[aria-selected="true"] { border-color: #b9a1ff; color: #f2eaff;
+      background: rgba(132,100,205,.28); box-shadow: inset 0 0 0 1px rgba(185,161,255,.12); }
+    .generation-option:focus-visible { outline: 2px solid #ffe59b; outline-offset: 1px; }
+    .starter-option { display: grid; flex: 1; min-width: 0; justify-items: center; align-content: center;
+      gap: 3px; min-height: 94px; padding: 7px; border: 1px solid rgba(230,220,255,.2); border-radius: 14px;
+      color: #d8d1e6; background: radial-gradient(circle at 50% 28%, rgba(149,125,201,.25), rgba(24,22,39,.72));
+      font: inherit; cursor: pointer; transition: border-color .12s, background .12s, transform .12s; }
+    .starter-option:hover { transform: translateY(-2px); background-color: rgba(255,255,255,.08); }
+    .starter-option[aria-pressed="true"] { border-color: #ffe59b; color: #fff3c5;
+      background: linear-gradient(155deg, rgba(247,189,94,.2), rgba(57,45,70,.76));
+      box-shadow: 0 0 0 1px rgba(255,229,155,.2), 0 0 20px rgba(255,196,103,.12); }
+    .starter-portrait { display: block; width: clamp(42px, 6vw, 58px); height: clamp(42px, 6vw, 58px);
+      background-position: left center; background-repeat: no-repeat; background-size: 200% 100%;
+      image-rendering: pixelated; filter: drop-shadow(0 3px 4px rgba(0,0,0,.44)); }
+    .starter-option-name { font-size: clamp(12px, 1.7vw, 15px); font-weight: 800; line-height: 1.15; }
+    .starter-option-style { color: #bdb4d1; font-size: clamp(9px, 1.2vw, 11px); line-height: 1.2; }
+    .title-pokemon { display: grid; place-items: center; width: clamp(54px, 8vw, 76px); aspect-ratio: 1;
+      border: 1px solid rgba(230,220,255,.2); border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(149,125,201,.36), rgba(49,42,73,.78));
+      box-shadow: 0 0 25px rgba(153,120,225,.12); }
+    .title-pokemon img { width: 82%; height: 82%; object-fit: contain; image-rendering: pixelated;
+      filter: drop-shadow(0 4px 4px rgba(0,0,0,.42)); }
+    .title-plus { color: #a79bbd; font-size: 16px; }
+    .trainer-picker { display: grid; grid-template-columns: 34px minmax(0, 1fr) 34px; align-items: center;
+      gap: 9px; margin: clamp(8px, 1.6vh, 15px) 0 5px; }
+    .trainer-arrow { width: 34px; height: 42px; border: 1px solid rgba(230,220,255,.22); border-radius: 10px;
+      color: #eee8fa; background: rgba(255,255,255,.07); font: inherit; font-size: 21px; cursor: pointer; }
+    .trainer-arrow:hover { background: rgba(180,151,255,.2); }
+    .trainer-options { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(70px, 1fr);
+      gap: 7px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin;
+      scrollbar-color: rgba(198,181,244,.6) transparent; padding: 3px 2px 8px; }
+    .trainer-option { min-width: 0; min-height: 82px; padding: 5px 3px; border: 1px solid rgba(230,220,255,.15);
+      border-radius: 11px; color: #c8c2d2; background: rgba(9,11,23,.32); font: inherit; cursor: pointer;
+      transition: border-color .12s, background .12s, transform .12s; }
+    .trainer-option:hover { transform: translateY(-2px); background: rgba(255,255,255,.09); }
+    .trainer-option[aria-pressed="true"] { border-color: #ffe59b; color: #fff3c5;
+      background: rgba(247,189,94,.15); box-shadow: 0 0 0 1px rgba(255,229,155,.22), 0 0 18px rgba(255,196,103,.12); }
+    .trainer-portrait { display: block; width: 48px; height: 48px; margin: 0 auto 3px;
+      background-repeat: no-repeat; background-size: 400% 400%; image-rendering: pixelated;
+      filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
+    .trainer-option-name { display: block; overflow: hidden; font-size: 11px; line-height: 1.2;
+      text-overflow: ellipsis; white-space: nowrap; }
+    .trainer-current { min-height: 18px; margin: -2px 0 7px; color: #ffe7a1; font-size: 12px; }
+    #startAdventure { display: inline-flex; align-items: center; justify-content: center; gap: 11px;
+      min-width: min(270px, 78vw); min-height: 54px; padding: 0 26px; border: 1px solid #ffe59b;
+      border-radius: 14px; color: #261b29; background: linear-gradient(180deg, #ffe9a5, #f7bd5e);
+      box-shadow: 0 5px 0 #a96b39, 0 12px 25px rgba(255,180,78,.2);
+      font: inherit; font-size: clamp(16px, 2vw, 19px); font-weight: 900; cursor: pointer;
+      transition: transform .14s ease, filter .14s ease, box-shadow .14s ease; }
+    #startAdventure:hover { transform: translateY(-2px); filter: brightness(1.06);
+      box-shadow: 0 7px 0 #a96b39, 0 16px 30px rgba(255,180,78,.28); }
+    #startAdventure:active { transform: translateY(3px); box-shadow: 0 2px 0 #a96b39; }
+    #startAdventure:focus-visible { outline: 3px solid #fff; outline-offset: 5px; }
+    .title-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px;
+      margin: clamp(18px, 3vh, 26px) 0 0; color: #c8c2d2; font-size: clamp(11px, 1.5vw, 13px); }
+    .title-controls span { white-space: nowrap; }
+    .title-controls kbd { display: inline-block; min-width: 22px; margin-right: 4px; padding: 3px 6px;
+      border: 1px solid rgba(235,225,255,.23); border-radius: 6px; color: #eee8fa;
+      background: rgba(255,255,255,.08); font: inherit; font-size: .92em; }
+    .title-footnote { margin: 13px 0 0; color: #9189a0; font-size: 11px; }
+    @keyframes title-orbit { to { rotate: 360deg; } }
+    @media (max-height: 550px) {
+      #titleScreen { padding: 10px; }
+      .title-card { padding: 13px 22px; border-radius: 18px; }
+      .title-card h1 { font-size: clamp(30px, 5vw, 48px); }
+      .title-subtitle { margin-top: 6px; }
+      .title-party { margin: 10px 0 12px; }
+      .generation-options { gap: 3px; margin-bottom: 4px; }
+      .generation-option { padding: 4px 1px; font-size: 9px; }
+      .title-pokemon { width: clamp(42px, 7vh, 58px); }
+      .starter-option { min-height: 80px; padding: 5px; }
+      .starter-portrait { width: 42px; height: 42px; }
+      .trainer-picker { margin: 5px 0 2px; }
+      .trainer-option { min-height: 68px; }
+      .trainer-portrait { width: 38px; height: 38px; }
+      #startAdventure { min-height: 44px; }
+      .title-controls { margin-top: 13px; }
+      .title-footnote { margin-top: 8px; }
+    }
+    /* The 16:9 game frame can be short even when the browser window is tall and square.
+       Size this menu from its actual clipped parent, so the primary start action stays in view. */
+    /* Middle band: the regular card is ~640px tall, so frames between ~540 and ~660px would clip
+       the start button below the fold (the scrollbar is deliberately invisible). Trim the
+       decorative rows first and keep every picker. */
+    @container game-frame (max-height: 660px) {
+      .title-card { padding: 14px 26px; border-radius: 20px; }
+      .title-card h1 { font-size: clamp(30px, 5vw, 46px); }
+      .title-subtitle { margin-top: 6px; }
+      .title-party { margin: 10px 0 12px; }
+      .trainer-picker { margin: 6px 0 2px; }
+      .trainer-option { min-height: 72px; }
+      .trainer-portrait { width: 40px; height: 40px; }
+      #startAdventure { min-height: 46px; }
+      .title-controls, .title-footnote { display: none; }
+    }
+    @container game-frame (max-height: 540px) {
+      #titleScreen { padding: 8px; }
+      .title-card { width: min(690px, 100%); padding: 10px 20px; border-radius: 18px; }
+      .title-kicker { margin-bottom: 4px; font-size: 10px; }
+      .title-card h1 { font-size: clamp(30px, 5vw, 42px); }
+      .title-subtitle { margin-top: 5px; font-size: 12px; }
+      .title-controls, .title-footnote { display: none; }
+      #trainerPrompt { margin-top: 8px; }
+      .title-party { margin: 5px 0 8px; }
+      .generation-options { gap: 3px; margin-bottom: 4px; }
+      .generation-option { padding: 4px 1px; font-size: 9px; }
+      .starter-option { min-height: 56px; gap: 1px; padding: 2px; border-radius: 10px; }
+      .starter-portrait { width: 34px; height: 34px; }
+      .starter-option-style { font-size: 9px; }
+      .trainer-picker { margin: 4px 0 0; }
+      .trainer-option { min-height: 64px; }
+      .trainer-portrait { width: 36px; height: 36px; }
+      .trainer-arrow { height: 36px; }
+      .trainer-current { min-height: 15px; margin: 0 0 5px; font-size: 11px; }
+      #startAdventure { min-height: 42px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #titleScreen::before, #titleScreen::after { animation: none; }
+      #startAdventure { transition: none; }
+    }
+  </style>
+  <link rel="stylesheet" href="./dex.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="boot">正在加载引擎…</div>
+    <div id="GameDiv" style="display:none">
+      <button id="dexOpen" class="dex-open" type="button" aria-haspopup="dialog">图鉴 · 技能试验场</button>
+      <div id="Cocos3dGameContainer">
+        <canvas id="GameCanvas" width="1280" height="720" tabindex="99"></canvas>
+      </div>
+      <div id="mobileTouchControls" aria-label="触屏操作">
+        <button id="touchStick" type="button" aria-label="按住并拖动移动"><span></span></button>
+        <div id="touchActions">
+          <button class="touch-fire" data-touch-action="fire" type="button" aria-label="按住连续投球">按住<br>投球</button>
+          <button class="touch-skill" data-touch-action="cycle" type="button" aria-label="切换到下一个没有冷却的主动技能">Q<br>切换</button>
+          <button class="touch-skill" data-touch-action="skill" type="button" aria-label="使用当前主动技能，使用后自动切换到下一个就绪技能">技能<br>使用</button>
+          <button class="touch-item" data-touch-action="dynamax" type="button" aria-label="使用极巨手环">G<br>极巨</button>
+          <button class="touch-item" data-touch-action="zpower" type="button" aria-label="释放Z招式">Z<br>Z技</button>
+          <button class="touch-item" data-touch-action="zselect" type="button" aria-label="选择Z纯晶">C<br>纯晶</button>
+        </div>
+      </div>
+      <section id="titleScreen" role="dialog" aria-modal="true" aria-labelledby="gameTitle" hidden>
+        <div class="title-card">
+          <p class="title-kicker">Pokémon · Survivor Adventure</p>
+          <h1 id="gameTitle">宝可梦幸存者</h1>
+          <p class="title-subtitle">收服伙伴，进化队伍，迎战训练家与神兽</p>
+          <p class="title-subtitle" id="starterPrompt">选择你的初始宝可梦</p>
+          <div class="title-party starter-picker">
+            <div class="generation-options" id="generationOptions" role="tablist" aria-label="选择御三家世代"></div>
+            <div class="starter-options" id="starterOptions" role="group" aria-label="选择初始宝可梦"></div>
+          </div>
+          <p class="title-subtitle" id="trainerPrompt">选择你的训练家</p>
+          <div class="trainer-picker" aria-label="选择玩家形象">
+            <button class="trainer-arrow" id="trainerPrevious" type="button" aria-label="上一个训练家">‹</button>
+            <div class="trainer-options" id="trainerOptions" role="group" aria-label="可选训练家"></div>
+            <button class="trainer-arrow" id="trainerNext" type="button" aria-label="下一个训练家">›</button>
+          </div>
+          <p class="trainer-current" id="trainerCurrent" aria-live="polite"></p>
+          <button id="startAdventure" type="button" autofocus>开始冒险 <span aria-hidden="true">➜</span></button>
+          <button id="dexFromTitle" class="dex-title-link" type="button">打开图鉴 · 预览弹幕</button>
+          <p class="title-controls" aria-label="操作提示">
+            <span><kbd>WASD</kbd>/<kbd>方向键</kbd> 移动</span>
+            <span><kbd>Space</kbd>/<kbd>J</kbd> 丢球</span>
+            <span><kbd>E</kbd> 进化</span>
+            <span><kbd>Q</kbd>选择 / <kbd>X</kbd>释放 MEGA 技能</span>
+          </p>
+          <p class="title-footnote">每次开局都是全新的冒险 · 抓住你想要的宝可梦</p>
+        </div>
+      </section>
+      <section id="dexDialog" class="dex-dialog" role="dialog" aria-modal="true" aria-labelledby="dexHeading" hidden>
+        <div class="dex-shell">
+          <header class="dex-header"><div><p>POKÉDEX / TRAINING ROOM</p><h2 id="dexHeading">宝可梦图鉴</h2></div><button id="dexClose" type="button" aria-label="关闭图鉴">✕</button></header>
+          <div class="dex-body">
+            <aside class="dex-sidebar"><label for="dexSearch">搜索宝可梦</label><input id="dexSearch" type="search" placeholder="名称或编号"><div id="dexList" class="dex-list" role="listbox" aria-label="宝可梦列表"></div></aside>
+            <main class="dex-detail"><div class="dex-identity"><div id="dexPortrait" class="dex-portrait"></div><div><p id="dexNumber"></p><h3 id="dexName"></h3><p id="dexType"></p></div></div>
+              <div id="dexStages" class="dex-stages" role="group" aria-label="进化阶段"></div>
+              <p id="dexEvolution" class="dex-evolution"></p>
+              <div class="dex-controls"><label>同族数量 <input id="dexCount" type="range" min="1" max="30" value="1"><output id="dexCountValue">1</output></label><button id="dexReset" type="button">重置演示</button></div>
+              <div class="dex-arena-wrap"><canvas id="dexArena" width="640" height="360" aria-label="游戏内 Cocos 粒子系统实时渲染的弹幕试验场"></canvas><p>实机粒子渲染 · 主技自动发射 · 点击或拖动改变目标位置</p></div>
+              <div class="dex-abilities"><div><h4 id="dexPassiveName"></h4><p id="dexPassiveInfo"></p></div><div><h4 id="dexActiveName"></h4><select id="dexActiveForm" aria-label="主动技能形态"></select><p id="dexActiveInfo"></p><button id="dexCast" type="button">演示主动技能</button></div></div>
+            </main>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div id="hint" style="display:none">加载中…（这一行由 main.js 按 CHAIN 现拼，此处文字不会显示）</div>
+  </div>
+  <div id="rotatePrompt" aria-live="polite">建议横屏游玩 · 摇杆移动，按住投球；技能键释放后自动切到下个就绪技能，切换键可手动跳过</div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

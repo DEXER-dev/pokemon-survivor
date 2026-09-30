@@ -1,0 +1,6 @@
+# Audio asset sources
+
+- `bgm-field.mp3` — user-provided `111 １０１番道路.mp3`; supplied as the authorized field/combat track for this game.
+- `bgm-trainer-boss.mp3` — user-provided `109 戦闘！ 野生ポケモン.mp3`; the user confirmed it is authorized for trainer-boss battles and public release.
+- `tandemaus-throw-source.wav` — `erase.wav` by Fupi, downloaded from [OpenGameArt: Erase / Escape](https://opengameart.org/content/erase-escape). The page describes it as an airy item-throw/escape sound and marks it CC0.
+- `tandemaus-throw.ogg` — runtime conversion of the WAV above, trimmed to the 0.54-second audible throw and encoded at 44.1 kHz stereo with a short fade-out and -20 LUFS / -2 dBTP normalization.
