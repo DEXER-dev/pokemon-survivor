@@ -344,6 +344,27 @@ const TAU = Math.PI * 2;
     if (events.length !== 1 || warning.phase !== 'cooldown') {
         throw new Error('legendary bombardment must enter cooldown after its single impact');
     }
+    const RenderProbe = createGame({ Component: class {} });
+    const drawing = [];
+    const guide = {
+        circle (x, y, r) { drawing.push({ op: 'circle', x, y, r }); },
+        fill () { drawing.push({ op: 'fill' }); },
+        stroke () { drawing.push({ op: 'stroke' }); },
+        moveTo (x, y) { drawing.push({ op: 'moveTo', x, y }); },
+        lineTo (x, y) { drawing.push({ op: 'lineTo', x, y }); },
+    };
+    const previewWarning = { phase: 'warning', timer: 0.41, x: 180, y: -45, radius: 120 };
+    RenderProbe.prototype.drawLegendaryCompanionWarnings.call({
+        chain: { segments: [{ fam: 'legend-mewtwo', tier: 1, legendaryBombardment: previewWarning }] },
+        wall: 0.4,
+        pal: { get: (color, alpha) => ({ color, alpha }) },
+    }, guide);
+    const centerGuides = drawing.filter((entry) => entry.op === 'circle'
+        && entry.x === previewWarning.x && entry.y === previewWarning.y);
+    if (centerGuides.length !== 2 || centerGuides.some((entry) => entry.r !== previewWarning.radius)
+        || drawing.filter((entry) => entry.op === 'lineTo').length !== 18) {
+        throw new Error('legendary fixed-area warning must show the exact hit boundary with irregular ground scars, not a scope');
+    }
     console.log('神兽入队：2.2×基础体型、重复捕捉缓增封顶、锁定预警+优先BOSS范围轰炸 PASS');
 }
 // Screen-space lair guidance: visible sites pin to their projection, off-screen sites clamp to the

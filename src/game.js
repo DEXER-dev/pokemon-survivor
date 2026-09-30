@@ -2851,29 +2851,54 @@ export function createGame (cc) {
                     || (attack.phase !== 'warning' && attack.phase !== 'impact')) continue;
                 const impact = attack.phase === 'impact';
                 const progress = impact ? 1 : Math.max(0, Math.min(1, 1 - attack.timer / 0.82));
-                const pulse = 0.74 + 0.26 * Math.sin(this.wall * 13 + segment.tier);
-                const color = ELEMENT[FAMILIES[segment.fam].element] || COL.gold;
-                g.fillColor = this.pal.get(color, impact ? 118 : Math.round(34 + pulse * 18));
+                const seed = ((attack.x * 0.0017 + attack.y * 0.0009) % TAU + TAU) % TAU;
+                const pulse = 0.78 + 0.22 * Math.sin(this.wall * 4.6 + seed);
+                const color = ELEMENT[family(segment.fam)?.element] || COL.gold;
+                // A flat floor mark reads as an area about to detonate; nested rings and radial ticks
+                // made the warning look like a rifle scope even though the target is already locked.
+                g.fillColor = this.pal.get(color, impact ? 88 : Math.round(18 + progress * 16 + pulse * 4));
                 g.circle(attack.x, attack.y, attack.radius);
                 g.fill();
                 g.strokeColor = this.pal.get(impact ? COL.heroTrim : color,
-                    impact ? 255 : Math.round(190 + pulse * 60));
-                g.lineWidth = impact ? 6 : 4;
+                    impact ? 248 : Math.round(108 + progress * 100 + pulse * 10));
+                g.lineWidth = impact ? 4 : 2.5;
                 g.circle(attack.x, attack.y, attack.radius);
                 g.stroke();
-                const inner = attack.radius * Math.max(0.2, 1 - progress * 0.72);
-                g.strokeColor = this.pal.get(COL.heroTrim, impact ? 245 : 190);
-                g.lineWidth = impact ? 4 : 2.5;
-                g.circle(attack.x, attack.y, inner);
-                g.stroke();
-                for (let tick = 0; tick < 8; tick++) {
-                    const a = tick * TAU / 8 + this.wall * (impact ? 0.7 : 0.18);
-                    const r0 = attack.radius * 0.88;
-                    const r1 = attack.radius * (tick % 2 ? 1.02 : 1.12);
-                    g.moveTo(attack.x + Math.cos(a) * r0, attack.y + Math.sin(a) * r0);
-                    g.lineTo(attack.x + Math.cos(a) * r1, attack.y + Math.sin(a) * r1);
+
+                // Uneven, broken ground scars gather toward the locked impact point as the warning
+                // closes. Their offsets avoid a crosshair silhouette; the single outer edge remains
+                // the exact circle used by hitArea().
+                g.strokeColor = this.pal.get(impact ? '#fff0c2' : color,
+                    impact ? 226 : Math.round(32 + progress * 82));
+                g.lineWidth = impact ? 2.2 : 1.35;
+                for (let scar = 0; scar < 6; scar++) {
+                    const angle = seed + scar * TAU / 6 + Math.sin(scar * 2.3) * 0.19;
+                    const start = attack.radius * (0.08 + (scar % 3) * 0.045);
+                    const reach = attack.radius * (0.30 + progress * 0.26 + (scar % 2) * 0.035);
+                    for (let step = 0; step < 4; step++) {
+                        const t = step / 3;
+                        const radius = start + reach * t;
+                        const bend = (step === 1 ? 0.095 : step === 2 ? -0.075 : 0)
+                            * (scar % 2 ? 1 : -1);
+                        const a = angle + bend + Math.sin(this.wall * 2.8 + scar + step) * 0.018;
+                        const x = attack.x + Math.cos(a) * radius;
+                        const y = attack.y + Math.sin(a) * radius;
+                        if (step === 0) g.moveTo(x, y);
+                        else g.lineTo(x, y);
+                    }
                 }
                 g.stroke();
+
+                // A few drifting embers give each element a living surface without adding more rings.
+                g.fillColor = this.pal.get(impact ? '#fff0c2' : color,
+                    impact ? 210 : Math.round(66 + progress * 72));
+                for (let mote = 0; mote < 5; mote++) {
+                    const a = seed + mote * TAU / 5 + this.wall * 0.24;
+                    const r = attack.radius * (0.58 + 0.08 * Math.sin(this.wall * 3 + mote * 1.7));
+                    g.circle(attack.x + Math.cos(a) * r, attack.y + Math.sin(a) * r,
+                        1.8 + 0.8 * pulse);
+                }
+                g.fill();
             }
         }
 
