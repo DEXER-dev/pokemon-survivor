@@ -48,6 +48,7 @@ import { drawVivillonPowder } from './projectiles/vivillon.js';
 import { drawCutieflyPollenPuff } from './projectiles/cutiefly.js';
 import { drawDreepyDragonDart } from './projectiles/dreepy.js';
 import { BLASTOISE_PARTICLE_PRESETS } from './particles/blastoise.js';
+import { BLAZIKEN_PARTICLE_PRESETS } from './particles/blaziken.js';
 import { MEOWSCARADA_PARTICLE_PRESETS } from './particles/meowscarada.js';
 import { GRENINJA_PARTICLE_PRESETS } from './particles/greninja.js';
 import { HO_OH_PARTICLE_PRESETS } from './particles/ho-oh.js';
@@ -165,6 +166,7 @@ const projectileRenderers = Object.freeze({
 });
 const skillParticlePresets = Object.freeze({
     ...BLASTOISE_PARTICLE_PRESETS,
+    ...BLAZIKEN_PARTICLE_PRESETS,
     ...MEOWSCARADA_PARTICLE_PRESETS,
     ...GRENINJA_PARTICLE_PRESETS,
     ...HO_OH_PARTICLE_PRESETS,

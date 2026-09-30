@@ -593,9 +593,13 @@ export class NativeParticleBursts {
                 burstOptions = { posVar: 2.5, particlePreset: BLASTOISE_STREAM_SAMPLE };
             } else if (fx.form.id === 'blaziken') {
                 const tail = fx.radius * (0.3 + 0.48 * ((phase % 5) / 5));
-                x -= Math.cos(fx.angle) * tail;
-                y -= Math.sin(fx.angle) * tail;
-                particleAngle = fx.angle + Math.PI;
+                const spread = ((phase % 3) - 1) * Math.min(10, fx.radius * 0.18);
+                x -= Math.cos(fx.angle) * tail + Math.sin(fx.angle) * spread;
+                y -= Math.sin(fx.angle) * tail - Math.cos(fx.angle) * spread;
+                // burst() already reverses signature-area particles to trail behind the charge.
+                // Passing the heading here keeps the ember stream moving backward instead of
+                // sending it into the player sprite, where the previous double-reversal hid it.
+                particleAngle = fx.angle;
             } else if (fx.form.id === 'gardevoir') {
                 const t = angle;
                 const nx = (16 * Math.sin(t) ** 3) / 17;
@@ -610,7 +614,8 @@ export class NativeParticleBursts {
                 y += Math.sin(angle) * radius;
                 particleAngle = angle - Math.PI / 2;
             }
-            this.burst(fx.form.fam, x, y, particleAngle, 'signature-area', fx.form.id, burstOptions);
+            const particleKind = fx.form.id === 'blaziken' ? 'blaziken-charge-trail' : 'signature-area';
+            this.burst(fx.form.fam, x, y, particleAngle, particleKind, fx.form.id, burstOptions);
         }
     }
 

@@ -955,12 +955,33 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
         angle: 0, width: form.width, radius: form.radius, form }));
     signatureProbe.updateSignatureSkillParticles(0.056, signatureAreas);
     signatureProbe.updateSignatureSkillParticles(0.056, signatureAreas);
-    if (signatureSamples.length !== 4 || signatureSamples.some((entry) => entry[4] !== 'signature-area')
+    if (signatureSamples.length !== 4 || signatureSamples.some((entry) => entry[4]
+        !== (entry[5] === 'blaziken' ? 'blaziken-charge-trail' : 'signature-area'))
         || signatureAreas.some((fx) => !signatureSamples.some((entry) => entry[5] === fx.form.id
             && Math.hypot(entry[1] - fx.x, entry[2] - fx.y) <= fx.radius + fx.width))) {
         throw new Error('signature Mega/legendary skill particle paths should be bounded, shaped, and rate-limited');
     }
     console.log('Signature area sampling: Blastoise corridor, Blaziken wake, Gardevoir heart and Ho-Oh fire field use bounded native particles PASS');
+    const blazikenWakeProbe = Object.create(NativeParticleBursts.prototype);
+    Object.assign(blazikenWakeProbe, {
+        signatureSkillTimer: 0, signatureSkillCursor: 0, signatureSkillPhase: 0,
+        signatureSkillScratch: [],
+    });
+    const blazikenWakeSamples = [];
+    blazikenWakeProbe.burst = (...args) => blazikenWakeSamples.push(args);
+    blazikenWakeProbe.updateSignatureSkillParticles(0.056, [{
+        active: true, area: true, x: 100, y: 20, angle: 0, radius: 52,
+        form: { id: 'blaziken', fam: 'striker', color: '#ff705d', glyph: 'ember' },
+    }]);
+    const blazikenWake = blazikenWakeSamples[0];
+    const blazikenWakePreset = skillParticlePresetForEvent(blazikenWake?.[4]);
+    if (!blazikenWake || blazikenWake[4] !== 'blaziken-charge-trail'
+        || blazikenWake[5] !== 'blaziken' || blazikenWake[1] >= 100 || blazikenWake[3] !== 0
+        || blazikenWakePreset?.glyph !== 'ember' || blazikenWakePreset?.particleClass !== 'signature-area'
+        || blazikenWakePreset?.startSize < 28 || blazikenWakePreset?.emissionRate < 400) {
+        throw new Error("Mega Blaziken's charge must emit a visible, backward-directed dedicated ember wake");
+    }
+    console.log('Mega Blaziken charge wake: dedicated large ember particles trail away from player: PASS');
     class ProbeColor { constructor (r, g, b, a) { Object.assign(this, { r, g, b, a }); } }
     class ProbeVec2 { constructor (x, y) { this.x = x; this.y = y; } }
     class ProbeParticleSystem {
@@ -977,8 +998,11 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
         Color: ProbeColor, Vec2: ProbeVec2, Node: ProbeNode,
         ParticleSystem2D: ProbeParticleSystem, Layers: { Enum: { UI_2D: 1 } },
         builtinResMgr: { get: () => ({}) },
-    }, particleParent, 'BASE_FRAME', 'STAR_FRAME', { crescent: { frame: 'CRESCENT_FRAME' } },
-    { crescent: { frame: 'OUTLINED_CRESCENT_FRAME' } });
+    }, particleParent, 'BASE_FRAME', 'STAR_FRAME', {
+        crescent: { frame: 'CRESCENT_FRAME' }, ember: { frame: 'EMBER_FRAME' },
+    }, {
+        crescent: { frame: 'OUTLINED_CRESCENT_FRAME' }, ember: { frame: 'OUTLINED_EMBER_FRAME' },
+    });
     nativeTrails.burst('zorua', 14, 22, 0.6, 'projectile-trail-zorua');
     const nativeZoruaSlot = nativeTrails.slots[0];
     if (!nativeZoruaSlot?.ps.reset || nativeZoruaSlot.ps.spriteFrame !== 'OUTLINED_CRESCENT_FRAME'
@@ -1023,6 +1047,14 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
         || !hoohAreaSlot?.ps.reset || hoohAreaSlot.ps.totalParticles !== 5
         || hoohAreaSlot.ps.startColor.r !== 255 || hoohAreaSlot.ps.startColor.g !== 112) {
         throw new Error('signature area particles must resolve native glyph and palette from each Mega/legendary form');
+    }
+    nativeTrails.burst('striker', 30, 40, 0, 'blaziken-charge-trail', 'blaziken');
+    const blazikenTrailSlot = nativeTrails.slots.find((slot) => slot.frameKey === 'ember');
+    if (!blazikenTrailSlot?.ps.reset || blazikenTrailSlot.ps.spriteFrame !== 'OUTLINED_EMBER_FRAME'
+        || blazikenTrailSlot.ps.totalParticles !== 8 || blazikenTrailSlot.ps.emissionRate !== 420
+        || blazikenTrailSlot.ps.startSize !== 36 || blazikenTrailSlot.ps.angle !== 180
+        || blazikenTrailSlot.ps.startColor.r !== 255 || blazikenTrailSlot.ps.startColor.g !== 112) {
+        throw new Error('Mega Blaziken charge must use the visible, backward-directed native ember emitter');
     }
     const impactFamilies = [...signatureProjectileFamilies, 'vivillon', 'cutiefly'];
     const signatureImpactPresets = impactFamilies.map((famId) => projectileImpactPresetForFamily(famId));
@@ -2074,6 +2106,7 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
         dead: new Uint8Array(2), grid: { query (_x, _y, _r, out) { out.length = 0; out.push(0, 1); } },
         hurt (id, damage) { this.hp[id] -= damage; },
     };
+    const blazikenBursts = [];
     const game = {
         level: 1, build: { dmg: 1 }, enemies: enemy,
         player: { x: 0, y: 0, vx: 0, vy: 0 }, aimWorld: { x: 1000, y: 0 },
@@ -2082,7 +2115,7 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
             return { active: true, area: true, x, y, radius, angle: options.angle,
                 duration: options.duration, age: 0, form: _form, shape: options.shape };
         },
-        particleBursts: { burst () {} }, logEvent () {}, kick () {}, say () {},
+        particleBursts: { burst (...args) { blazikenBursts.push(args); } }, logEvent () {}, kick () {}, say () {},
     };
     if (!form || !module || skill.shape !== 'charge-channel' || skill.duration !== 10
         || typeof module.cast !== 'function' || typeof module.step !== 'function'
@@ -2112,6 +2145,10 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
     if (segment.megaSkillActive !== 0 || segment.megaSkillHits < 1
         || enemy.hp[0] >= 1e9 || enemy.hp[1] !== 1e9 || segment.megaSkillCd !== skill.cooldown) {
         throw new Error(`Mega Blaziken ten-second charge/direction regression: active=${segment.megaSkillActive}, hits=${segment.megaSkillHits}`);
+    }
+    const chargeTrailBursts = blazikenBursts.filter((entry) => entry[4] === 'blaziken-charge-trail');
+    if (chargeTrailBursts.length < 100 || chargeTrailBursts.some((entry) => entry[5] !== 'blaziken')) {
+        throw new Error(`Mega Blaziken must leave a sustained ember wake during its channel: ${chargeTrailBursts.length} bursts`);
     }
     console.log('超级火焰鸡：10秒自动闪焰冲锋、实时转向、玩家路径胶囊伤害与火焰尾迹 PASS');
 }

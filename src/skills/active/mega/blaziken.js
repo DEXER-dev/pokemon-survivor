@@ -119,7 +119,7 @@ export function step (game, seg, dt, form, skill) {
         game.particleBursts.burst(seg.fam,
             nextX - Math.cos(angle) * skill.radius * 0.42,
             nextY - Math.sin(angle) * skill.radius * 0.42,
-            angle, 'trail', form.id);
+            angle, 'blaziken-charge-trail', form.id);
     }
 
     if (seg.megaSkillActive <= 0) {
