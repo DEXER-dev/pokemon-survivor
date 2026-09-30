@@ -404,6 +404,7 @@ export function createGame (cc) {
 
             // The browser harness drives ticks directly, so it needs a handle on the live game.
             window.__game = this;
+            window.dispatchEvent(new Event('pokemon-survivor-game-ready'));
         }
 
         onDestroy () {
@@ -1410,6 +1411,11 @@ export function createGame (cc) {
         }
 
         chooseLevel (i) {
+            if (!this.levelUp || i < 0 || i >= this.levelUp.length) return false;
+            return this.panel.select(i);
+        }
+
+        applyLevelChoice (i) {
             if (!this.levelUp || i < 0 || i >= this.levelUp.length) return false;
             const choice = this.levelUp[i];
             const text = take(choice, this.build, this.ctx);
@@ -3353,13 +3359,15 @@ export function createGame (cc) {
             }
             const t0 = performance.now();
             if (dt > 0.2) dt = 0.2;
+            const modalAtFrameStart = !!(this.levelUp || this.furnace.open || this.evolutionReward.open
+                || this.dynamaxSelector.open || this.zCrystalSelector.open);
+            const completedLevelChoice = this.panel.update(dt);
+            if (completedLevelChoice >= 0) this.applyLevelChoice(completedLevelChoice);
             this.setMusicMode(this.player.dead ? null
                 : this.legendaryMap.active ? 'legendary'
                     : this.trainerBoss.active ? 'trainer' : 'field');
             // Keep the modal state from before processing input: choosing the final card closes
             // `levelUp` immediately, but that same click/key must never fall through to field play.
-            const modalAtFrameStart = !!(this.levelUp || this.furnace.open || this.evolutionReward.open
-                || this.dynamaxSelector.open || this.zCrystalSelector.open);
             this.want = this.input.sample(dt);
             const touchUiBlocked = modalAtFrameStart || this.levelUp || this.furnace.open
                 || this.evolutionReward.open || this.dynamaxSelector.open || this.zCrystalSelector.open;
@@ -3403,7 +3411,8 @@ export function createGame (cc) {
             } else if (this.levelUp) {
                 // Frozen: 1/2/3 or a click on a card. A click anywhere else is swallowed, never passed
                 // on to 【掷】, so a mis-click cannot spend a throw the player did not mean.
-                this.panel.hover = this.panel.hit(ptr.x, ptr.y);
+                if (w.pointerMoved) this.panel.setHover(this.panel.hit(ptr.x, ptr.y));
+                if (w.nav) this.panel.moveFocus(w.nav);
                 if (w.num) this.chooseLevel(w.num - 1);
                 else if (w.tap) this.chooseLevel(this.panel.hover);
             } else if (this.furnace.open) {

@@ -10,11 +10,13 @@ export class Input {
         this.catc = catc;
         this.keys = Object.create(null);
         this.pointer = { x: 0, y: 0, down: false, seen: false };
+        this.pointerMoved = false;
         this.touch = { x: 0, y: 0, aimX: 1, aimY: 0, aimSeen: false, firing: false };
         this.press = { active: false, ms: 0, moved: 0 };
         this.tap = false;
         this.keyTap = false;
         this.numTap = 0;
+        this.menuNavTap = 0;
         this.held = false;
         this.ignoreFireUntilRelease = false;
         this.actionBindings = new Map();
@@ -56,6 +58,8 @@ export class Input {
             this.press.active = false;
             this.held = false;
             this.ignoreFireUntilRelease = false;
+            this.menuNavTap = 0;
+            this.pointerMoved = false;
         };
         this._edge = (code, down) => {
             const K = this.cc.KeyCode;
@@ -64,6 +68,8 @@ export class Input {
             // held number through multiple options in one frame. Most screens use 1–4; the boss
             // evolution reward pages up to eight party links at once.
             if (down && code >= K.DIGIT_1 && code <= K.DIGIT_9) this.numTap = code - K.DIGIT_1 + 1;
+            if (down && (code === K.ARROW_LEFT || code === K.KEY_A)) this.menuNavTap = -1;
+            if (down && (code === K.ARROW_RIGHT || code === K.KEY_D)) this.menuNavTap = 1;
         };
         this._move = (e) => {
             const p = e.getUILocation();
@@ -73,6 +79,7 @@ export class Input {
             this.pointer.x = x;
             this.pointer.y = y;
             this.pointer.seen = true;
+            this.pointerMoved = true;
         };
         this._down = (e) => {
             this._move(e);
@@ -158,6 +165,8 @@ export class Input {
         const { input, Input: EV } = this.cc;
         this.touch.x = this.touch.y = 0;
         this.touch.firing = false;
+        this.pointerMoved = false;
+        this.menuNavTap = 0;
         if (this._nativeTarget) {
             this._nativeTarget.removeEventListener('keydown', this._key, true);
             this._nativeTarget.removeEventListener('keyup', this._keyUp, true);
@@ -229,6 +238,10 @@ export class Input {
         this.keyTap = false;
         const num = this.numTap;
         this.numTap = 0;
-        return { tap, hold: this.held, num };
+        const nav = this.menuNavTap;
+        this.menuNavTap = 0;
+        const pointerMoved = this.pointerMoved;
+        this.pointerMoved = false;
+        return { tap, hold: this.held, num, nav, pointerMoved };
     }
 }

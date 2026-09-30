@@ -18,6 +18,9 @@ const assetLoading = document.getElementById('assetLoading');
 const assetProgressBar = document.getElementById('assetProgressBar');
 const assetProgressText = document.getElementById('assetProgressText');
 const assetLoadingMessage = document.getElementById('assetLoadingMessage');
+const gameReadyPromise = new Promise((resolve) => {
+    window.addEventListener('pokemon-survivor-game-ready', () => resolve(window.__game), { once: true });
+});
 const updateAssetProgress = (complete, total, failed) => {
     const percent = total ? Math.floor((complete / total) * 100) : 100;
     assetProgressBar.style.width = `${percent}%`;
@@ -413,7 +416,6 @@ try {
       });
       titleScreen.hidden = true;
       startButton.disabled = true;
-      cc.game.pause();
       fitFrame();
       document.getElementById('boot').style.display = 'none';
       document.getElementById('GameDiv').style.display = '';
@@ -428,17 +430,19 @@ try {
         document.getElementById('hint').style.display = 'none';
         fitFrame();
         assetLoading.hidden = false;
-        assetLoadingMessage.textContent = '正在读取宝可梦精灵图…';
+        assetLoadingMessage.textContent = '正在启动游戏场景…';
         void (async () => {
+            const game = await gameReadyPromise;
+            cc.game.pause();
+            assetLoadingMessage.textContent = '正在读取宝可梦精灵图…';
             const imageResult = await initialImagesPromise;
-            assetLoadingMessage.textContent = '正在创建游戏纹理…';
             assetProgressBar.style.width = '100%';
             assetProgressBar.parentElement.setAttribute('aria-valuenow', '100');
             assetProgressText.textContent = imageResult.failed
                 ? `${imageResult.failed} 张图片不可用，将使用默认图形继续`
                 : `${imageResult.loaded} 张图片已读取`;
-            const game = window.__game;
             if (!game || !game.visualAssetsReadyPromise) throw new Error('游戏精灵图集尚未初始化');
+            assetLoadingMessage.textContent = '正在创建游戏纹理…';
             await game.visualAssetsReadyPromise;
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             assetLoading.hidden = true;
