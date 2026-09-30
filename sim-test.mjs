@@ -81,9 +81,9 @@ const TAU = Math.PI * 2;
         }
     }
     class AudioSource {
-        constructor () { this.volume = 0; this.clip = null; this.loop = false; this.played = 0; this.stopped = 0; }
-        play () { this.played++; }
-        stop () { this.stopped++; }
+        constructor () { this.volume = 0; this.clip = null; this.loop = false; this.played = 0; this.stopped = 0; this.playing = false; }
+        play () { this.played++; this.playing = true; }
+        stop () { this.stopped++; this.playing = false; }
     }
     class Node {
         constructor (name) { this.name = name; this.children = []; }
@@ -110,6 +110,53 @@ const TAU = Math.PI * 2;
         throw new Error('music must fade out and stop on game over');
     }
     manager.destroy();
+
+    const savedWindow = globalThis.window;
+    let nextFrameId = 0;
+    const animationFrames = new Map();
+    globalThis.window = {
+        requestAnimationFrame (callback) {
+            const id = ++nextFrameId;
+            animationFrames.set(id, callback);
+            return id;
+        },
+        cancelAnimationFrame (id) { animationFrames.delete(id); },
+    };
+    const flushFrame = (elapsed) => {
+        const callbacks = [...animationFrames.values()];
+        animationFrames.clear();
+        const now = performance.now() + elapsed;
+        for (const callback of callbacks) callback(now);
+    };
+    const interruptedManager = new MusicManager(cc, new Node('InterruptedMusicTest'));
+    try {
+        interruptedManager.setMode('title');
+        flushFrame(901);
+        interruptedManager.setMode('field');
+        flushFrame(360);
+        interruptedManager.setMode('trainer');
+        if (interruptedManager.sources.filter((source) => source.playing).length !== 1
+            || !interruptedManager.sources.some((source) => source.playing
+                && source.clip.url.endsWith(MUSIC_TRACKS.trainer))) {
+            throw new Error('trainer BGM must replace field music without playing both at once');
+        }
+        flushFrame(901);
+        interruptedManager.setMode('field');
+        if (interruptedManager.sources.filter((source) => source.playing).length !== 1
+            || !interruptedManager.sources.some((source) => source.playing
+                && source.clip.url.endsWith(MUSIC_TRACKS.field))) {
+            throw new Error('leaving trainer BGM must stop it before field music starts');
+        }
+        flushFrame(901);
+        interruptedManager.setMode('trainer');
+        if (interruptedManager.sources.filter((source) => source.playing).length !== 1) {
+            throw new Error('re-entering trainer BGM after interrupted transitions must not leave a second track');
+        }
+    } finally {
+        interruptedManager.destroy();
+        if (savedWindow === undefined) delete globalThis.window;
+        else globalThis.window = savedWindow;
+    }
     console.log('背景音乐：标题、野外、训练家与神兽曲目齐全；循环、切换与停止 PASS');
 }
 // Combat audio routes through event categories, then collapses a dense frame to at most one cue.

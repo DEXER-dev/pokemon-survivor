@@ -1,4 +1,4 @@
-/** Looping background music with a small two-source crossfade, independent of the game tick. */
+/** Looping BGM with short crossfades, and exclusive single-track switches for trainer battles. */
 export const MUSIC_TRACKS = Object.freeze({
     title: 'bgm-title.ogg',
     field: 'bgm-field.mp3',
@@ -48,25 +48,56 @@ export class MusicManager {
         if (mode === this.mode) {
             if (this.fade) return;
             if (mode && (this.current < 0 || this.sources[this.current].clip !== this.clips[mode])
-                && this.clips[mode]) this._transition(mode);
+                && this.clips[mode]) this._transition(mode, mode === 'trainer');
             return;
         }
+        const exclusive = mode === 'trainer' || this.mode === 'trainer';
         this.mode = mode;
-        this._transition(mode);
+        this._transition(mode, exclusive);
     }
 
-    _transition (mode) {
+    _transition (mode, exclusive = false) {
         if (this.destroyed) return;
         const interrupted = this.fade;
         if (this.raf && typeof window !== 'undefined') window.cancelAnimationFrame(this.raf);
         this.raf = 0;
         this.fade = null;
 
-        // If a transition was interrupted, retain its loudest source as the outgoing track.
-        if (this.current < 0 && interrupted) {
-            this.current = interrupted.from >= 0 && (interrupted.to < 0
-                || this.sources[interrupted.from].volume >= this.sources[interrupted.to].volume)
-                ? interrupted.from : interrupted.to;
+        if (exclusive) {
+            // Trainer BGM has a strong melody of its own; overlaying it with field music makes
+            // the encounter sound like two arrangements playing at once. Stop both channels before
+            // starting this mode, even if an earlier crossfade was interrupted.
+            const incoming = this.current >= 0 ? 1 - this.current : 0;
+            for (const source of this.sources) {
+                source.volume = 0;
+                source.stop();
+            }
+            this.current = -1;
+            if (!mode) return;
+            const clip = this.clips[mode];
+            if (!clip) return; // Loading is async; the callback retries the latest requested mode.
+            const next = this.sources[incoming];
+            next.clip = clip;
+            next.loop = true;
+            try {
+                next.play();
+            } catch (err) {
+                console.warn('[audio] BGM playback was blocked:', err && err.message || err);
+                return;
+            }
+            this._fade(-1, incoming, TRACK_VOLUME[mode] || 0.18);
+            return;
+        }
+
+        // If a transition was interrupted, continue from the source that is actually loudest,
+        // rather than trusting `current`, which is finalized only after a fade completes.
+        if (interrupted) {
+            const candidates = [interrupted.from, interrupted.to]
+                .filter((index) => index >= 0 && this.sources[index].clip);
+            if (candidates.length) {
+                this.current = candidates.reduce((loudest, index) =>
+                    this.sources[index].volume > this.sources[loudest].volume ? index : loudest);
+            }
         }
         const outgoing = this.current;
         if (!mode) {
@@ -76,7 +107,15 @@ export class MusicManager {
         }
         const clip = this.clips[mode];
         if (!clip) return; // Loading is async; the callback retries the latest requested mode.
-        if (outgoing >= 0 && this.sources[outgoing].clip === clip) return;
+        if (outgoing >= 0 && this.sources[outgoing].clip === clip) {
+            if (interrupted) {
+                const other = 1 - outgoing;
+                if (this.sources[other].clip) {
+                    this._fade(other, outgoing, TRACK_VOLUME[mode] || 0.18);
+                }
+            }
+            return;
+        }
 
         const incoming = outgoing < 0 ? 0 : 1 - outgoing;
         for (let i = 0; i < this.sources.length; i++) {
