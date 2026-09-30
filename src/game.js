@@ -203,7 +203,7 @@ export function createGame (cc) {
             // used before, so a missing asset degrades to the old look instead of to a blank field.
             this.icons = false;
             this.iconAtlas = null;
-            loadIconAtlas(cc, iconKeys()).then((a) => {
+            this.iconAtlasPromise = loadIconAtlas(cc, iconKeys()).then((a) => {
                 Object.assign(this.atlas.glyphs, a.glyphs);
                 this.iconAtlas = a;
                 this.icons = true;
@@ -220,7 +220,7 @@ export function createGame (cc) {
                 const savedStarter = window.localStorage.getItem('pokemon-survivor-starter');
                 if (STARTER_BY_FAMILY.has(savedStarter)) this.startingPokemon = savedStarter;
             } catch (_) { /* Storage is optional; use Bulbasaur as the default. */ }
-            loadLucasAtlas(cc).then((a) => {
+            this.lucasSpritesPromise = loadLucasAtlas(cc).then((a) => {
                 Object.assign(this.atlas.glyphs, a.glyphs);
                 this.lucasReady = true;
             }).catch((err) => console.warn('[player] staying greybox:', err && err.message));
@@ -233,22 +233,30 @@ export function createGame (cc) {
                 return false;
             });
             this.pokeball = null;
-            loadPokeball(cc).then((ball) => {
+            this.pokeballPromise = loadPokeball(cc).then((ball) => {
                 this.atlas.glyphs.pokeball = ball;
                 this.pokeball = ball;
                 if (this.hud) this.hud.setBallFrame(ball.frame);
             }).catch((err) => console.warn('[pokeball] staying greybox:', err && err.message));
             this.megaAssets = null;
-            loadMegaStoneAtlas(cc, MEGA_FORMS).then((assets) => {
+            this.megaAssetsPromise = loadMegaStoneAtlas(cc, MEGA_FORMS).then((assets) => {
                 Object.assign(this.atlas.glyphs, assets.glyphs);
                 this.megaAssets = assets;
                 if (this.panel) this.panel.setMegaStoneFrames(assets.frames);
             }).catch((err) => console.warn('[mega] stone art unavailable:', err && err.message));
             this.upgradeItemAssets = null;
-            loadUpgradeItemAtlas(cc, LEVELS).then((assets) => {
+            this.upgradeItemAssetsPromise = loadUpgradeItemAtlas(cc, LEVELS).then((assets) => {
                 this.upgradeItemAssets = assets;
                 if (this.panel) this.panel.setUpgradeItemFrames(assets.frames);
             }).catch((err) => console.warn('[upgrade-icons] item icons unavailable:', err && err.message));
+            this.visualAssetsReadyPromise = Promise.all([
+                this.iconAtlasPromise,
+                this.lucasSpritesPromise,
+                this.trainerSpritesPromise,
+                this.pokeballPromise,
+                this.megaAssetsPromise,
+                this.upgradeItemAssetsPromise,
+            ]).then(() => true);
 
             const backdrop = new cc.Node('Backdrop');
             backdrop.layer = cc.Layers.Enum.UI_2D;

@@ -418,13 +418,42 @@ const FIT = (CELL / 2 - PAD) * 2;
  */
 const MAX_ZOOM = 4;
 
+const PNG_CACHE = new Map();
+
 function loadPng (src) {
-    return new Promise((resolve, reject) => {
+    if (PNG_CACHE.has(src)) return PNG_CACHE.get(src);
+    const promise = new Promise((resolve, reject) => {
         const im = new Image();
         im.onload = () => resolve(im);
         im.onerror = () => reject(new Error(`icon ${src} failed to load`));
         im.src = src;
     });
+    PNG_CACHE.set(src, promise);
+    return promise;
+}
+
+/** Preload a bounded set of images and report settled files for the boot loading screen. */
+export async function preloadImages (paths, onProgress = null) {
+    const sources = [...new Set(paths.filter((path) => typeof path === 'string' && path.length))];
+    let next = 0;
+    let complete = 0;
+    let failed = 0;
+    const worker = async () => {
+        while (next < sources.length) {
+            const index = next++;
+            try {
+                await loadPng(sources[index]);
+            } catch (err) {
+                failed++;
+                console.warn(`[assets] ${sources[index]} unavailable:`, err && err.message);
+            } finally {
+                complete++;
+                if (onProgress) onProgress(complete, sources.length, failed);
+            }
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(12, sources.length) }, worker));
+    return { total: sources.length, loaded: sources.length - failed, failed };
 }
 
 /** Lucas is a 4×4 overworld sheet: rows face down/left/right/up, columns are walk frames. */
@@ -654,7 +683,14 @@ function alphaBox (data, w, x0, y0, x1, y1) {
  *          for the shiny half - merged into the greybox atlas by the caller, not by this function.
  */
 export async function loadIconAtlas (cc, keys) {
-    const imgs = await Promise.all(keys.map((k) => loadPng(`${ICON_DIR}${k}.png`)));
+    const imgs = await Promise.all(keys.map(async (key) => {
+        try {
+            return await loadPng(`${ICON_DIR}${key}.png`);
+        } catch (err) {
+            console.warn(`[icons] ${key} unavailable; keeping its fallback glyph:`, err && err.message);
+            return null;
+        }
+    }));
     const scratch = document.createElement('canvas');
     scratch.width = 128;
     scratch.height = 64;
@@ -669,6 +705,7 @@ export async function loadIconAtlas (cc, keys) {
 
     const placed = [];
     imgs.forEach((img, i) => {
+        if (!img) return;
         sx.clearRect(0, 0, 128, 64);
         // Icon sheets are normally 128×64, but a few supplied forms use a larger canvas
         // with the same 2:1 layout. Fit those sheets before splitting normal/shiny halves;

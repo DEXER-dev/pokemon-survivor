@@ -5,10 +5,41 @@
 import { installBuiltin2DMaterials } from './builtin-materials.js';
 import { VIEW, COL, CHAIN, SIM } from './src/config.js';
 import { hexToRgb } from './src/batch.js';
+import { preloadImages } from './src/atlas.js';
 import { createGame } from './src/game.js';
 import { TRAINER_SPRITES } from './src/trainer-sprites.js';
 import { STARTER_POKEMON, STARTER_GENERATIONS } from './src/starter-pokemon.js';
+import { iconKeys } from './src/species.js';
+import { MEGA_FORMS } from './src/mega.js';
+import { LEVELS } from './src/upgrades.js';
 import { installDex } from './src/dex.js';
+
+const assetLoading = document.getElementById('assetLoading');
+const assetProgressBar = document.getElementById('assetProgressBar');
+const assetProgressText = document.getElementById('assetProgressText');
+const assetLoadingMessage = document.getElementById('assetLoadingMessage');
+const updateAssetProgress = (complete, total, failed) => {
+    const percent = total ? Math.floor((complete / total) * 100) : 100;
+    assetProgressBar.style.width = `${percent}%`;
+    assetProgressBar.parentElement.setAttribute('aria-valuenow', String(percent));
+    assetProgressText.textContent = `${complete} / ${total} 张图片${failed ? ` · ${failed} 张未能载入` : ''}`;
+};
+const upgradeAssetPath = (icon) => {
+    if (!icon || ['DYNAMAXBAND', 'ZPOWERBAND', 'RARECANDY'].includes(icon)) return null;
+    if (icon === 'POKEBALL') return 'assets/items/POKEBALL.png';
+    if (icon === 'AUSTRALIANMOUSE') return 'assets/icons/TANDEMAUS.png';
+    return `assets/items/upgrades/${icon}.png`;
+};
+const initialImagePaths = [
+    ...iconKeys().map((key) => `assets/icons/${key}.png`),
+    ...STARTER_POKEMON.map((starter) => `assets/icons/${starter.icon}.png`),
+    'assets/player/NPC_198_Lucas.png',
+    ...TRAINER_SPRITES.map((trainer) => `assets/trainers/${trainer.file}`),
+    'assets/items/POKEBALL.png',
+    ...MEGA_FORMS.map((form) => `assets/items/mega/${form.stone}.png`),
+    ...LEVELS.map((entry) => upgradeAssetPath(entry.icon)),
+];
+const initialImagesPromise = preloadImages(initialImagePaths, updateAssetProgress);
 
 // Dev cheats (M/T/Y/N/[ ]/F/B/H/L) stay dormant in normal play; append ?debug to the URL to arm them.
 try { if (new URLSearchParams(location.search).has('debug')) SIM.debugKeys = true; } catch (_) { /* optional */ }
@@ -19,6 +50,8 @@ function fail (err) {
         status.textContent = '启动失败：' + (err && err.message ? err.message : err);
         status.style.color = '#ff8b8b';
     }
+    if (assetLoadingMessage) assetLoadingMessage.textContent = '游戏资源初始化失败';
+    if (assetProgressText) assetProgressText.textContent = err && err.message ? err.message : String(err);
     console.error(err);
 }
 
@@ -378,7 +411,8 @@ try {
           controls[(index + (event.shiftKey ? controls.length - 1 : 1)) % controls.length].focus();
         }
       });
-      titleScreen.hidden = false;
+      titleScreen.hidden = true;
+      startButton.disabled = true;
       cc.game.pause();
       fitFrame();
       document.getElementById('boot').style.display = 'none';
@@ -393,7 +427,25 @@ try {
             + (SIM.debugKeys ? ' · DEBUG：L 获得澳大利亚老鼠' : '');
         document.getElementById('hint').style.display = 'none';
         fitFrame();
-        startButton.focus();
+        assetLoading.hidden = false;
+        assetLoadingMessage.textContent = '正在读取宝可梦精灵图…';
+        void (async () => {
+            const imageResult = await initialImagesPromise;
+            assetLoadingMessage.textContent = '正在创建游戏纹理…';
+            assetProgressBar.style.width = '100%';
+            assetProgressBar.parentElement.setAttribute('aria-valuenow', '100');
+            assetProgressText.textContent = imageResult.failed
+                ? `${imageResult.failed} 张图片不可用，将使用默认图形继续`
+                : `${imageResult.loaded} 张图片已读取`;
+            const game = window.__game;
+            if (!game || !game.visualAssetsReadyPromise) throw new Error('游戏精灵图集尚未初始化');
+            await game.visualAssetsReadyPromise;
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            assetLoading.hidden = true;
+            titleScreen.hidden = false;
+            startButton.disabled = false;
+            startButton.focus();
+        })().catch(fail);
     });
 } catch (err) {
     fail(err);

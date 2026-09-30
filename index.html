@@ -59,6 +59,25 @@
     .game-modal-open #mobileTouchControls { display: none !important; }
     #hint { max-width: calc(100vw - 24px); font-size: 13px; line-height: 1.25; opacity: .65; text-align: center; }
     #boot { font-size: 14px; }
+    #assetLoading { position: fixed; z-index: 10000; inset: 0; display: grid; place-items: center;
+      box-sizing: border-box; padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+      color: #f8f4ff; text-align: center; background: radial-gradient(ellipse at 50% 36%, #30254c, #171626 72%); }
+    #assetLoading[hidden] { display: none; }
+    .asset-loading-card { width: min(390px, 100%); padding: 30px 26px 24px; box-sizing: border-box;
+      border: 1px solid rgba(229,214,255,.22); border-radius: 20px;
+      background: linear-gradient(155deg, rgba(37,30,58,.96), rgba(23,24,42,.96));
+      box-shadow: 0 20px 60px rgba(0,0,0,.4), inset 0 1px rgba(255,255,255,.08); }
+    .asset-loading-orb { width: 38px; height: 38px; margin: 0 auto 14px; border: 3px solid rgba(198,181,244,.26);
+      border-top-color: #ffd978; border-right-color: #ba9aff; border-radius: 50%; animation: asset-spin .9s linear infinite; }
+    .asset-loading-kicker { margin: 0 0 8px; color: #c6b5f4; font-size: 10px; font-weight: 800; letter-spacing: .2em; }
+    #assetLoadingMessage { margin: 0; font-size: clamp(18px, 4vw, 22px); line-height: 1.4; }
+    .asset-progress-track { height: 10px; margin: 22px 0 10px; overflow: hidden; border: 1px solid rgba(220,211,255,.22);
+      border-radius: 999px; background: rgba(12,12,24,.72); }
+    #assetProgressBar { display: block; width: 0; height: 100%; border-radius: inherit;
+      background: linear-gradient(90deg, #a98af2, #ffe08a); transition: width .12s ease-out; }
+    #assetProgressText { min-height: 20px; margin: 0; color: #c9c1d9; font-size: 12px; }
+    @keyframes asset-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .asset-loading-orb { animation-duration: 2.5s; } #assetProgressBar { transition: none; } }
     #titleScreen { position: absolute; z-index: 5; inset: 0; display: grid; place-items: center;
       align-content: safe center; justify-content: safe center;
       box-sizing: border-box; overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
@@ -220,6 +239,17 @@
   <link rel="stylesheet" href="./dex.css">
 </head>
 <body>
+  <div id="assetLoading" role="status" aria-label="游戏资源加载中">
+    <div class="asset-loading-card">
+      <div class="asset-loading-orb" aria-hidden="true"></div>
+      <p class="asset-loading-kicker">POKÉMON · SURVIVOR</p>
+      <h1 id="assetLoadingMessage" aria-live="polite">正在准备宝可梦精灵图…</h1>
+      <div class="asset-progress-track" role="progressbar" aria-label="游戏图片加载进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <span id="assetProgressBar"></span>
+      </div>
+      <p id="assetProgressText">正在连接游戏资源…</p>
+    </div>
+  </div>
   <div id="wrap">
     <div id="boot">正在加载引擎…</div>
     <div id="GameDiv" style="display:none">
