@@ -1577,11 +1577,31 @@ console.log('调试按键门禁：默认关闭 · 仅 ?debug 参数可启用 PAS
         || segment.gigantamax !== 'meowth' || chain.lastAbsorbPromotions.length !== 0) {
         throw new Error('catching Persian must add to Gigantamax Meowth without promoting or clearing its form');
     }
+    const pikachuChain = new ChainSystem(null, CHAIN);
+    pikachuChain.reset(0, 0);
+    pikachuChain.add('bean', 2, 3);
+    const pikachu = pikachuChain.segments[0];
+    const [pikachuCard] = gigantamaxCardsFor(pikachuChain, { stacks: {} });
+    if (!pikachuCard || pikachuCard.gmaxForm !== 'pikachu') {
+        throw new Error('eligible Pikachu should receive its Gigantamax form card');
+    }
+    pikachuCard.apply();
+    const pikachuGate = evolveGate(pikachu, { cores: 99 });
+    if (!gigantamaxLocksEvolution(pikachu) || !pikachuGate.blocked
+        || pikachuChain.evolve(0, { cores: 99 }) !== null || pikachuChain.evolveReward(0) !== null
+        || pikachuChain.absorb('bean', 3) !== 'top-stack' || pikachu.tier !== 2 || pikachu.count !== 4
+        || pikachu.gigantamax !== 'pikachu') {
+        throw new Error('Gigantamax Pikachu must not become Raichu or lose its form when Raichu is caught');
+    }
     const ordinary = { fam: 'cat', tier: 1, count: 3 };
     if (gigantamaxLocksEvolution(ordinary) || !evolveGate(ordinary, { cores: 99 }).ok) {
         throw new Error('ordinary Meowth evolution should remain available without Gigantamax');
     }
-    console.log('超极巨喵喵：手动/自动/奖励进化锁定，抓到猫老大时保留喵喵形态 PASS');
+    const nonFinalForms = GIGANTAMAX_FORMS.filter((form) => !lineTop(form.fam, form.tier));
+    if (nonFinalForms.length !== 2 || nonFinalForms.some((form) => !form.evolutionLocked)) {
+        throw new Error('every non-final Gigantamax form must explicitly lock evolution');
+    }
+    console.log('超极巨喵喵/皮卡丘：手动/自动/奖励进化锁定，抓到高阶段同族时保留形态 PASS');
 }
 
 // Runtime runs use a fresh seed, while a saved seed must still reproduce the same opening wild species.
