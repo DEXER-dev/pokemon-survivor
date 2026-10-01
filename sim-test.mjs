@@ -74,7 +74,7 @@ import { Z_MOVE_PARTICLE_PRESETS } from './src/skills/particles/z-moves.js';
 import { Input } from './src/input.js';
 
 const TAU = Math.PI * 2;
-// BGM is kept on a separate looping channel and changes by game state without interrupting SFX.
+// BGM uses one looping source so a stale field track can never overlap the trainer track.
 {
     for (const file of Object.values(MUSIC_TRACKS)) {
         if (!existsSync(new URL(`./assets/audio/${file}`, import.meta.url))) {
@@ -97,17 +97,19 @@ const TAU = Math.PI * 2;
     };
     const manager = new MusicManager(cc, new Node('Game'));
     manager.setMode('title');
-    if (manager.current !== 0 || manager.sources[0].volume !== 0.19
+    if (manager.sources.length !== 1 || manager.current !== 0 || manager.sources[0].volume !== 0.19
         || !manager.sources[0].loop || !manager.sources[0].played) {
         throw new Error('title BGM must loop and start at its configured volume');
     }
     manager.setMode('trainer');
-    if (manager.current !== 1 || manager.sources[1].clip.url.endsWith(MUSIC_TRACKS.trainer) !== true
-        || manager.sources[0].volume !== 0 || !manager.sources[0].stopped) {
-        throw new Error('trainer BGM must crossfade over and stop the title source');
+    if (manager.current !== 0 || !manager.sources[0].clip.url.endsWith(MUSIC_TRACKS.trainer)
+        || !manager.sources[0].playing || manager.sources[0].volume !== 0.20
+        || manager.sources[0].stopped < 1) {
+        throw new Error('trainer BGM must replace the previous clip on the sole music source');
     }
     manager.setMode(null);
-    if (manager.current !== -1 || manager.sources[1].volume !== 0 || !manager.sources[1].stopped) {
+    if (manager.current !== -1 || manager.sources[0].volume !== 0 || manager.sources[0].playing
+        || !manager.sources[0].stopped) {
         throw new Error('music must fade out and stop on game over');
     }
     manager.destroy();
@@ -136,28 +138,43 @@ const TAU = Math.PI * 2;
         interruptedManager.setMode('field');
         flushFrame(360);
         interruptedManager.setMode('trainer');
-        if (interruptedManager.sources.filter((source) => source.playing).length !== 1
-            || !interruptedManager.sources.some((source) => source.playing
-                && source.clip.url.endsWith(MUSIC_TRACKS.trainer))) {
-            throw new Error('trainer BGM must replace field music without playing both at once');
+        if (interruptedManager.sources.length !== 1 || interruptedManager.sources[0].playing !== true
+            || !interruptedManager.sources[0].clip.url.endsWith(MUSIC_TRACKS.trainer)) {
+            throw new Error('trainer BGM must replace field music on the sole source during an interrupted fade');
         }
         flushFrame(901);
         interruptedManager.setMode('field');
-        if (interruptedManager.sources.filter((source) => source.playing).length !== 1
-            || !interruptedManager.sources.some((source) => source.playing
-                && source.clip.url.endsWith(MUSIC_TRACKS.field))) {
+        if (interruptedManager.sources.length !== 1 || !interruptedManager.sources[0].playing
+            || !interruptedManager.sources[0].clip.url.endsWith(MUSIC_TRACKS.field)) {
             throw new Error('leaving trainer BGM must stop it before field music starts');
         }
         flushFrame(901);
         interruptedManager.setMode('trainer');
-        if (interruptedManager.sources.filter((source) => source.playing).length !== 1) {
-            throw new Error('re-entering trainer BGM after interrupted transitions must not leave a second track');
+        if (interruptedManager.sources.length !== 1 || !interruptedManager.sources[0].playing) {
+            throw new Error('re-entering trainer BGM must keep a single active track');
         }
     } finally {
         interruptedManager.destroy();
         if (savedWindow === undefined) delete globalThis.window;
         else globalThis.window = savedWindow;
     }
+    const delayedLoads = Object.create(null);
+    const delayedCc = { Node, AudioSource,
+        assetManager: { loadRemote (url, _options, callback) { delayedLoads[url.split('/').pop()] = callback; } } };
+    const delayedManager = new MusicManager(delayedCc, new Node('DelayedMusicTest'));
+    delayedManager.setMode('field');
+    delayedManager.setMode('trainer');
+    delayedLoads[MUSIC_TRACKS.field](null, { url: `assets/audio/${MUSIC_TRACKS.field}` });
+    if (delayedManager.sources[0].playing) {
+        throw new Error('a late field-track load must not start after the requested trainer mode changed');
+    }
+    delayedLoads[MUSIC_TRACKS.trainer](null, { url: `assets/audio/${MUSIC_TRACKS.trainer}` });
+    if (delayedManager.sources.length !== 1 || delayedManager.current !== 0
+        || !delayedManager.sources[0].playing
+        || !delayedManager.sources[0].clip.url.endsWith(MUSIC_TRACKS.trainer)) {
+        throw new Error('a delayed trainer-track load must start alone after field playback was stopped');
+    }
+    delayedManager.destroy();
     console.log('背景音乐：标题、野外、训练家与神兽曲目齐全；循环、切换与停止 PASS');
 }
 // Combat audio routes through event categories, then collapses a dense frame to at most one cue.
