@@ -8,6 +8,7 @@
 import { family, DPS, VIEW, FAMILIES } from './config.js';
 import { segDps } from './combat.js';
 import { evoCeil, stepOf, condText } from './species.js';
+import { gigantamaxLocksEvolution } from './gigantamax.js';
 
 const isLegendaryFamily = (famId) => typeof famId === 'string' && famId.startsWith('legend-');
 
@@ -39,6 +40,11 @@ export function lineTop (famId, tier) {
  */
 export function evolveGate (seg, have) {
     if (!seg) return { ok: false, top: false, short: '', miss: [], why: '', text: '' };
+    if (gigantamaxLocksEvolution(seg)) {
+        const why = '超极巨化期间不能进化';
+        return { ok: false, top: false, blocked: true, st: null, q: 0, cores: 0, sec: 0,
+            miss: [why], short: why, text: why, why };
+    }
     // Read the 节圆 ceiling's own predicate rather than re-deriving it: the two disagreeing is how a link
     // can be told to be finished and still be priced for its next 阶.
     const st = lineTop(seg.fam, seg.tier) ? null : stepOf(seg.fam, seg.tier);
@@ -267,10 +273,12 @@ export class ChainSystem {
                 if (this.hasCatchCompanions(s)) s.companions = (s.companions || 0) + 1;
                 return lineTop(famId, s.tier) ? 'top-stack' : 'stack';
             }
-            if (lineTop(famId, s.tier)
+            const locked = gigantamaxLocksEvolution(s);
+            if ((lineTop(famId, s.tier) || locked)
                 && (!finalTarget || s.tier > finalTarget.tier)) finalTarget = s;
-            const canEvolve = !lineTop(famId, s.tier);
-            const targetCanEvolve = familyTarget && !lineTop(famId, familyTarget.tier);
+            const canEvolve = !lineTop(famId, s.tier) && !locked;
+            const targetCanEvolve = familyTarget && !lineTop(famId, familyTarget.tier)
+                && !gigantamaxLocksEvolution(familyTarget);
             if (!familyTarget || (canEvolve && !targetCanEvolve)
                 || (canEvolve === targetCanEvolve && s.tier > familyTarget.tier)) familyTarget = s;
         }
@@ -500,7 +508,7 @@ export class ChainSystem {
         let best = null;
         for (const s of this.segments) {
             const g = evolveGate(s, have);
-            if (g.cores > 0 || g.top) continue;
+            if (g.cores > 0 || g.top || g.blocked) continue;
             const thr = this.autoThresholdAt(g.q);
             const road = this.coldFoldable(s, g.q);
             const cand = road
@@ -528,7 +536,7 @@ export class ChainSystem {
     /** A boss reward grants one real Pokédex step without charging its normal pile/currency cost. */
     evolveReward (i) {
         const seg = this.segments[i];
-        if (!seg || lineTop(seg.fam, seg.tier)) return null;
+        if (!seg || lineTop(seg.fam, seg.tier) || gigantamaxLocksEvolution(seg)) return null;
         seg.tier += 1;
         seg.age = 0;
         return { ...this.mergeStageAt(i), spent: 0 };

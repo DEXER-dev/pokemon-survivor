@@ -10,7 +10,7 @@ import {
 import { SpriteBatch, Palette } from './batch.js';
 import { buildGreyboxAtlas, loadIconAtlas, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas } from './atlas.js';
 import { MEGA_FORMS, MEGA_BY_ID, megaFormForSegment } from './mega.js';
-import { GIGANTAMAX_BY_ID, gigantamaxFormForSegment } from './gigantamax.js';
+import { GIGANTAMAX_BY_ID, gigantamaxFormForSegment, gigantamaxLocksEvolution } from './gigantamax.js';
 import { FORM as HO_OH_SKILL_FORM } from './skills/active/legendary/ho-oh.js';
 import { iconKey, iconKeys, shinyKey, BOSS_SPECIES, displayName, dexText, typeText } from './species.js';
 import { Input } from './input.js';
@@ -1680,13 +1680,13 @@ export function createGame (cc) {
             const choices = [];
             for (let i = 0; i < this.chain.segments.length; i++) {
                 const seg = this.chain.segments[i];
-                if (!lineTop(seg.fam, seg.tier)) choices.push({ index: i, seg });
+                if (!lineTop(seg.fam, seg.tier) && !gigantamaxLocksEvolution(seg)) choices.push({ index: i, seg });
             }
             if (!choices.length) {
                 // A final-stage-only roster cannot use a stage-evolution reward; do not invent a new form.
                 this.say(source === 'rare-candy'
                     ? '队伍里没有可进化的精灵 · 奇异糖果已退回'
-                    : '全队都已到进化终点 · 本次没有可选的进化奖励', 4);
+                    : '队伍里没有可进化的精灵 · 本次没有可选的进化奖励', 4);
                 if (source === 'rare-candy') this.build.stacks.rareCandy = 0;
                 return false;
             }

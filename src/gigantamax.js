@@ -41,6 +41,11 @@ export function gigantamaxFormForSegment (seg) {
     return form && form.fam === seg.fam && form.tier === seg.tier ? form : null;
 }
 
+/** Some special forms cannot evolve without losing their identity (currently Gigantamax Meowth). */
+export function gigantamaxLocksEvolution (seg) {
+    return !!gigantamaxFormForSegment(seg)?.evolutionLocked;
+}
+
 /** Guaranteed level-up unlock for each currently present, canon-eligible Gmax species. */
 export function gigantamaxCardsFor (chain, build) {
     if (!chain || !Array.isArray(chain.segments)) return [];
@@ -52,7 +57,9 @@ export function gigantamaxCardsFor (chain, build) {
             const id = `gigantamax-${form.id}`;
             if ((build.stacks[id] || 0) > 0) continue;
             cards.push({
-                id, max: 1, name: form.label, note: '解锁超极巨形态 · 体型大幅成长 · 专属区域技能',
+                id, max: 1, name: form.label,
+                note: form.evolutionLocked ? '超极巨化期间不能进化 · 保留喵喵形态与专属技能'
+                    : '解锁超极巨形态 · 体型大幅成长 · 专属区域技能',
                 delta: () => `变为${form.name} · 按 Q 选择、X 释放`,
                 gmaxForm: form.id, gmaxSegment: seg,
                 apply: () => {

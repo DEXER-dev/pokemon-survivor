@@ -46,7 +46,8 @@ import {
     fieldEffectForFamily, orbitCoreGlyphForFamily, beamEffectForFamily, slashEffectForFamily,
 } from './src/skills/registry.js';
 import { GRENINJA_PARTICLE_PRESETS } from './src/skills/particles/greninja.js';
-import { GIGANTAMAX_FORMS, GIGANTAMAX_SKILLS, gigantamaxCardsFor, gigantamaxFormForSegment } from './src/gigantamax.js';
+import { GIGANTAMAX_FORMS, GIGANTAMAX_SKILLS, gigantamaxCardsFor, gigantamaxFormForSegment,
+    gigantamaxLocksEvolution } from './src/gigantamax.js';
 import { PlayLog } from './src/play-log.js';
 import { SKILL_INFO, PROJECTILE_GLYPH, PROJECTILE_EFFECT } from './src/skill-info.js';
 import { STARTER_GENERATIONS, STARTER_POKEMON } from './src/starter-pokemon.js';
@@ -1544,7 +1545,43 @@ console.log('调试按键门禁：默认关闭 · 仅 ?debug 参数可启用 PAS
         || !lineTop('mush', 3)) {
         throw new Error('Rare Candy must grant exactly one free stage and preserve the party count');
     }
+    const lockedChain = new ChainSystem(null, CHAIN);
+    lockedChain.reset(0, 0);
+    lockedChain.add('cat', 1, 1);
+    lockedChain.segments[0].gigantamax = 'meowth';
+    if (available(candy, new Build(), { chain: lockedChain })) {
+        throw new Error('Rare Candy must not be offered when the only evolving link is Gigantamax Meowth');
+    }
     console.log('奇异糖果：仅可进化队伍时出现、一次性、免费进化一阶段且保留数量 PASS');
+}
+
+// Gigantamax Meowth keeps its species identity across every evolution and family-catch path.
+{
+    const chain = new ChainSystem(null, CHAIN);
+    chain.reset(0, 0);
+    chain.add('cat', 1, 3);
+    const segment = chain.segments[0];
+    const [card] = gigantamaxCardsFor(chain, { stacks: {} });
+    if (!card || card.gmaxForm !== 'meowth'
+        || !card.note.includes('不能进化')) throw new Error('Gigantamax Meowth should explain its evolution lock');
+    card.apply();
+    const gate = evolveGate(segment, { cores: 99 });
+    if (!gigantamaxLocksEvolution(segment) || gate.ok || !gate.blocked
+        || gate.why !== '超极巨化期间不能进化'
+        || chain.findEvolve({ cores: 99 }) !== -1 || chain.findAuto({ cores: 99 }) !== -1
+        || chain.evolve(0, { cores: 99 }) !== null || chain.evolveReward(0) !== null
+        || chain.autoShort({ cores: 99 }) !== null) {
+        throw new Error('Gigantamax Meowth must be excluded from manual, automatic, and reward evolution');
+    }
+    if (chain.absorb('cat', 2) !== 'top-stack' || segment.tier !== 1 || segment.count !== 4
+        || segment.gigantamax !== 'meowth' || chain.lastAbsorbPromotions.length !== 0) {
+        throw new Error('catching Persian must add to Gigantamax Meowth without promoting or clearing its form');
+    }
+    const ordinary = { fam: 'cat', tier: 1, count: 3 };
+    if (gigantamaxLocksEvolution(ordinary) || !evolveGate(ordinary, { cores: 99 }).ok) {
+        throw new Error('ordinary Meowth evolution should remain available without Gigantamax');
+    }
+    console.log('超极巨喵喵：手动/自动/奖励进化锁定，抓到猫老大时保留喵喵形态 PASS');
 }
 
 // Runtime runs use a fresh seed, while a saved seed must still reproduce the same opening wild species.

@@ -6,7 +6,7 @@
 
 import { BALL, CATCH, CHAIN, PPM } from './config.js';
 import { megaCardsFor } from './mega.js';
-import { gigantamaxCardsFor } from './gigantamax.js';
+import { gigantamaxCardsFor, gigantamaxLocksEvolution } from './gigantamax.js';
 import { lineTop } from './chain.js';
 import { AUSTRALIAN_MOUSE_INTERVAL, australianMouseCount, grantAustralianMouse } from './items/australian-mouse.js';
 
@@ -289,7 +289,8 @@ export const LEVELS = [
         max: 1,
         delta: () => '选择一只可进化的队伍精灵，免费进化一阶段',
         note: '传说道具：不消耗同族数量，进化后保留原有队伍数量',
-        done: (b, x) => !x || !x.chain || !x.chain.segments.some((seg) => !lineTop(seg.fam, seg.tier)),
+        done: (b, x) => !x || !x.chain || !x.chain.segments.some((seg) =>
+            !lineTop(seg.fam, seg.tier) && !gigantamaxLocksEvolution(seg)),
         apply: () => {},
     },
     {
