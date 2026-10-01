@@ -2907,13 +2907,19 @@ const enemies = new EnemySystem(ENEMY, makeRng(SEED));
     }
     trainerWave.direct(0.5, 1, 0, trainerWave.arenaX, trainerWave.arenaY, 500, () => 0, true);
     trainerWave.update(1 / 60, trainerWave.arenaX, trainerWave.arenaY, 500);
-    let audienceRows = 0;
-    for (let i = 0; i < trainerWave.n; i++) if (trainerWave.arenaLayer[i] < 2) audienceRows++;
-    if (trainerWave.n !== 102 || trainerWave.trainerWatchCount !== BOSS.watchMaxCount
-        || trainerWave.trainerWatchCount <= lowRateAudience || audienceRows !== trainerWave.n) {
-        throw new Error(`trainer audience should scale/promote with spawn rate: ${audienceRows}/${trainerWave.n}`);
+    let audienceRows = 0, innerAudience = 0, outerAudience = 0;
+    for (let i = 0; i < trainerWave.n; i++) {
+        if (trainerWave.arenaLayer[i] === 0) { audienceRows++; innerAudience++; }
+        else if (trainerWave.arenaLayer[i] === 1) { audienceRows++; outerAudience++; }
     }
-    console.log(`Trainer audience scales with spawn cadence: ${lowRateAudience} → ${trainerWave.trainerWatchCount} target places, existing/new mobs join visible rings: PASS`);
+    if (trainerWave.n !== 102 || trainerWave.trainerWatchCount !== BOSS.watchMaxCount
+        || trainerWave.trainerWatchCount <= lowRateAudience
+        || audienceRows !== trainerWave.trainerAudienceCapacity() || audienceRows >= trainerWave.n
+        || innerAudience > trainerWave.trainerAudienceRingCapacity(0)
+        || outerAudience > trainerWave.trainerAudienceRingCapacity(1)) {
+        throw new Error(`trainer audience should scale, respect ring spacing, and leave excess wilds in the backdrop: ${audienceRows}/${trainerWave.n} (inner ${innerAudience}/${trainerWave.trainerAudienceRingCapacity(0)}, outer ${outerAudience}/${trainerWave.trainerAudienceRingCapacity(1)}, target ${trainerWave.trainerWatchCount})`);
+    }
+    console.log(`Trainer audience scales with spawn cadence: ${lowRateAudience} → ${trainerWave.trainerWatchCount} target places; ${audienceRows} stay in spaced rings, overflow moves to distant backdrop: PASS`);
     console.log(`Uncapped horde growth probe: PASS (${probe.n} direct spawns; ${wave.n} in one wave; trainer perimeter refreshes at normal cadence)`);
     console.log('Trainer battle perimeter: wild Pokémon stay outside the arena ring: PASS');
 }

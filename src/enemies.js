@@ -239,6 +239,22 @@ export class EnemySystem {
         return i;
     }
 
+    /** One audience ring's visual capacity; excess wilds remain in the distant backdrop. */
+    trainerAudienceRingCapacity (layer) {
+        const bodyR = this.cfg.radius * 1.14;
+        const spacing = Math.max(BOSS.watchSpacing, bodyR * 3);
+        const target = this.arenaR + bodyR * (layer === 0 ? 3.6 : 6.8);
+        return Math.max(1, Math.floor(TAU * target / spacing));
+    }
+
+    trainerAudienceCapacity () {
+        return this.trainerAudienceRingCapacity(0) + this.trainerAudienceRingCapacity(1);
+    }
+
+    trainerAudienceInnerSlots (visible) {
+        return Math.min(this.trainerAudienceRingCapacity(0), Math.ceil(visible / 2));
+    }
+
     /** Assign stable audience slots once when the trainer arena opens, minimizing crossed paths. */
     prepareTrainerGather () {
         const rows = [];
@@ -248,8 +264,8 @@ export class EnemySystem {
             rows.push({ i, angle });
         }
         rows.sort((a, b) => a.angle - b.angle);
-        const visible = Math.min(this.trainerWatchCount, rows.length);
-        const perRing = Math.ceil(visible / 2);
+        const visible = Math.min(this.trainerWatchCount, this.trainerAudienceCapacity(), rows.length);
+        const perRing = this.trainerAudienceInnerSlots(visible);
         let rank = 0;
         for (let layer = 0; layer < 2 && rank < visible; layer++) {
             const count = Math.min(perRing, visible - rank);
@@ -599,10 +615,19 @@ export class EnemySystem {
         const g = this.grid;
         g.clear();
         if (this.trainerActive) {
-            let wild = 0;
             let wildCount = 0;
-            for (let i = 0; i < this.n; i++) if (!this.dead[i] && !this.trainer[i]) wildCount++;
-            const visible = Math.min(this.trainerWatchCount, wildCount);
+            let innerAudience = 0;
+            let outerAudience = 0;
+            for (let i = 0; i < this.n; i++) {
+                if (this.dead[i] || this.trainer[i]) continue;
+                wildCount++;
+                if (!this.arenaAssigned[i]) continue;
+                if (this.arenaLayer[i] === 0) innerAudience++;
+                else if (this.arenaLayer[i] === 1) outerAudience++;
+            }
+            const visible = Math.min(this.trainerWatchCount, this.trainerAudienceCapacity(), wildCount);
+            const innerSlots = this.trainerAudienceInnerSlots(visible);
+            const outerSlots = visible - innerSlots;
             const hiddenRadius = this.arenaR + Math.max(ring * 1.25, 700);
             for (let i = 0; i < this.n; i++) {
                 if (this.dead[i]) continue;
@@ -614,13 +639,25 @@ export class EnemySystem {
                 }
                 if (!this.arenaAssigned[i]) {
                     this.arenaAngle[i] = Math.atan2(this.y[i] - this.arenaY, this.x[i] - this.arenaX);
-                    this.arenaLayer[i] = wild < visible
-                        ? (wild < Math.ceil(visible / 2) ? 0 : 1) : 2;
+                    if (innerAudience < innerSlots) {
+                        this.arenaLayer[i] = 0;
+                        innerAudience++;
+                    } else if (outerAudience < outerSlots) {
+                        this.arenaLayer[i] = 1;
+                        outerAudience++;
+                    } else this.arenaLayer[i] = 2;
                     this.arenaAssigned[i] = 1;
-                } else if (this.arenaLayer[i] === 2 && wild < visible) {
+                } else if (this.arenaLayer[i] === 2
+                    && (innerAudience < innerSlots || outerAudience < outerSlots)) {
                     // As the refresh rate rises, promote the nearer share of the accumulated horde
                     // from the far backdrop into the two visible audience rings.
-                    this.arenaLayer[i] = wild < Math.ceil(visible / 2) ? 0 : 1;
+                    if (innerAudience < innerSlots) {
+                        this.arenaLayer[i] = 0;
+                        innerAudience++;
+                    } else if (outerAudience < outerSlots) {
+                        this.arenaLayer[i] = 1;
+                        outerAudience++;
+                    }
                 }
                 const layer = this.arenaLayer[i];
                 const targetRadius = layer === 0
@@ -647,7 +684,6 @@ export class EnemySystem {
                 this.y[i] = this.arenaY + Math.sin(angle) * radius;
                 this.vx[i] = this.vy[i] = 0;
                 g.insert(i, this.x[i], this.y[i]);
-                wild++;
             }
             return;
         }

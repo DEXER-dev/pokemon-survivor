@@ -342,10 +342,12 @@ export const BOSS = {
     projectileRadius: 10,
     projectileWarning: 0.62,
     // Two close perimeter bands; enough wilds to make the trainer arena feel encircled without
-    // placing them inside the clear fighting floor.
+    // placing them inside the clear fighting floor. Keep about one sprite-width of breathing room:
+    // the rest of a large horde stays in the distant backdrop instead of stacking over the audience.
     watchCount: 60,
     watchRateSeconds: 2.5,
     watchMaxCount: 300,
+    watchSpacing: 44,
     watchSpeed: 360,
     // Default for later encounters: the old 200× budget folded in seconds against a strong chain.
     // Early encounters override this with smaller values so their fights fit their one-minute cadence.
