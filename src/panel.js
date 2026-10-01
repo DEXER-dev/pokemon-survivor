@@ -103,6 +103,7 @@ export class Panel {
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         this.enterTime = this.reduceMotion ? 0.12 : ENTER_TIME;
         this.enterStagger = this.reduceMotion ? 0.015 : ENTER_STAGGER;
+        this.settleTime = this.reduceMotion ? 0.06 : 0.12;
         this.selectTime = this.reduceMotion ? 0.12 : SELECT_TIME;
     }
 
@@ -216,6 +217,24 @@ export class Panel {
                 c.opacity.opacity = Math.round(255 * fade);
             }
             if (this.elapsed >= this.enterTime + this.enterStagger * (Math.max(0, this.opts.length - 1))) {
+                this.phase = 'settling';
+                this.elapsed = 0;
+            }
+        } else if (this.phase === 'settling') {
+            this.backgroundAlpha = 184;
+            this.headerOpacity.opacity = 255;
+            this.header.setPosition(0, 0, 0);
+            for (let i = 0; i < this.cards.length; i++) {
+                const c = this.cards[i];
+                if (!c.node.active) continue;
+                const target = i === this.hover ? 1 : 0;
+                c.focus += (target - c.focus) * (1 - Math.exp(-Math.max(0, dt) * 14));
+                const scale = 1 + c.focus * (this.reduceMotion ? 0.015 : 0.035);
+                c.node.setPosition(c.x, c.y + c.focus * (this.reduceMotion ? 0 : 5), 0);
+                c.node.setScale(scale, scale, 1);
+                c.opacity.opacity = 255;
+            }
+            if (this.elapsed >= this.settleTime) {
                 this.phase = 'open';
                 this.elapsed = 0;
             }
@@ -273,7 +292,7 @@ export class Panel {
 
     /** Keyboard and pointer focus share the same highlighted card. */
     setHover (index) {
-        if (this.phase !== 'entering' && this.phase !== 'open') return false;
+        if (this.phase !== 'open') return false;
         const next = Number.isInteger(index) && index >= 0 && index < this.opts.length ? index : -1;
         if (next !== this.hover) {
             this.hover = next;
@@ -283,7 +302,7 @@ export class Panel {
     }
 
     moveFocus (direction) {
-        if ((this.phase !== 'entering' && this.phase !== 'open') || !this.opts.length) return false;
+        if (this.phase !== 'open' || !this.opts.length) return false;
         const start = this.hover < 0 ? (direction > 0 ? -1 : 0) : this.hover;
         const next = (start + (direction > 0 ? 1 : -1) + this.opts.length) % this.opts.length;
         if (next !== this.hover) {
@@ -295,8 +314,7 @@ export class Panel {
 
     /** Start the chosen-card confirmation, keeping the run paused until update() returns its index. */
     select (i) {
-        if ((this.phase !== 'entering' && this.phase !== 'open')
-            || !Number.isInteger(i) || i < 0 || i >= this.opts.length) return false;
+        if (this.phase !== 'open' || !Number.isInteger(i) || i < 0 || i >= this.opts.length) return false;
         this.selected = i;
         this.hover = i;
         this.phase = 'selecting';
@@ -308,7 +326,7 @@ export class Panel {
 
     /** View-space pointer, same space the Input records - so a card is clickable where it is drawn. */
     hit (x, y) {
-        if (!this.open || (this.phase !== 'entering' && this.phase !== 'open')) return -1;
+        if (!this.open || this.phase !== 'open') return -1;
         for (let i = 0; i < this.opts.length; i++) {
             const c = this.cards[i];
             const pos = c.node.position;

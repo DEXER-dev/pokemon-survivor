@@ -22,6 +22,7 @@ import { CaptureSfx } from './src/capture-sfx.js';
 import { CombatSfx, resolveCombatSound } from './src/combat-sfx.js';
 import { UpgradeSfx, resolveUpgradeSound } from './src/upgrade-sfx.js';
 import { EvolutionReward } from './src/evolution-reward.js';
+import { Panel } from './src/panel.js';
 import { MusicManager, MUSIC_TRACKS } from './src/music-manager.js';
 import { CombatSystem, segDps, chainDps, nodeBonus, hitRect, hitHeart } from './src/combat.js';
 import { createGame } from './src/game.js';
@@ -266,6 +267,86 @@ const TAU = Math.PI * 2;
     audio.destroy();
     if (audio.play('confirm', 600)) throw new Error('destroyed upgrade UI audio must stay silent');
     console.log('升级界面音效：开场、焦点、确认、退场四类音效与限频 PASS');
+}
+// Level-up input is locked until the staggered reveal settles, so the key that was down on entry cannot select a card.
+{
+    class UITransform { setContentSize () {} }
+    class UIOpacity { constructor () { this.opacity = 255; } }
+    class Graphics {}
+    class Label {
+        static HorizontalAlign = { LEFT: 0, RIGHT: 1, CENTER: 2 };
+        static VerticalAlign = { CENTER: 0 };
+        static Overflow = { NONE: 0, SHRINK: 1 };
+        constructor () { this.string = ''; }
+    }
+    class Sprite { static SizeMode = { CUSTOM: 0 }; }
+    class Color { constructor (r, g, b, a) { Object.assign(this, { r, g, b, a }); } }
+    class Node {
+        constructor (name) {
+            this.name = name;
+            this.children = [];
+            this.components = new Map();
+            this.position = { x: 0, y: 0, z: 0 };
+            this.scale = { x: 1, y: 1, z: 1 };
+            this.active = true;
+        }
+        addChild (node) { this.children.push(node); node.parent = this; }
+        setPosition (x, y, z) { this.position = { x, y, z }; }
+        setScale (x, y, z) { this.scale = { x, y, z }; }
+        addComponent (Type) {
+            const component = new Type();
+            component.node = this;
+            this.components.set(Type, component);
+            if (Type !== UITransform && !this.components.has(UITransform)) {
+                const transform = new UITransform();
+                transform.node = this;
+                this.components.set(UITransform, transform);
+            }
+            return component;
+        }
+        getComponent (Type) { return this.components.get(Type) || null; }
+    }
+    const cc = { Node, Color, Graphics, UIOpacity, Label, Sprite,
+        UITransform, Layers: { Enum: { UI_2D: 1 } } };
+    const panel = new Panel(cc, new Node('parent'), { get: (color, alpha) => ({ color, alpha }) });
+    const options = Array.from({ length: 3 }, (_, i) => ({ id: `test-${i}`, name: `强化 ${i + 1}`,
+        rarity: 'common', delta: () => '+1', note: '回归测试', max: 1 }));
+    panel.show('Lv 2', options, { stacks: {} }, {});
+    if (panel.phase !== 'entering' || panel.select(0) || panel.moveFocus(1)
+        || panel.setHover(2) || panel.hit(0, 0) !== -1) {
+        throw new Error('Upgrade panel must ignore keyboard and pointer input during its reveal');
+    }
+    panel.update(0.2);
+    panel.update(0.2);
+    panel.update(0.2);
+    if (panel.phase !== 'settling' || panel.select(0) || panel.moveFocus(1)) {
+        throw new Error('Upgrade panel must keep input locked during its short post-reveal settle');
+    }
+    panel.update(0.12);
+    if (panel.phase !== 'open' || !panel.moveFocus(1) || panel.hover !== 1
+        || !panel.select(1) || panel.phase !== 'selecting') {
+        throw new Error('Upgrade panel must become fully keyboard navigable after its reveal');
+    }
+    console.log('升级选项防误触：入场动画期间屏蔽输入，动画完成后恢复选择 PASS');
+}
+// Gaining the first pending level starts a short transition grace; a batch of levels shares that timer.
+{
+    const Game = createGame({ Component: class {} });
+    const game = Object.create(Game.prototype);
+    Object.assign(game, {
+        exp: 0, level: 1, pending: 0, upgradeRevealDelay: 0,
+        build: { expMul: 1, balls: 0 },
+        player: { dead: false, hp: 10, maxhp: 10 },
+        kick () {},
+    });
+    game.gainExp(EXP(game.level));
+    const firstDelay = game.upgradeRevealDelay;
+    game.gainExp(EXP(game.level));
+    if (game.pending !== 2 || firstDelay < 0.3 || firstDelay > 0.35
+        || game.upgradeRevealDelay !== firstDelay) {
+        throw new Error('Level-up reveal grace must start once and not restart for queued levels');
+    }
+    console.log('升级选项缓冲：首次升级延迟出现，连续升级共用同一缓冲 PASS');
 }
 // Evolution reward choices animate in, retain keyboard focus, page, then apply only after exit.
 {

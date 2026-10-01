@@ -63,6 +63,7 @@ import { AUSTRALIAN_MOUSE_INTERVAL, australianMouseCount, stepAustralianMouse } 
 const TAU = Math.PI * 2;
 const TIER_GLYPH = ['circle', 'hex', 'star', 'diamond'];
 const MOB_GLYPH = ['blob', 'square', 'hex', 'star'];
+const UPGRADE_REVEAL_DELAY = 0.32;
 let dexPreviewSimulation = null;
 let pauseAfterDexRestore = false;
 
@@ -480,6 +481,7 @@ export function createGame (cc) {
             this.cores = 0;
             // §7.1: the gene is the other half of a 4 阶's price, and the 3:00 BOSS is its only source.
             this.pending = 0;
+            this.upgradeRevealDelay = 0;
             this.levelUp = null;
             this.panel.hide();
             this.furnace.hide();
@@ -1390,6 +1392,7 @@ export function createGame (cc) {
                 this.emptyAmmoNotified = false;
                 // Every level grants a fixed supply of balls; this automatic refill is separate from
                 // throw-stat upgrade cards. The heal remains the other free level-up reward.
+                if (this.pending === 0) this.upgradeRevealDelay = UPGRADE_REVEAL_DELAY;
                 this.pending++;
                 // EXP still pays out on the fatal frame (the last kill batch drains before the bite
                 // lands), but a level must not top a corpse back up: the death readout would show HP
@@ -1407,6 +1410,7 @@ export function createGame (cc) {
          * collapsing into one pick, which is what makes an early EXP burst a good moment.
          */
         openChoice () {
+            this.upgradeRevealDelay = 0;
             const opts = roll(this.build, this.ctx, this.rng);
             if (opts.length === 0) {
                 this.pending = 0;
@@ -3430,6 +3434,9 @@ export function createGame (cc) {
             if (dt > 0.2) dt = 0.2;
             const modalAtFrameStart = !!(this.levelUp || this.furnace.open || this.evolutionReward.open
                 || this.dynamaxSelector.open || this.zCrystalSelector.open);
+            if (!modalAtFrameStart && this.pending > 0 && !this.player.dead && this.upgradeRevealDelay > 0) {
+                this.upgradeRevealDelay = Math.max(0, this.upgradeRevealDelay - dt);
+            }
             const completedLevelChoice = this.panel.update(dt);
             if (completedLevelChoice >= 0) this.applyLevelChoice(completedLevelChoice);
             const completedEvolutionChoice = this.evolutionReward.update(dt);
@@ -3502,7 +3509,7 @@ export function createGame (cc) {
                 this.aimWorld.y = this.player.y;
                 w.tap = false;
                 this.press(cc.KeyCode.KEY_X);
-            } else if (this.pending > 0 && !this.player.dead) {
+            } else if (this.pending > 0 && !this.player.dead && this.upgradeRevealDelay <= 0) {
                 this.openChoice();
             }
 
