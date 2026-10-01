@@ -1046,7 +1046,8 @@ export function createGame (cc) {
 
         playCombatSkillSound (seg, form) {
             if (!this.combatSfx) return;
-            this.combatSfx.enqueue({ kind: 'mega-skill', fam: seg && seg.fam, megaId: form && form.id });
+            const kind = form && form.id === 'blaziken' ? 'blaziken-charge' : 'mega-skill';
+            this.combatSfx.enqueue({ kind, fam: seg && seg.fam, megaId: form && form.id });
             this.combatSfx.flush();
         }
 
@@ -1129,11 +1130,21 @@ export function createGame (cc) {
             this.shake = Math.min(0.6, this.shake + amount);
         }
 
+        /** Keep the bounded transient pool from recycling an active channel's persistent FX slot. */
+        nextMegaFx () {
+            for (let i = 0; i < MEGA_FX_MAX; i++) {
+                const fx = this.megaFx[this.megaFxSlot];
+                this.megaFxSlot = (this.megaFxSlot + 1) % MEGA_FX_MAX;
+                if (!fx.active || !fx.sustain) return fx;
+            }
+            return null;
+        }
+
         /** Bounded renderer-only accents for Mega launch and impact; no projectile or damage state. */
         megaBurstFx (event) {
             if (event.kind !== 'mega' && event.kind !== 'mega-hit') return;
-            const fx = this.megaFx[this.megaFxSlot];
-            this.megaFxSlot = (this.megaFxSlot + 1) % MEGA_FX_MAX;
+            const fx = this.nextMegaFx();
+            if (!fx) return;
             fx.active = true;
             fx.x = event.x;
             fx.y = event.y;
@@ -1152,8 +1163,8 @@ export function createGame (cc) {
         }
 
         megaSkillFx (form, x, y, radius, options = {}) {
-            const fx = this.megaFx[this.megaFxSlot];
-            this.megaFxSlot = (this.megaFxSlot + 1) % MEGA_FX_MAX;
+            const fx = this.nextMegaFx();
+            if (!fx) return null;
             fx.active = true;
             fx.x = x;
             fx.y = y;

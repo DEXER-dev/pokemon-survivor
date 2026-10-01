@@ -58,6 +58,10 @@ const resolveSound = (event) => {
         return { key: `mega-${element}`, file: elemental, volume: 0.22,
             priority: 1, cooldown: 900, globalCooldown: 220 };
     }
+    if (kind === 'blaziken-charge') {
+        return { key: 'blaziken-charge', file: 'combat-fire.ogg', volume: 0.52,
+            priority: 3, cooldown: 900, globalCooldown: 0 };
+    }
     if (kind === 'mega-skill' || kind === 'water-channel' || kind === 'z-fire-launch'
         || kind === 'z-water-launch' || kind === 'z-grass-launch' || kind === 'z-electric-launch'
         || (zMatch && zMatch[2] === 'launch')) {
@@ -109,23 +113,30 @@ export class CombatSfx {
     enqueue (event) {
         if (this.destroyed) return;
         const sound = resolveSound(event);
-        if (!sound || !this.clips[sound.file]) return;
+        if (!sound) return;
+        const queued = { ...sound, enqueuedAt: Date.now() };
+        if (!this.clips[sound.file] && sound.priority < 3) return;
         for (let i = 0; i < this.nPending; i++) {
             if (this.pending[i].key === sound.key) {
-                if (sound.priority > this.pending[i].priority) this.pending[i] = sound;
+                if (sound.priority > this.pending[i].priority) this.pending[i] = queued;
                 return;
             }
         }
-        if (this.nPending < this.pending.length) this.pending[this.nPending++] = sound;
+        if (this.nPending < this.pending.length) this.pending[this.nPending++] = queued;
     }
 
     flush (now = Date.now()) {
         if (this.destroyed || !this.nPending) return false;
         let best = -1;
         let bestPriority = -1;
+        const unloaded = [];
         for (let offset = 0; offset < this.nPending; offset++) {
             const i = (this.roundRobin + offset) % this.nPending;
             const sound = this.pending[i];
+            if (!this.clips[sound.file]) {
+                if (sound.priority >= 3 && Date.now() - sound.enqueuedAt <= 2500) unloaded.push(sound);
+                continue;
+            }
             if (now - (this.lastPlayed[sound.key] ?? -Infinity) < sound.cooldown
                 || (sound.priority < 3 && now - this.lastGlobal < sound.globalCooldown)) continue;
             if (sound.priority > bestPriority) {
@@ -133,9 +144,11 @@ export class CombatSfx {
                 bestPriority = sound.priority;
             }
         }
-        this.nPending = 0;
+        const selected = best >= 0 ? this.pending[best] : null;
+        this.nPending = unloaded.length;
+        for (let i = 0; i < unloaded.length; i++) this.pending[i] = unloaded[i];
         if (best < 0) return false;
-        const sound = this.pending[best];
+        const sound = selected;
         const clip = this.clips[sound.file];
         if (!clip) return false;
         this.lastPlayed[sound.key] = now;

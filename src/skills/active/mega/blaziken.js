@@ -45,7 +45,7 @@ export function cast (game, seg, form, skill, targetX, targetY) {
     seg.blazikenHitTimes = new Map();
     seg.blazikenTrailClock = 0;
     seg.blazikenFx = game.megaSkillFx(form, game.player.x, game.player.y, skill.radius,
-        { shape: 'blaziken-charge', angle: seg.megaSkillAngle, duration: skill.duration });
+        { shape: 'blaziken-charge', angle: seg.megaSkillAngle, duration: skill.duration, segment: seg });
     game.particleBursts.burst(seg.fam, game.player.x, game.player.y, seg.megaSkillAngle,
         'mega-skill', form.id);
 
@@ -167,5 +167,39 @@ export function drawPreview (game, g, form, skill, ready) {
 }
 
 export function drawEffect (game, batch, fx, skill, megaEffectStyle) {
-    // The firewake follows the live player position through bounded native particles.
+    const duration = Math.max(0.1, fx.duration || skill.duration);
+    const fadeIn = Math.min(1, Math.max(0, fx.age / 0.08));
+    const fadeOut = Math.min(1, Math.max(0, (duration - fx.age) / 0.2));
+    const envelope = fadeIn * fadeOut;
+    if (envelope <= 0) return;
+
+    const angle = fx.angle;
+    const ux = Math.cos(angle);
+    const uy = Math.sin(angle);
+    const nx = -uy;
+    const ny = ux;
+    const phase = fx.age;
+    const pulse = 0.5 + 0.5 * Math.sin(phase * 21);
+    const style = megaEffectStyle(fx.form);
+
+    // Keep a readable flame shell around the moving trainer sprite throughout the whole channel.
+    batch.draw('aura', fx.x, fx.y, 1.22 + pulse * 0.12, 1.02 + pulse * 0.08,
+        angle, game.pal.get('#ff5739', Math.round(112 * envelope)), false, style);
+    batch.draw('ring', fx.x, fx.y, 1.13 + pulse * 0.1, 0.9 + pulse * 0.08,
+        -phase * 2.2, game.pal.get('#ffd36e', Math.round(185 * envelope)), false, style);
+
+    // Five animated flame tongues stream behind the player, so the dash reads even when no
+    // ParticleSystem emitter lands on screen between sampled bursts.
+    for (let i = 0; i < 5; i++) {
+        const travel = (phase * 1.7 + i * 0.19) % 1;
+        const distance = 18 + travel * skill.radius * 2.35;
+        const wobble = Math.sin(phase * 13 + i * 2.4) * (3 + travel * 8);
+        const x = fx.x - ux * distance + nx * wobble;
+        const y = fx.y - uy * distance + ny * wobble;
+        const scale = 1.1 * (1 - travel * 0.42);
+        const alpha = Math.round((225 - travel * 92) * envelope);
+        const color = i % 2 ? '#ff7047' : '#ffd36e';
+        batch.draw('flame', x, y, scale * 1.28, scale * 0.58,
+            angle + Math.PI, game.pal.get(color, alpha), false, style);
+    }
 }

@@ -186,6 +186,8 @@ const TAU = Math.PI * 2;
         || resolveCombatSound({ kind: 'shot', fam: 'mush' })?.file !== 'combat-grass.ogg'
         || resolveCombatSound({ kind: 'shot', fam: 'totodile' })?.file !== 'combat-water.ogg'
         || resolveCombatSound({ kind: 'z-electric-launch' })?.file !== 'combat-electric.ogg'
+        || resolveCombatSound({ kind: 'blaziken-charge', fam: 'striker' })?.priority !== 3
+        || resolveCombatSound({ kind: 'blaziken-charge', fam: 'striker' })?.volume < 0.5
         || resolveCombatSound({ kind: 'flower-bloom', fam: 'sprigatito' })?.priority !== 2
         || resolveCombatSound({ kind: 'hit', fam: 'mush' }) !== null) {
         throw new Error('Combat sound routing must distinguish elements/signatures and keep ordinary impacts silent');
@@ -222,10 +224,19 @@ const TAU = Math.PI * 2;
     if (!audio.flush(1650) || played.length !== 3) {
         throw new Error('A ready active skill must not lose its release cue to the ordinary-sound limiter');
     }
+    audio.clips['combat-fire.ogg'] = null;
+    audio.enqueue({ kind: 'blaziken-charge', fam: 'striker' });
+    if (audio.flush(1700) || played.length !== 3) {
+        throw new Error('Mega Blaziken charge audio should wait briefly for its preloaded clip');
+    }
+    audio.clips['combat-fire.ogg'] = { url: 'assets/audio/combat-fire.ogg' };
+    if (!audio.flush(1800) || played.length !== 4 || played[3].volume < 0.5) {
+        throw new Error('Mega Blaziken must play its dedicated charge cue as soon as audio is ready');
+    }
     audio.enqueue({ kind: 'tandemaus-throw', fam: 'tandemaus' });
     audio.enqueue({ kind: 'tandemaus-throw', fam: 'tandemaus' });
-    if (!audio.flush(1900) || played.length !== 4 || !played[3].clip.endsWith('tandemaus-throw.ogg')
-        || played[3].volume <= 0 || audio.flush(2100) || played.length !== 4) {
+    if (!audio.flush(2200) || played.length !== 5 || !played[4].clip.endsWith('tandemaus-throw.ogg')
+        || played[4].volume <= 0 || audio.flush(2400) || played.length !== 5) {
         throw new Error('A Maushold volley must play one restrained throw cue, even when it has many bullets');
     }
     audio.destroy();
@@ -2328,7 +2339,8 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
         skillOrigin: () => ({ x: 0, y: 0 }),
         megaSkillFx (_form, x, y, radius, options) {
             return { active: true, area: true, x, y, radius, angle: options.angle,
-                duration: options.duration, age: 0, form: _form, shape: options.shape };
+                duration: options.duration, age: 0, form: _form, shape: options.shape,
+                segment: options.segment, sustain: !!options.segment };
         },
         particleBursts: { burst (...args) { blazikenBursts.push(args); } }, logEvent () {}, kick () {}, say () {},
     };
@@ -2338,6 +2350,28 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
         || typeof module.drawPreview !== 'function' || typeof module.drawEffect !== 'function'
         || !module.cast(game, segment, form, skill, 1000, 0)) {
         throw new Error('Mega Blaziken charge module registration regression');
+    }
+    if (!segment.blazikenFx.sustain || segment.blazikenFx.segment !== segment) {
+        throw new Error('Mega Blaziken persistent firewake must stay bound to the live charge channel');
+    }
+    const drawCalls = [];
+    game.pal = { get (color, alpha) { return { color, alpha }; } };
+    const batch = { draw (...args) { drawCalls.push(args); } };
+    segment.blazikenFx.age = 0.45;
+    module.drawEffect(game, batch, segment.blazikenFx, skill, () => 'mega-blaziken');
+    const firstFlames = drawCalls.filter((entry) => entry[0] === 'flame');
+    if (firstFlames.length !== 5 || !drawCalls.some((entry) => entry[0] === 'aura')
+        || firstFlames.some((entry) => entry[1] >= segment.blazikenFx.x)) {
+        throw new Error('Mega Blaziken must visibly render a flame wake behind the player during the charge');
+    }
+    const firstWakeX = firstFlames[0][1];
+    drawCalls.length = 0;
+    segment.blazikenFx.x = 80;
+    segment.blazikenFx.age = 0.8;
+    module.drawEffect(game, batch, segment.blazikenFx, skill, () => 'mega-blaziken');
+    const secondFlames = drawCalls.filter((entry) => entry[0] === 'flame');
+    if (secondFlames.length !== 5 || secondFlames[0][1] === firstWakeX) {
+        throw new Error('Mega Blaziken charge VFX must animate and follow the live player position');
     }
     let drive = module.playerDrive(game, segment, 0.1, form, skill);
     if (!drive || drive.x < 0.99 || Math.abs(drive.y) > 1e-6 || drive.speed <= 168) {
