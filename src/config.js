@@ -1132,7 +1132,7 @@ export const WILD_BOSS = {
     // party has assembled. They remain optional and catchable, but should not melt in one volley.
     hpMul: 400,
     radiusMul: 5.6,
-    // Keep the normal, readable wind-up; make the pursuit and recovery distinctly more assertive.
+    // Roaming legendaries approach steadily and use species-specific telegraphed moves for pressure.
     walkMul: 1.12,
     rest: 1.25,
 };

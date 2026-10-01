@@ -227,9 +227,8 @@ export class EnemySystem {
         this.arenaAngle[i] = 0;
         this.arenaLayer[i] = 0;
         this.arenaAssigned[i] = 0;
-        // A boss walks in and only starts winding up after one `rest`, so the arrival is readable before
-        // the first charge is ever committed. `elite` stays 0 on purpose: 虚弱 is the *capture* gate, and
-        // a body that can never be caught has no use for a capture window.
+        // A trainer boss walks in before using the shared charge state. Roaming legendaries use the
+        // species-specific telegraph system and keep this state idle. `elite` stays 0: 虚弱 is the capture gate.
         this.bph[i] = 0;
         this.btm[i] = (boss || wildBoss) ? BOSS.rest : 0;
         if (boss || wildBoss) this.bossN++;
@@ -542,11 +541,23 @@ export class EnemySystem {
      */
     _boss (i, dt, px, py) {
         const wildBoss = this.wildBoss[i] === 1;
-        this.btm[i] -= dt;
-        const ph = this.bph[i];
         const dx = px - this.x[i];
         const dy = py - this.y[i];
         const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        if (wildBoss) {
+            // Roaming legendaries keep a steady, readable approach; their species-specific area attacks
+            // carry the dodge pressure instead of stacking a generic dash on top of each signature.
+            const speed = this.cfg.speed * BOSS.walk * WILD_BOSS.walkMul;
+            this.vx[i] = (dx / d) * speed;
+            this.vy[i] = (dy / d) * speed;
+            this.x[i] += this.vx[i] * dt;
+            this.y[i] += this.vy[i] * dt;
+            this.bph[i] = 0;
+            this.btm[i] = 0;
+            return;
+        }
+        this.btm[i] -= dt;
+        const ph = this.bph[i];
         if (ph === 1) {
             // Held still, but the aim keeps tracking: what the renderer draws from vx/vy is the corridor
             // the player is being told to leave, so it has to point at them right now.

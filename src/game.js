@@ -36,6 +36,7 @@ import { SkillSystem } from './skills.js';
 import { NativeParticleBursts } from './particles.js';
 import { LegendaryLairs } from './legendary-lairs.js';
 import { LegendaryAttackSystem } from './legendary-attacks.js';
+import { drawLegendaryAttackPattern } from './legendary-attack-renderer.js';
 import { isLegendaryCompanion, legendaryBodyScale,
     stepLegendaryCompanionAttacks } from './skills/active/legendary/companion-bombardment.js';
 import { Build, LEVELS, roll, take, available } from './upgrades.js';
@@ -1328,7 +1329,7 @@ export function createGame (cc) {
             if (e.wildBoss[i]) {
                 const name = FAMILIES[e.fam[i]].name;
                 return e.wildBossReady[i] ? `野生强敌 ${name}已被击败 · 投球即可收服`
-                    : `野生强敌 ${name} · 高血量冲锋，可主动避开或用技能击败`;
+                    : `野生强敌 ${name} · 专属招式预警后发动，可主动躲避`;
             }
             if (e.boss[i] === 1) return `${BOSS.name} 不可捕捉 · 击败后可选进化奖励`;
             const fam = FAMILIES[e.fam[i]].id;
@@ -1467,9 +1468,12 @@ export function createGame (cc) {
             if (ev === 'wildboss') {
                 const family = FAMILIES[this.enemies.lastWildBossFam];
                 if (family) {
+                    const index = this.enemies.n - 1;
+                    this.legendaryAttacks.start(this.enemies.x[index], this.enemies.y[index], family.id,
+                        { wildBoss: true });
                     this.logEvent('wild-boss.spawn', { species: family.id, name: family.name,
-                        x: this.enemies.x[this.enemies.n - 1], y: this.enemies.y[this.enemies.n - 1] });
-                    this.say(`野生强敌「${family.name}」出现！它会猛烈冲锋，可以绕开，也可用主动技能击败后收服。`, 5);
+                        x: this.enemies.x[index], y: this.enemies.y[index] });
+                    this.say(`野生强敌「${family.name}」出现！它将释放专属招式，可以躲避攻击或将其击败后收服。`, 5);
                     this.kick(0.12);
                 }
                 return;
@@ -2101,11 +2105,14 @@ export function createGame (cc) {
             this.enemies.setProtectedFamilies(this.chain.segments, !!this.build.stacks.familyWard);
             this.enemies.update(dt, p.x, p.y, ring);
             let legendaryReady = false;
+            let lairBossIndex = -1;
+            let wildBossIndex = -1;
             let legendaryX = this.legendaryMap.x;
             let legendaryY = this.legendaryMap.y;
             if (this.legendaryMap.active) {
                 for (let i = 0; i < this.enemies.n; i++) {
                     if (this.enemies.legendary[i]) {
+                        lairBossIndex = i;
                         legendaryX = this.enemies.x[i];
                         legendaryY = this.enemies.y[i];
                         if (this.enemies.legendaryReady[i]) {
@@ -2114,57 +2121,69 @@ export function createGame (cc) {
                         }
                     }
                 }
+            } else if (this.legendaryAttacks.active && this.legendaryAttacks.wildBoss) {
+                for (let i = 0; i < this.enemies.n; i++) {
+                    if (this.enemies.wildBoss[i] && !this.enemies.dead[i]) {
+                        wildBossIndex = i;
+                        legendaryX = this.enemies.x[i];
+                        legendaryY = this.enemies.y[i];
+                        legendaryReady = !!this.enemies.wildBossReady[i];
+                        break;
+                    }
+                }
             }
-            if (legendaryReady) this.legendaryAttacks.active = false;
+            if (legendaryReady || (this.legendaryMap.active && lairBossIndex < 0)
+                || (this.legendaryAttacks.wildBoss && wildBossIndex < 0)) {
+                this.legendaryAttacks.active = false;
+            }
+            const bossAttackActive = this.legendaryMap.active
+                ? lairBossIndex >= 0 && !legendaryReady
+                : this.legendaryAttacks.wildBoss && wildBossIndex >= 0 && !legendaryReady;
+            const bossHpRatio = this.legendaryMap.active
+                ? (lairBossIndex >= 0 && this.enemies.maxhp[lairBossIndex] > 0
+                    ? this.enemies.hp[lairBossIndex] / this.enemies.maxhp[lairBossIndex] : 1)
+                : wildBossIndex >= 0 ? this.enemies.hp[wildBossIndex] / this.enemies.maxhp[wildBossIndex] : 1;
+            if (bossAttackActive && bossHpRatio <= 0.5 && !this.legendaryAttacks.phaseTwoAnnounced) {
+                this.legendaryAttacks.phaseTwoAnnounced = true;
+                const bossFamily = family(this.legendaryAttacks.family);
+                this.say(`${bossFamily ? bossFamily.name : '神兽'}进入第二阶段 · 下轮招式强化！`, 3.2);
+                this.wave(legendaryX, legendaryY, 12, 126, 0.58,
+                    ELEMENT[bossFamily && bossFamily.element] || WAVE_GOLD);
+                this.kick(0.16);
+            }
             const previousLegendaryPhase = this.legendaryAttacks.phase;
-            const legendaryAttack = this.legendaryMap.active && !legendaryReady
-                ? this.legendaryAttacks.step(dt, p.x, p.y, this.rng, legendaryX, legendaryY) : null;
-            if (this.legendaryMap.active && !legendaryReady
+            const legendaryAttack = bossAttackActive
+                ? this.legendaryAttacks.step(dt, p.x, p.y, this.rng, legendaryX, legendaryY, bossHpRatio) : null;
+            if (bossAttackActive
                 && previousLegendaryPhase !== 'warning' && this.legendaryAttacks.phase === 'warning') {
                 this.particleBursts.burst(this.legendaryAttacks.family, legendaryX, legendaryY,
                     this.legendaryAttacks.angle, 'legendary-attack-charge');
             }
             if (legendaryAttack) {
                 const fam = this.legendaryAttacks.family;
-                if (legendaryAttack.type === 'circle') {
-                    this.particleBursts.burst(fam, legendaryAttack.x, legendaryAttack.y,
-                        0, 'legendary-attack-impact');
-                } else if (legendaryAttack.type === 'tsunami') {
-                    // Keep the particle wash on the dangerous bank of Lugia's wave; its cyan safe lane
-                    // stays clear and remains exactly as readable as the collision corridor.
-                    const side = legendaryAttack.safeOffset >= 0 ? -1 : 1;
-                    const across = side * legendaryAttack.width * 0.34;
-                    const nx = -Math.sin(legendaryAttack.angle);
-                    const ny = Math.cos(legendaryAttack.angle);
-                    for (let k = 0; k < 4; k++) {
-                        const along = (k / 3 - 0.5) * legendaryAttack.length * 0.82;
-                        this.particleBursts.burst(fam,
-                            legendaryAttack.x + Math.cos(legendaryAttack.angle) * along + nx * across,
-                            legendaryAttack.y + Math.sin(legendaryAttack.angle) * along + ny * across,
-                            legendaryAttack.angle, 'legendary-attack-impact');
-                    }
-                } else {
-                    for (let k = 0; k < 4; k++) {
-                        const along = (k / 3 - 0.5) * legendaryAttack.length * 0.78;
-                        this.particleBursts.burst(fam,
-                            legendaryAttack.x + Math.cos(legendaryAttack.angle) * along,
-                            legendaryAttack.y + Math.sin(legendaryAttack.angle) * along,
-                            legendaryAttack.angle, 'legendary-attack-impact');
-                    }
+                this.combatSfx.enqueue({ kind: 'legendary-attack', fam });
+                this.combatSfx.flush();
+                for (const area of legendaryAttack.areas.slice(0, 8)) {
+                    this.particleBursts.burst(fam, area.x, area.y,
+                        area.angle || legendaryAttack.angle, 'legendary-attack-impact');
                 }
                 if (legendaryAttack.hit) {
                     const hpBefore = p.hp;
-                    const damage = Math.max(1, Math.round(this.combat.bite(minute, 0, 1, 1) * 1.5));
+                    const damageScale = legendaryAttack.wildBoss ? 1 : 1.5;
+                    const damage = Math.max(1, Math.round(this.combat.bite(minute, 0, 1, 1) * damageScale));
                     const hit = p.hurt(damage, PLAYER.iFrame);
                     if (hit) {
                         this.logEvent('player.hit', { hpBefore: Math.round(hpBefore), hpAfter: Math.round(p.hp),
-                            boss: true, legendary: true, attack: legendaryAttack.type });
+                            boss: true, legendary: !legendaryAttack.wildBoss,
+                            wildBoss: legendaryAttack.wildBoss, attack: legendaryAttack.name });
                         this.wave(p.x, p.y, 10, 70, 0.32, WAVE_GOLD);
                         this.kick(0.28);
-                        if (p.dead) this.logEvent('player.defeated', { time: Math.round(this.time), legendary: true });
+                        if (p.dead) this.logEvent('player.defeated', { time: Math.round(this.time),
+                            legendary: !legendaryAttack.wildBoss, wildBoss: legendaryAttack.wildBoss });
                     }
                 } else {
-                    this.logEvent('legendary.attack-dodged', { attack: legendaryAttack.type,
+                    this.logEvent('legendary.attack-dodged', { attack: legendaryAttack.name,
+                        wildBoss: legendaryAttack.wildBoss,
                         x: Math.round(legendaryAttack.x), y: Math.round(legendaryAttack.y) });
                 }
             }
@@ -2639,14 +2658,17 @@ export function createGame (cc) {
             // The one-shot impact tests the same circle/rectangle shown here, and this overlay sits above
             // the party so even a long formation cannot hide where the strike will land.
             const attack = this.legendaryAttacks;
-            if (this.legendaryMap.active && attack.active
+            if ((this.legendaryMap.active || attack.wildBoss) && attack.active
                 && (attack.phase === 'warning' || attack.phase === 'impact')) {
                 const impact = attack.phase === 'impact';
                 const pulse = 0.72 + 0.28 * Math.sin(this.wall * 15);
                 const fillAlpha = impact ? 120 : Math.round(58 + 32 * pulse);
                 const edgeAlpha = impact ? 255 : Math.round(205 + 45 * pulse);
-                g.fillColor = this.pal.get('#ff334f', fillAlpha);
-                if (attack.type === 'circle') {
+                if (attack.areas && attack.areas.length) {
+                    const color = ELEMENT[family(attack.family)?.element] || '#ef5362';
+                    drawLegendaryAttackPattern(g, { ...attack, color }, this.pal, pulse, impact);
+                } else if (attack.type === 'circle') {
+                    g.fillColor = this.pal.get('#ff334f', fillAlpha);
                     g.circle(attack.x, attack.y, attack.radius);
                     g.fill();
                     g.strokeColor = this.pal.get('#ff334f', edgeAlpha);
@@ -3629,7 +3651,7 @@ export function createGame (cc) {
                     : warning ? `${this.legendaryAttacks.label}范围已标出 · ${Math.max(0, this.legendaryAttacks.timeLeft).toFixed(1)}秒后攻击`
                         : this.legendaryAttacks.phase === 'impact'
                             ? (this.legendaryAttacks.type === 'tsunami'
-                                ? '海啸扫过 · 留在蓝色安全窄道内' : '范围攻击中 · 立即避开红色区域')
+                                ? '海啸扫过 · 留在蓝色安全窄道内' : `${this.legendaryAttacks.label}冲击中 · 立即避开预警区域`)
                         : '神兽 · 击败后可捕捉';
                 this.hud.setBoss(index >= 0 ? FAMILIES[this.enemies.fam[index]].name : '神兽',
                     index >= 0 ? this.enemies.hp[index] : 0,
@@ -3643,9 +3665,16 @@ export function createGame (cc) {
                 if (wildBossIndex >= 0) {
                     const ready = this.enemies.wildBossReady[wildBossIndex] === 1;
                     const family = FAMILIES[this.enemies.fam[wildBossIndex]];
+                    const attack = this.legendaryAttacks.active && this.legendaryAttacks.wildBoss
+                        ? this.legendaryAttacks : null;
+                    const detail = ready ? '已击败 · 投球即可收服'
+                        : attack && attack.phase === 'warning'
+                            ? `${attack.label} · ${Math.max(0, attack.timeLeft).toFixed(1)}秒后攻击`
+                            : attack && attack.phase === 'impact' ? `${attack.label}冲击中 · 快速躲避`
+                                : '野外遭遇 · 专属招式预警后发动';
                     this.hud.setBoss(`野生强敌 · ${family.name}`,
                         this.enemies.hp[wildBossIndex], this.enemies.maxhp[wildBossIndex],
-                        ready ? '已击败 · 投球即可收服' : '野外随机遭遇 · 高血量冲锋 · 可避开', 1);
+                        detail, 1);
                 } else this.hud.setBoss('', 0, 0);
             }
             window.__booted = true;

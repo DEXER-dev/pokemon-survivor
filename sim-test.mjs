@@ -58,6 +58,7 @@ import { stepCakes as stepAlcremieCakes, drawCakes as drawAlcremieCakes,
 import { legendaryGuideLayout } from './src/lair-guide-layout.js';
 import { drawLegendaryGuideIcon, legendaryGuideStyle } from './src/legendary-guide-icons.js';
 import { LegendaryAttackSystem } from './src/legendary-attacks.js';
+import { drawLegendaryAttackPattern } from './src/legendary-attack-renderer.js';
 import { LegendaryLairs } from './src/legendary-lairs.js';
 import { isLegendaryCompanion, legendaryBodyScale,
     stepLegendaryCompanionAttacks } from './src/skills/active/legendary/companion-bombardment.js';
@@ -302,6 +303,59 @@ const TAU = Math.PI * 2;
     }
     console.log('洛奇亚神兽战：定向海啸预警、蓝色长条安全道与命中判定一致 PASS');
 }
+// Every legendary encounter receives a locked, collision-matched signature pattern and an HP phase change.
+{
+    const rng = makeRng(314159265);
+    const rendererCalls = [];
+    const graphics = new Proxy({}, {
+        set (target, key, value) { target[key] = value; return true; },
+        get (target, key) {
+            if (!(key in target)) target[key] = (...args) => rendererCalls.push([key, ...args]);
+            return target[key];
+        },
+    });
+    const palette = { get: (color, alpha) => ({ color, alpha }) };
+    const labels = [];
+    const collisionProbe = new LegendaryAttackSystem();
+    const rectangle = { shape: 'rect', x: 0, y: 0, length: 100, width: 100, angle: 0 };
+    const diagonal = PLAYER.radius / Math.sqrt(2);
+    if (!collisionProbe._inside(rectangle, 50 + diagonal - 0.1, 50 + diagonal - 0.1)
+        || collisionProbe._inside(rectangle, 50 + diagonal + 0.1, 50 + diagonal + 0.1)) {
+        throw new Error('rectangle attack corners must use the same circular player footprint shown by the telegraph');
+    }
+    for (const family of [...LEGENDARY_BOSSES, ...WILD_BOSSES]) {
+        const wildBoss = family.id.startsWith('wildboss-');
+        const system = new LegendaryAttackSystem();
+        system.start(0, 0, family.id, { wildBoss });
+        system.step(1.5, 190, 28, rng, 0, 0, 1);
+        if (system.phase !== 'warning' || !system.name || system.areas.length < 1
+            || system.wildBoss !== wildBoss) {
+            throw new Error(`${family.id} must have its own telegraphed attack pattern`);
+        }
+        const firstName = system.name;
+        labels.push(firstName);
+        drawLegendaryAttackPattern(graphics, { ...system, color: '#8ecfff' }, palette, 0.8, false);
+        const impact = system.step(1.36, system.areas[0].x, system.areas[0].y, rng, 0, 0, 1);
+        if (!impact || !impact.hit || impact.name !== system.name) {
+            throw new Error(`${family.id} collision must match its visible warning area`);
+        }
+        system.phase = 'idle';
+        system.cooldown = 0;
+        system.step(0, 190, 28, rng, 0, 0, 0.45);
+        if (!system.phaseTwo || system.phase !== 'warning') {
+            throw new Error(`${family.id} must switch to its intensified pattern below half health`);
+        }
+        if ((!wildBoss && system.name === firstName) || (wildBoss && system.name !== firstName)) {
+            throw new Error(`${family.id} must alternate lair attacks and keep a single roaming signature move`);
+        }
+    }
+    if (new Set(labels).size !== LEGENDARY_BOSSES.length + WILD_BOSSES.length
+        || !rendererCalls.some(([name]) => name === 'circle')
+        || !rendererCalls.some(([name]) => name === 'moveTo')) {
+        throw new Error('legendary attack motifs should stay species-specific and render in both area styles');
+    }
+    console.log(`神兽招式：${labels.length} 种专属预警/命中轮廓、半血二阶段与渲染通过 PASS`);
+}
 // Secondary legendaries are roaming wild-boss encounters, not the primary legendary lair route.
 {
     const expected = [
@@ -342,6 +396,11 @@ const TAU = Math.PI * 2;
         || !WILD_BOSSES.includes(FAMILIES[enemies.fam[index]]) || enemies.bossI !== 0
         || enemies.maxhp[index] < enemies.threat(0) * 400 || enemies.r[index] < ENEMY.radius * 5) {
         throw new Error('random roaming wild-boss spawn must stay independent of trainer-boss progression');
+    }
+    const oldX = enemies.x[index];
+    enemies.update(0.1, 0, 0, 700);
+    if (enemies.bph[index] !== 0 || Math.hypot(enemies.x[index] - oldX, enemies.y[index]) <= 0) {
+        throw new Error('roaming legendary must approach steadily without the generic trainer-boss dash');
     }
     if (!enemies.hurt(index, enemies.maxhp[index] * 2) || !enemies.wildBossReady[index]
         || enemies.dead[index] || enemies.bossN !== 1 || enemies.hurt(index, 1)) {
