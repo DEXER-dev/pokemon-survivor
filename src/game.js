@@ -2225,13 +2225,33 @@ export function createGame (cc) {
                 rng: this.rng,
                 damageMul: lateDamageMultiplier(this.level),
                 onImpact: (seg, attack, result, damage) => {
-                    this.logEvent('legendary.companion-bombard', { species: seg.fam,
+                    this.logEvent('legendary.companion-signature', { species: seg.fam,
+                        move: attack.move, pattern: attack.pattern,
                         x: Math.round(attack.x), y: Math.round(attack.y), radius: Math.round(attack.radius),
                         damage: Math.round(damage), hits: result.hits, kills: result.kills });
-                    this.wave(attack.x, attack.y, 18, attack.radius * 1.65, 0.56, WAVE_GOLD);
-                    this.particleBursts.burst(seg.fam, attack.x, attack.y, 0,
-                        'legendary-companion-impact');
-                    this.kick(0.11);
+                    this.wave(attack.x, attack.y, 18, attack.radius * 1.65, 0.56, attack.color || WAVE_GOLD);
+                    const effectPoints = [{ x: attack.x, y: attack.y }];
+                    const addEffectPoint = (point) => {
+                        if (effectPoints.length >= 3 || effectPoints.some((existing) =>
+                            Math.hypot(existing.x - point.x, existing.y - point.y) < 26)) return;
+                        effectPoints.push(point);
+                    };
+                    for (const area of attack.areas || []) {
+                        if (effectPoints.length >= 3) break;
+                        addEffectPoint({ x: area.x, y: area.y });
+                    }
+                    for (const beam of attack.corridors || []) {
+                        if (effectPoints.length >= 3) break;
+                        addEffectPoint({
+                            x: beam.x + Math.cos(beam.angle) * beam.length,
+                            y: beam.y + Math.sin(beam.angle) * beam.length,
+                        });
+                    }
+                    for (const point of effectPoints) {
+                        this.particleBursts.burst(seg.fam, point.x, point.y, attack.angle,
+                            'legendary-companion-impact');
+                    }
+                    this.kick(0.16);
                 },
             });
             this.stepMegaChannels(dt);
@@ -2887,7 +2907,7 @@ export function createGame (cc) {
             }
         }
 
-        /** Friendly legendary attack telegraphs sit above mobs and the long follow-chain. */
+        /** Friendly signature move telegraphs use the same shapes as their hit geometry. */
         drawLegendaryCompanionWarnings (g) {
             for (const segment of this.chain.segments) {
                 const attack = segment.legendaryBombardment;
@@ -2897,52 +2917,97 @@ export function createGame (cc) {
                 const progress = impact ? 1 : Math.max(0, Math.min(1, 1 - attack.timer / 0.82));
                 const seed = ((attack.x * 0.0017 + attack.y * 0.0009) % TAU + TAU) % TAU;
                 const pulse = 0.78 + 0.22 * Math.sin(this.wall * 4.6 + seed);
-                const color = ELEMENT[family(segment.fam)?.element] || COL.gold;
-                // A flat floor mark reads as an area about to detonate; nested rings and radial ticks
-                // made the warning look like a rifle scope even though the target is already locked.
-                g.fillColor = this.pal.get(color, impact ? 88 : Math.round(18 + progress * 16 + pulse * 4));
-                g.circle(attack.x, attack.y, attack.radius);
-                g.fill();
-                g.strokeColor = this.pal.get(impact ? COL.heroTrim : color,
-                    impact ? 248 : Math.round(108 + progress * 100 + pulse * 10));
-                g.lineWidth = impact ? 4 : 2.5;
-                g.circle(attack.x, attack.y, attack.radius);
-                g.stroke();
+                const color = attack.color || ELEMENT[family(segment.fam)?.element] || COL.gold;
+                const fillAlpha = impact ? 112 : Math.round(22 + progress * 24 + pulse * 4);
+                const edgeAlpha = impact ? 252 : Math.round(124 + progress * 92 + pulse * 12);
 
-                // Uneven, broken ground scars gather toward the locked impact point as the warning
-                // closes. Their offsets avoid a crosshair silhouette; the single outer edge remains
-                // the exact circle used by hitArea().
-                g.strokeColor = this.pal.get(impact ? '#fff0c2' : color,
-                    impact ? 226 : Math.round(32 + progress * 82));
-                g.lineWidth = impact ? 2.2 : 1.35;
-                for (let scar = 0; scar < 6; scar++) {
-                    const angle = seed + scar * TAU / 6 + Math.sin(scar * 2.3) * 0.19;
-                    const start = attack.radius * (0.08 + (scar % 3) * 0.045);
-                    const reach = attack.radius * (0.30 + progress * 0.26 + (scar % 2) * 0.035);
-                    for (let step = 0; step < 4; step++) {
-                        const t = step / 3;
-                        const radius = start + reach * t;
-                        const bend = (step === 1 ? 0.095 : step === 2 ? -0.075 : 0)
-                            * (scar % 2 ? 1 : -1);
-                        const a = angle + bend + Math.sin(this.wall * 2.8 + scar + step) * 0.018;
-                        const x = attack.x + Math.cos(a) * radius;
-                        const y = attack.y + Math.sin(a) * radius;
-                        if (step === 0) g.moveTo(x, y);
-                        else g.lineTo(x, y);
+                // Corridors are broad filled lanes, so beams read as attacks with direction rather
+                // than a generic locked circle. The boundary is computed from the actual hit shape.
+                for (const beam of attack.corridors || []) {
+                    const ux = Math.cos(beam.angle);
+                    const uy = Math.sin(beam.angle);
+                    const px = -uy * beam.width * 0.5;
+                    const py = ux * beam.width * 0.5;
+                    const endX = beam.x + ux * beam.length;
+                    const endY = beam.y + uy * beam.length;
+                    g.moveTo(beam.x + px, beam.y + py);
+                    g.lineTo(endX + px, endY + py);
+                    g.lineTo(endX - px, endY - py);
+                    g.lineTo(beam.x - px, beam.y - py);
+                    g.lineTo(beam.x + px, beam.y + py);
+                    g.fillColor = this.pal.get(color, fillAlpha);
+                    g.fill();
+                    g.strokeColor = this.pal.get(impact ? '#fff0c2' : color, edgeAlpha);
+                    g.lineWidth = impact ? 4 : 2.2;
+                    g.stroke();
+
+                    // A travelling highlight makes long signature lanes feel charged before impact.
+                    const travel = Math.max(0.06, progress) * beam.length;
+                    const hx = beam.x + ux * travel;
+                    const hy = beam.y + uy * travel;
+                    g.strokeColor = this.pal.get('#fff8d7', impact ? 230 : Math.round(76 + progress * 100));
+                    g.lineWidth = impact ? 3.2 : 1.8;
+                    g.moveTo(hx - px * 0.58, hy - py * 0.58);
+                    g.lineTo(hx + px * 0.58, hy + py * 0.58);
+                    g.stroke();
+                }
+
+                // Multi-point moves retain their real, separate hit zones on the floor.
+                for (let i = 0; i < (attack.areas || []).length; i++) {
+                    const area = attack.areas[i];
+                    const breathe = impact ? 1.06 : 0.94 + 0.06 * Math.sin(this.wall * 7 + i + seed);
+                    g.fillColor = this.pal.get(color, fillAlpha);
+                    g.circle(area.x, area.y, area.radius * breathe);
+                    g.fill();
+                    g.strokeColor = this.pal.get(impact ? '#fff0c2' : color, edgeAlpha);
+                    g.lineWidth = impact ? 3.6 : 1.8;
+                    g.circle(area.x, area.y, area.radius * breathe);
+                    g.stroke();
+                }
+
+                // Each move gets a small signature stroke: phoenix flare, dragon dive, earth fissure,
+                // temporal ticks, or the spatial cross. These never replace the readable hit shape.
+                const motif = attack.pattern;
+                if (motif === 'sacred-fire' || motif === 'dragon-ascent' || motif === 'precipice-blades') {
+                    const angle = attack.angle || 0;
+                    const length = motif === 'dragon-ascent' ? 110 : 76;
+                    const count = motif === 'precipice-blades' ? 5 : 3;
+                    g.strokeColor = this.pal.get(impact ? '#fff0c2' : color,
+                        impact ? 238 : Math.round(78 + progress * 100));
+                    g.lineWidth = impact ? 3 : 1.8;
+                    for (let i = 0; i < count; i++) {
+                        const offset = (i - (count - 1) / 2) * 19;
+                        const cx = attack.x + Math.cos(angle + Math.PI / 2) * offset;
+                        const cy = attack.y + Math.sin(angle + Math.PI / 2) * offset;
+                        const lift = motif === 'dragon-ascent' ? -length : length * 0.5;
+                        g.moveTo(cx - Math.cos(angle) * length * 0.5, cy - Math.sin(angle) * length * 0.5);
+                        g.lineTo(cx + Math.cos(angle) * lift, cy + Math.sin(angle) * lift);
                     }
+                    g.stroke();
+                } else if (motif === 'origin-pulse' || motif === 'psychic-burst' || motif === 'judgment') {
+                    g.fillColor = this.pal.get('#fff8d7', impact ? 238 : Math.round(72 + progress * 104));
+                    const count = motif === 'origin-pulse' ? 3 : 5;
+                    for (let i = 0; i < count; i++) {
+                        const a = seed + i * TAU / count + this.wall * (motif === 'psychic-burst' ? 0.34 : 0.08);
+                        const distance = motif === 'psychic-burst' ? 37 : 28;
+                        g.circle(attack.x + Math.cos(a) * distance, attack.y + Math.sin(a) * distance,
+                            motif === 'judgment' ? 4 : 3.2);
+                    }
+                    g.fill();
+                } else if (motif === 'roar-of-time') {
+                    const a = attack.angle || 0;
+                    g.strokeColor = this.pal.get('#fff8d7', impact ? 238 : Math.round(94 + progress * 100));
+                    g.lineWidth = 2;
+                    for (let i = 0; i < 7; i++) {
+                        const t = i / 6;
+                        const x = attack.x - Math.cos(a) * (attack.radius * (0.22 + t * 0.76));
+                        const y = attack.y - Math.sin(a) * (attack.radius * (0.22 + t * 0.76));
+                        const side = (i % 2 ? 1 : -1) * (8 + t * 10);
+                        g.moveTo(x - Math.sin(a) * side, y + Math.cos(a) * side);
+                        g.lineTo(x + Math.sin(a) * side, y - Math.cos(a) * side);
+                    }
+                    g.stroke();
                 }
-                g.stroke();
-
-                // A few drifting embers give each element a living surface without adding more rings.
-                g.fillColor = this.pal.get(impact ? '#fff0c2' : color,
-                    impact ? 210 : Math.round(66 + progress * 72));
-                for (let mote = 0; mote < 5; mote++) {
-                    const a = seed + mote * TAU / 5 + this.wall * 0.24;
-                    const r = attack.radius * (0.58 + 0.08 * Math.sin(this.wall * 3 + mote * 1.7));
-                    g.circle(attack.x + Math.cos(a) * r, attack.y + Math.sin(a) * r,
-                        1.8 + 0.8 * pulse);
-                }
-                g.fill();
             }
         }
 

@@ -64,7 +64,8 @@ import { LegendaryAttackSystem } from './src/legendary-attacks.js';
 import { drawLegendaryAttackPattern } from './src/legendary-attack-renderer.js';
 import { LegendaryLairs } from './src/legendary-lairs.js';
 import { isLegendaryCompanion, legendaryBodyScale,
-    stepLegendaryCompanionAttacks } from './src/skills/active/legendary/companion-bombardment.js';
+    LEGENDARY_COMPANION_SIGNATURES, stepLegendaryCompanionAttacks }
+    from './src/skills/active/legendary/companion-bombardment.js';
 import { pointInHeart } from './src/heart-shape.js';
 import { SHINY_ODDS, rollShiny } from './src/shiny.js';
 import { NativeParticleBursts } from './src/particles.js';
@@ -615,7 +616,7 @@ const TAU = Math.PI * 2;
     }
     console.log('野外强敌：随机刷新、独立于一级神地点与训练家BOSS、强袭可避、击败后可收服 PASS');
 }
-// Caught legendaries keep a distinct body scale and use a locked, telegraphed, boss-prioritized AoE.
+// Caught legendaries keep a distinct body scale and release separate, boss-prioritized signature moves.
 {
     const segment = { fam: 'legend-mewtwo', tier: 1, count: 1 };
     const ordinary = { fam: 'mush', tier: 3, count: 1 };
@@ -661,19 +662,46 @@ const TAU = Math.PI * 2;
         moveTo (x, y) { drawing.push({ op: 'moveTo', x, y }); },
         lineTo (x, y) { drawing.push({ op: 'lineTo', x, y }); },
     };
-    const previewWarning = { phase: 'warning', timer: 0.41, x: 180, y: -45, radius: 120 };
+    const previewWarning = {
+        phase: 'warning', timer: 0.41, x: 180, y: -45, radius: 120,
+        color: '#d49af2', pattern: 'psychic-burst',
+        areas: [{ x: 180, y: -45, radius: 104 }, { x: 242, y: 17, radius: 52 }],
+        corridors: [],
+    };
     RenderProbe.prototype.drawLegendaryCompanionWarnings.call({
         chain: { segments: [{ fam: 'legend-mewtwo', tier: 1, legendaryBombardment: previewWarning }] },
         wall: 0.4,
         pal: { get: (color, alpha) => ({ color, alpha }) },
     }, guide);
-    const centerGuides = drawing.filter((entry) => entry.op === 'circle'
-        && entry.x === previewWarning.x && entry.y === previewWarning.y);
-    if (centerGuides.length !== 2 || centerGuides.some((entry) => entry.r !== previewWarning.radius)
-        || drawing.filter((entry) => entry.op === 'lineTo').length !== 18) {
-        throw new Error('legendary fixed-area warning must show the exact hit boundary with irregular ground scars, not a scope');
+    const areaGuides = drawing.filter((entry) => entry.op === 'circle');
+    if (areaGuides.length < 4 || areaGuides.some((entry) => entry.r === previewWarning.radius)
+        || drawing.filter((entry) => entry.op === 'stroke').length < 2) {
+        throw new Error('legendary attack warning must trace the signature move zones instead of a generic scope');
     }
-    console.log('神兽入队：2.2×基础体型、重复捕捉缓增封顶、锁定预警+优先BOSS范围轰炸 PASS');
+
+    const signatures = Object.entries(LEGENDARY_COMPANION_SIGNATURES);
+    const moves = new Set(signatures.map(([, signature]) => signature.move));
+    const patterns = new Set(signatures.map(([, signature]) => signature.pattern));
+    if (signatures.length !== 9 || moves.size !== 9 || patterns.size !== 9) {
+        throw new Error('each of the nine catchable legendaries must have its own named move and attack pattern');
+    }
+    const companions = signatures.map(([fam]) => ({ fam, tier: 1, count: 1,
+        legendaryBombardment: { phase: 'cooldown', timer: 0.01, x: 0, y: 0, radius: 0 } }));
+    const castEvents = [];
+    stepLegendaryCompanionAttacks({ ...common, segments: companions, dt: 0.02,
+        onImpact () { throw new Error('signature move should warn before it deals damage'); } });
+    if (companions.some((entry) => entry.legendaryBombardment.phase !== 'warning'
+        || !entry.legendaryBombardment.move || !entry.legendaryBombardment.areas.length
+            && !entry.legendaryBombardment.corridors.length)) {
+        throw new Error('each caught legendary must prepare a distinct, spatial signature telegraph');
+    }
+    stepLegendaryCompanionAttacks({ ...common, segments: companions, dt: 0.83,
+        onImpact (source, attack, result) { castEvents.push({ source, attack, result }); } });
+    if (castEvents.length !== 9 || castEvents.some(({ attack, result }) => !attack.move || result.hits < 1)
+        || enemies.hp[1] >= 1e6) {
+        throw new Error('all signature moves must resolve damage through their own warned shapes');
+    }
+    console.log('神兽入队：专属招式、差异化预警与命中范围、优先BOSS并避开捕捉目标 PASS');
 }
 // Screen-space lair guidance: visible sites pin to their projection, off-screen sites clamp to the
 // safe frame edge, and several destinations on one edge keep separate arrow anchors.
