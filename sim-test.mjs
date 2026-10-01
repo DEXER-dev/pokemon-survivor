@@ -180,8 +180,7 @@ const TAU = Math.PI * 2;
 }
 // Combat audio routes through event categories, then collapses a dense frame to at most one cue.
 {
-    if (resolveCombatSound({ kind: 'trainer-encounter' })?.file !== 'trainer-encounter.ogg'
-        || resolveCombatSound({ kind: 'trainer-encounter' })?.priority !== 3
+    if (resolveCombatSound({ kind: 'trainer-encounter' }) !== null
         || resolveCombatSound({ kind: 'tandemaus-throw', fam: 'tandemaus' })?.file !== 'tandemaus-throw.ogg'
         || resolveCombatSound({ kind: 'tandemaus-throw' })?.volume > 0.30
         || resolveCombatSound({ kind: 'shot', fam: 'mush' })?.file !== 'combat-grass.ogg'
@@ -202,31 +201,31 @@ const TAU = Math.PI * 2;
         return { isValid: true, playOneShot (clip, volume) { played.push({ clip: clip.url, volume }); }, stop () {} };
     } };
     const audio = new CombatSfx(cc, node);
-    if (!audio.clips['trainer-encounter.ogg'] || !audio.clips['tandemaus-throw.ogg']
-        || !existsSync(new URL('./assets/audio/trainer-encounter.ogg', import.meta.url))
+    if (audio.clips['trainer-encounter.ogg'] || !audio.clips['tandemaus-throw.ogg']
         || !existsSync(new URL('./assets/audio/tandemaus-throw.ogg', import.meta.url))) {
-        throw new Error('trainer encounter and Tandemaus throw cues must be bundled and preloaded');
+        throw new Error('combat audio must preload short effects and omit the 42-second trainer music duplicate');
     }
     audio.enqueue({ kind: 'trainer-encounter' });
-    if (!audio.flush(900) || played.length !== 1 || !played[0].clip.endsWith('trainer-encounter.ogg')
-        || played[0].volume < 0.6) throw new Error('trainer BOSS entrance must play its encounter cue at priority');
+    if (audio.flush(900) || played.length !== 0) {
+        throw new Error('trainer entrance must use its single routed BGM instead of a second 42-second track');
+    }
     audio.enqueue({ kind: 'shot', fam: 'mush' });
     audio.enqueue({ kind: 'pulse', fam: 'chikorita' });
     audio.enqueue({ kind: 'mega-skill', fam: 'cyndaquil' });
-    if (!audio.flush(1000) || played.length !== 2 || !played[1].clip.endsWith('combat-fire.ogg')
-        || played[1].volume <= 0.2) throw new Error('Active skill audio must pre-empt ordinary volley audio');
+    if (!audio.flush(1000) || played.length !== 1 || !played[0].clip.endsWith('combat-fire.ogg')
+        || played[0].volume <= 0.2) throw new Error('Active skill audio must pre-empt ordinary volley audio');
     audio.enqueue({ kind: 'shot', fam: 'mush' });
-    if (audio.flush(1100) || played.length !== 2) throw new Error('Combat audio must enforce its global overlap cooldown');
+    if (audio.flush(1100) || played.length !== 1) throw new Error('Combat audio must enforce its global overlap cooldown');
     audio.enqueue({ kind: 'shot', fam: 'mush' });
-    if (!audio.flush(1600) || played.length !== 3) throw new Error('Ordinary elemental projectile audio should resume after throttling');
+    if (!audio.flush(1600) || played.length !== 2) throw new Error('Ordinary elemental projectile audio should resume after throttling');
     audio.enqueue({ kind: 'mega-skill', fam: 'totodile' });
-    if (!audio.flush(1650) || played.length !== 4) {
+    if (!audio.flush(1650) || played.length !== 3) {
         throw new Error('A ready active skill must not lose its release cue to the ordinary-sound limiter');
     }
     audio.enqueue({ kind: 'tandemaus-throw', fam: 'tandemaus' });
     audio.enqueue({ kind: 'tandemaus-throw', fam: 'tandemaus' });
-    if (!audio.flush(1900) || played.length !== 5 || !played[4].clip.endsWith('tandemaus-throw.ogg')
-        || played[4].volume <= 0 || audio.flush(2100) || played.length !== 5) {
+    if (!audio.flush(1900) || played.length !== 4 || !played[3].clip.endsWith('tandemaus-throw.ogg')
+        || played[3].volume <= 0 || audio.flush(2100) || played.length !== 4) {
         throw new Error('A Maushold volley must play one restrained throw cue, even when it has many bullets');
     }
     audio.destroy();

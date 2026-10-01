@@ -32,10 +32,6 @@ const Z_AUDIO_ELEMENT = Object.freeze({
 const resolveSound = (event) => {
     if (!event) return null;
     const kind = event.kind || '';
-    if (kind === 'trainer-encounter') {
-        return { key: 'trainer-encounter', file: 'trainer-encounter.ogg', volume: 0.72,
-            priority: 3, cooldown: 0, globalCooldown: 0 };
-    }
     if (kind === 'tandemaus-throw') {
         return { key: 'tandemaus-throw', file: 'tandemaus-throw.ogg', volume: 0.28,
             priority: 1, cooldown: 380, globalCooldown: 180 };
@@ -98,7 +94,6 @@ export class CombatSfx {
 
         const sounds = new Set(Object.values(ELEMENT_SOUNDS));
         sounds.add('combat-impact.ogg');
-        sounds.add('trainer-encounter.ogg');
         sounds.add('tandemaus-throw.ogg');
         for (const file of sounds) {
             cc.assetManager.loadRemote(`assets/audio/${file}`, { ext: '.ogg' }, (err, clip) => {

@@ -1482,14 +1482,13 @@ export function createGame (cc) {
             if (ev !== 'boss') return;
             const encounterIndex = this.enemies.bossI - 1;
             this.trainerBoss.start(this.enemies, this.player.x, this.player.y, minute, this.cam.z, encounterIndex);
+            this.setMusicMode('trainer');
             this._trainerMegaAnnounced = false;
             const trainerName = this.trainerBoss.encounter.name;
             const team = this.trainerBoss.party.map((p) => displayName(p.fam, p.tier));
             this.logEvent('boss.spawn', { kind: 'trainer', number: encounterIndex + 1,
                 name: trainerName, party: team });
             this.trainerTransition.play(trainerName, team.join('、'));
-            this.combatSfx.enqueue({ kind: 'trainer-encounter' });
-            this.combatSfx.flush();
             this.input.blockFireUntilRelease();
             this.bossThrowWarned = false;
             this.say(`${trainerName} · ${team.join('、')}列阵中，${BOSS.formationSec}秒后开战！`, 4);
@@ -1641,6 +1640,7 @@ export function createGame (cc) {
         drainTrainerBoss () {
             const e = this.enemies;
             if (!this.trainerBoss.finishIfDefeated(e)) return;
+            this.setMusicMode(this.player.dead ? null : 'field');
             this.stats_.boss++;
             this.unlockLegendaryLair();
             this.wave(this.trainerBoss.cx, this.trainerBoss.cy, 18, 210, 0.75, WAVE_GOLD);
