@@ -295,6 +295,7 @@ export function createGame (cc) {
             if (this.upgradeItemAssets) this.panel.setUpgradeItemFrames(this.upgradeItemAssets.frames);
             this.furnace = new Furnace(cc, this.node, this.pal);
             this.evolutionReward = new EvolutionReward(cc, this.node, this.pal);
+            this.evolutionReward.setSfx((event) => this.upgradeSfx.play(event));
             this.dynamaxSelector = new DynamaxSelector(cc, this.node, this.pal);
             this.zCrystalSelector = new ZCrystalSelector(cc, this.node, this.pal);
             this.zMoves = new ZMoveSystem();
@@ -1712,19 +1713,25 @@ export function createGame (cc) {
 
         bossEvolutionPress (w, ptr) {
             const reward = this.evolutionReward;
-            reward.hover = reward.hit(ptr.x, ptr.y);
+            if (w.pointerMoved) {
+                const hit = reward.hit(ptr.x, ptr.y);
+                if (hit === -2 || hit === -3) {
+                    reward.setHover(-1);
+                    reward.setPageHover(hit);
+                } else {
+                    reward.setPageHover(-1);
+                    reward.setHover(hit);
+                }
+            }
+            if (w.nav) reward.moveFocus(w.nav);
             if (w.num >= 1 && w.num <= 8) {
-                this.chooseEvolutionReward(w.num - 1);
+                reward.select(w.num - 1);
                 return;
             }
             if (!w.tap) return;
-            if (reward.hover === -2) {
-                reward.page--;
-                reward.refresh();
-            } else if (reward.hover === -3) {
-                reward.page++;
-                reward.refresh();
-            } else if (reward.hover >= 0) this.chooseEvolutionReward(reward.hover);
+            if (reward.pageHover === -2) reward.turnPage(-1);
+            else if (reward.pageHover === -3) reward.turnPage(1);
+            else reward.select(reward.hover);
         }
 
         /** Absorb what landed this step. Overflow is the doc's one trade surface, and it pays out. */
@@ -3414,6 +3421,8 @@ export function createGame (cc) {
                 || this.dynamaxSelector.open || this.zCrystalSelector.open);
             const completedLevelChoice = this.panel.update(dt);
             if (completedLevelChoice >= 0) this.applyLevelChoice(completedLevelChoice);
+            const completedEvolutionChoice = this.evolutionReward.update(dt);
+            if (completedEvolutionChoice >= 0) this.chooseEvolutionReward(completedEvolutionChoice);
             this.setMusicMode(this.player.dead ? null
                 : this.legendaryMap.active ? 'legendary'
                     : this.trainerBoss.active ? 'trainer' : 'field');
@@ -3472,6 +3481,9 @@ export function createGame (cc) {
                 this.furnacePress(w);
             } else if (this.evolutionReward.open) {
                 this.bossEvolutionPress(w, ptr);
+            } else if (modalAtFrameStart) {
+                // An animated choice just completed above. Keep this final transition frame modal
+                // so its last click/key cannot leak into a throw or open the next reward screen.
             } else if (w.tap && this.hud.hitCombatSkillButton(ptr.x, ptr.y)) {
                 // Mouse fallback for IME/browser environments that swallow X. Do not let the HUD
                 // click throw a ball, and aim forward rather than at the skill panel itself.

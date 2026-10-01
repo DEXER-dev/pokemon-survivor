@@ -21,6 +21,7 @@ import { CaptureSystem, EV_POP } from './src/capture.js';
 import { CaptureSfx } from './src/capture-sfx.js';
 import { CombatSfx, resolveCombatSound } from './src/combat-sfx.js';
 import { UpgradeSfx, resolveUpgradeSound } from './src/upgrade-sfx.js';
+import { EvolutionReward } from './src/evolution-reward.js';
 import { MusicManager, MUSIC_TRACKS } from './src/music-manager.js';
 import { CombatSystem, segDps, chainDps, nodeBonus, hitRect, hitHeart } from './src/combat.js';
 import { createGame } from './src/game.js';
@@ -255,6 +256,98 @@ const TAU = Math.PI * 2;
     audio.destroy();
     if (audio.play('confirm', 600)) throw new Error('destroyed upgrade UI audio must stay silent');
     console.log('升级界面音效：开场、焦点、确认、退场四类音效与限频 PASS');
+}
+// Evolution reward choices animate in, retain keyboard focus, page, then apply only after exit.
+{
+    class UITransform { setContentSize () {} }
+    class UIOpacity { constructor () { this.opacity = 255; } }
+    class Graphics {
+        clear () {}
+        rect () {}
+        roundRect () {}
+        moveTo () {}
+        lineTo () {}
+        fill () {}
+        stroke () {}
+    }
+    class Label {
+        static HorizontalAlign = { LEFT: 0, RIGHT: 1, CENTER: 2 };
+        static VerticalAlign = { CENTER: 0 };
+        static Overflow = { NONE: 0 };
+        constructor () { this.string = ''; }
+    }
+    class Sprite {
+        static SizeMode = { CUSTOM: 0 };
+    }
+    class Node {
+        constructor (name) {
+            this.name = name;
+            this.children = [];
+            this.components = new Map();
+            this.position = { x: 0, y: 0, z: 0 };
+            this.scale = { x: 1, y: 1, z: 1 };
+            this.active = true;
+        }
+        addChild (node) { this.children.push(node); node.parent = this; }
+        setPosition (x, y, z) { this.position = { x, y, z }; }
+        setScale (x, y, z) { this.scale = { x, y, z }; }
+        addComponent (Type) {
+            const component = new Type();
+            component.node = this;
+            this.components.set(Type, component);
+            if (Type !== UITransform && !this.components.has(UITransform)) {
+                const transform = new UITransform();
+                transform.node = this;
+                this.components.set(UITransform, transform);
+            }
+            return component;
+        }
+        getComponent (Type) { return this.components.get(Type) || null; }
+    }
+    class Color {
+        constructor (r, g, b, a) { Object.assign(this, { r, g, b, a }); }
+    }
+    const cc = {
+        Node, Color, Graphics, UIOpacity, Label, Sprite, UITransform,
+        Layers: { Enum: { UI_2D: 1 } },
+    };
+    const parent = new Node('parent');
+    const reward = new EvolutionReward(cc, parent, { get: (color, alpha) => ({ color, alpha }) });
+    const sfx = [];
+    reward.setSfx((event) => sfx.push(event));
+    const entries = Array.from({ length: 9 }, (_, index) => ({
+        index, seg: { fam: 'mush', tier: 1, count: index + 1, shiny: false },
+    }));
+    if (!reward.show(entries, {}, 'boss') || !reward.root.active
+        || reward.phase !== 'entering' || reward.backgroundAlpha !== 0 || sfx[0] !== 'appear') {
+        throw new Error('evolution reward must begin with its animated reveal and entrance sound');
+    }
+    for (let i = 0; i < 4; i++) reward.update(0.2);
+    if (reward.phase !== 'open' || reward.backgroundAlpha !== 194 || reward.hit(-444, 82) !== 0) {
+        throw new Error('evolution reward entrance must settle into a visible, interactive choice screen');
+    }
+    reward.render(1.25);
+    reward.moveFocus(1);
+    if (reward.hover !== 1 || sfx.at(-1) !== 'focus'
+        || reward.cards[1].name.color.r >= 100 || reward.cards[0].name.color.r <= 200) {
+        throw new Error('evolution reward keyboard focus must move and play its focus cue');
+    }
+    if (!reward.turnPage(1) || reward.page !== 1 || reward.phase !== 'paging') {
+        throw new Error('evolution reward choices beyond the first page must remain reachable');
+    }
+    reward.update(0.2);
+    reward.update(0.2);
+    if (reward.phase !== 'open' || !reward.select(0) || reward.phase !== 'selecting'
+        || sfx.at(-1) !== 'confirm') {
+        throw new Error('evolution reward confirmation must start its exit animation and play a cue');
+    }
+    if (reward.update(0.2) !== -1 || !reward.open) {
+        throw new Error('evolution choice must remain pending until its exit animation finishes');
+    }
+    if (reward.update(0.2) !== 0 || reward.open || reward.root.active || sfx.at(-1) !== 'dismiss') {
+        throw new Error('evolution choice must resolve after its animated, audible dismissal');
+    }
+    console.log('BOSS进化奖励界面：渐入、键盘焦点、分页、确认退场与完成时序 PASS');
 }
 // Capture reveal plays the exact form cry once the ball opens, not on the throw or an unsuccessful hit.
 {
