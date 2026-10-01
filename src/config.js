@@ -212,9 +212,10 @@ export const SIM = { step: 1 / 60, maxSteps: 5, debugKeys: false };
 export const GRID_CELL = 64;
 
 export const ENEMY = {
-    // Initial storage only. The live horde grows on demand and has no gameplay population cap.
+    // Keep the live wild horde finite so a late-run spawn ramp cannot bury the playfield or stall kills.
     initialCapacity: 300,
-    // Keep the HP-vs-DPS balance stable even though the live population is now uncapped.
+    populationCap: 300,
+    // Keep per-mob HP scaling independent of the live-population ceiling.
     threatBudget: 300,
     radius: 13,
     speed: 2.1 * PPM,

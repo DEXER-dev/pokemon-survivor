@@ -322,14 +322,20 @@ export class EnemySystem {
         const spawnRate = this.cfg.spawnRate(minute, pets) * Math.max(0, spawnRateMul);
         this.trainerWatchCount = Math.min(BOSS.watchMaxCount,
             Math.max(BOSS.watchCount, Math.ceil(BOSS.watchCount + spawnRate * BOSS.watchRateSeconds)));
-        this.spawnAcc += spawnRate * dt;
-        while (this.spawnAcc >= 1) {
+        const populationCap = Number.isFinite(this.cfg.populationCap)
+            ? Math.max(1, Math.floor(this.cfg.populationCap)) : Infinity;
+        if (this.n < populationCap) this.spawnAcc += spawnRate * dt;
+        else this.spawnAcc = 0;
+        while (this.spawnAcc >= 1 && this.n < populationCap) {
             this.spawnAcc -= 1;
             const a = this.rng.next() * TAU;
             const tier = this.rng.chance(minute > 3 ? 0.18 : 0.05) ? 2 : 1;
             this.spawn(px + Math.cos(a) * ring, py + Math.sin(a) * ring,
                 fam ? fam() : this.rng.int(0, WILD_FAMILY_COUNT - 1), tier, false, minute);
         }
+        // Do not bank missed spawns at the cap; clearing one body should reopen one slot, not release
+        // an entire minute's backlog into the field on the next frame.
+        if (this.n >= populationCap) this.spawnAcc = 0;
         if (!disableElite && !this.trainerActive && t > this.cfg.eliteAfter && t - this.lastElite > this.cfg.eliteEvery) {
             this.lastElite = t;
             const a = this.rng.next() * TAU;
@@ -357,29 +363,33 @@ export class EnemySystem {
         if (ev !== 'boss' && !this.trainerActive && this.bossN === 0 && !bossDue) {
             this.outbreakCd -= dt;
             if (this.outbreakCd <= 0) {
-                const famIdx = fam ? fam() : this.rng.int(0, WILD_FAMILY_COUNT - 1);
-                const tier = this.rng.chance(minute > 3 ? 0.18 : 0.05) ? 2 : 1;
-                const count = this.rng.int(10, 14);
-                const direction = this.rng.next() * TAU;
-                const centerRadius = Math.min(ring * 0.72, Math.max(this.cfg.radius * 14, ring * 0.58));
-                const cx = px + Math.cos(direction) * centerRadius;
-                const cy = py + Math.sin(direction) * centerRadius;
-                const clusterRadius = this.cfg.radius * 7.2;
-                const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-                this.outbreakFamIdx = famIdx;
-                this.outbreakTier = tier;
-                this.outbreakCount = count;
-                this.outbreakX = cx;
-                this.outbreakY = cy;
-                this.outbreaks++;
-                for (let i = 0; i < count; i++) {
-                    const a = direction + i * goldenAngle + this.rng.range(-0.12, 0.12);
-                    const radius = clusterRadius * Math.sqrt((i + 0.5) / count);
-                    this.spawn(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius,
-                        famIdx, tier, false, minute);
+                if (this.n >= populationCap) {
+                    this.outbreakCd = 1;
+                } else {
+                    const famIdx = fam ? fam() : this.rng.int(0, WILD_FAMILY_COUNT - 1);
+                    const tier = this.rng.chance(minute > 3 ? 0.18 : 0.05) ? 2 : 1;
+                    const count = Math.min(this.rng.int(10, 14), populationCap - this.n);
+                    const direction = this.rng.next() * TAU;
+                    const centerRadius = Math.min(ring * 0.72, Math.max(this.cfg.radius * 14, ring * 0.58));
+                    const cx = px + Math.cos(direction) * centerRadius;
+                    const cy = py + Math.sin(direction) * centerRadius;
+                    const clusterRadius = this.cfg.radius * 7.2;
+                    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+                    this.outbreakFamIdx = famIdx;
+                    this.outbreakTier = tier;
+                    this.outbreakCount = count;
+                    this.outbreakX = cx;
+                    this.outbreakY = cy;
+                    this.outbreaks++;
+                    for (let i = 0; i < count; i++) {
+                        const a = direction + i * goldenAngle + this.rng.range(-0.12, 0.12);
+                        const radius = clusterRadius * Math.sqrt((i + 0.5) / count);
+                        this.spawn(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius,
+                            famIdx, tier, false, minute);
+                    }
+                    this.outbreakCd = this._nextOutbreakDelay();
+                    ev = 'outbreak';
                 }
-                this.outbreakCd = this._nextOutbreakDelay();
-                ev = 'outbreak';
             }
         }
         if (enableWildBoss && ev !== 'boss' && ev !== 'outbreak' && !this.trainerActive

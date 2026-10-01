@@ -2857,10 +2857,24 @@ const enemies = new EnemySystem(ENEMY, makeRng(SEED));
     if (candidate[0] !== 32769) throw new Error('horde target-index regression beyond 16-bit ids');
     const wave = new EnemySystem({
         ...ENEMY, initialCapacity: 8, spawnBase: 400, spawnPerMin: 0,
-        spawnPerPet: 0, spawnLatePerMin: 0, eliteAfter: Infinity,
+        spawnPerPet: 0, spawnLatePerMin: 0, eliteAfter: Infinity, populationCap: 500,
     }, makeRng(SEED + 4));
     wave.direct(1, 0, 0, 0, 0, 500, () => 0, true);
     if (wave.n !== 400) throw new Error(`horde spawn regression: expected 400, got ${wave.n}`);
+    const cappedWave = new EnemySystem({
+        ...ENEMY, initialCapacity: 8, populationCap: 300, spawnBase: 400,
+        spawnPerMin: 0, spawnPerPet: 0, spawnLatePerMin: 0, eliteAfter: Infinity,
+    }, makeRng(SEED + 41));
+    cappedWave.direct(1, 0, 0, 0, 0, 500, () => 0, true, true);
+    if (cappedWave.n !== 300 || cappedWave.spawnAcc !== 0) {
+        throw new Error(`late horde population cap / no accumulated spawn burst regression: ${cappedWave.n}`);
+    }
+    for (let i = 0; i < 10; i++) cappedWave.hurt(i, 1e9);
+    cappedWave.cull();
+    cappedWave.direct(0.1, 0, 0, 0, 0, 500, () => 0, true, true);
+    if (cappedWave.n !== 300 || cappedWave.spawnAcc !== 0) {
+        throw new Error('wild spawns should refill only the vacancies after the population cap clears bodies');
+    }
     const trainedWave = new EnemySystem({
         ...ENEMY, initialCapacity: 8, spawnBase: 4, spawnPerMin: 0,
         spawnPerPet: 0, spawnLatePerMin: 0, eliteAfter: Infinity,
@@ -2920,7 +2934,7 @@ const enemies = new EnemySystem(ENEMY, makeRng(SEED));
         throw new Error(`trainer audience should scale, respect ring spacing, and leave excess wilds in the backdrop: ${audienceRows}/${trainerWave.n} (inner ${innerAudience}/${trainerWave.trainerAudienceRingCapacity(0)}, outer ${outerAudience}/${trainerWave.trainerAudienceRingCapacity(1)}, target ${trainerWave.trainerWatchCount})`);
     }
     console.log(`Trainer audience scales with spawn cadence: ${lowRateAudience} → ${trainerWave.trainerWatchCount} target places; ${audienceRows} stay in spaced rings, overflow moves to distant backdrop: PASS`);
-    console.log(`Uncapped horde growth probe: PASS (${probe.n} direct spawns; ${wave.n} in one wave; trainer perimeter refreshes at normal cadence)`);
+    console.log(`Horde capacity: expandable storage (${probe.n} direct-spawn probe), capped live wave (${cappedWave.n}), no spawn backlog; configurable 400-mob test wave: PASS`);
     console.log('Trainer battle perimeter: wild Pokémon stay outside the arena ring: PASS');
 }
 /**
@@ -4043,7 +4057,7 @@ function run (name) {
     return row;
 }
 
-console.log(`\n=== ${MIN} min · seed ${SEED} · 主技 ${SKILL ? '开' : '关'} · uncapped horde · 基准投程${(BALL.rangeBase / PPM).toFixed(0)}m · ${Object.keys(BOTS).length} policies ===`);
+console.log(`\n=== ${MIN} min · seed ${SEED} · 主技 ${SKILL ? '开' : '关'} · live horde cap ${ENEMY.populationCap} · 基准投程${(BALL.rangeBase / PPM).toFixed(0)}m · ${Object.keys(BOTS).length} policies ===`);
 // The rungs this world can actually hand out, walked off the roster instead of typed in. `v0.9.6` wrote
 // `[2, 3, 4]` here as if a price ladder were part of the geometry; `CHAIN.evolveFlat` (v0.9.9) proved the
 // assumption expensive in the only way a header can be wrong: it printed 16-只 and 32-只 auto gates that no
