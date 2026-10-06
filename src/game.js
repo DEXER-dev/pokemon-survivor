@@ -3836,7 +3836,11 @@ export function createGame (cc) {
                 if (w.pointerMoved) this.panel.setHover(this.panel.hit(ptr.x, ptr.y));
                 if (w.nav) this.panel.moveFocus(w.nav);
                 if (w.num) this.chooseLevel(w.num - 1);
-                else if (w.tap) this.chooseLevel(this.panel.hover);
+                else if (w.tap) {
+                    const hit = this.panel.hit(ptr.x, ptr.y);
+                    this.panel.setHover(hit);
+                    this.chooseLevel(hit);
+                }
             } else if (this.furnace.open) {
                 // The furnace is the screen the chain is read on, so it stops the world for exactly the
                 // §5.6 reason: 放生 is irreversible inside a run and must never be a reflex click.

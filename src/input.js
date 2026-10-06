@@ -12,7 +12,7 @@ export class Input {
         this.pointer = { x: 0, y: 0, down: false, seen: false };
         this.pointerMoved = false;
         this.touch = { x: 0, y: 0, aimX: 1, aimY: 0, aimSeen: false, firing: false };
-        this.press = { active: false, ms: 0, moved: 0 };
+        this.press = { active: false, ms: 0, moved: 0, touch: false };
         this.tap = false;
         this.keyTap = false;
         this.numTap = 0;
@@ -56,6 +56,7 @@ export class Input {
             this.touch.x = this.touch.y = 0;
             this.touch.firing = false;
             this.press.active = false;
+            this.press.touch = false;
             this.held = false;
             this.ignoreFireUntilRelease = false;
             this.menuNavTap = 0;
@@ -81,19 +82,30 @@ export class Input {
             this.pointer.seen = true;
             this.pointerMoved = true;
         };
-        this._down = (e) => {
+        this._down = (e, touch = false) => {
             this._move(e);
             this.pointer.down = true;
             this.press.active = true;
             this.press.ms = 0;
             this.press.moved = 0;
+            this.press.touch = touch;
         };
-        this._up = () => {
+        this._touchDown = (e) => this._down(e, true);
+        this._up = (e) => {
+            if (e && typeof e.getUILocation === 'function') this._move(e);
             this.pointer.down = false;
+            const maxMs = this.press.touch ? Math.max(this.catc.tapMaxMs, 500) : this.catc.tapMaxMs;
+            const maxMove = this.press.touch ? Math.max(this.catc.tapMaxMove, 36) : this.catc.tapMaxMove;
             if (this.press.active
-                && this.press.ms < this.catc.tapMaxMs
-                && this.press.moved < this.catc.tapMaxMove) this.tap = true;
+                && this.press.ms < maxMs
+                && this.press.moved < maxMove) this.tap = true;
             this.press.active = false;
+            this.press.touch = false;
+        };
+        this._cancel = () => {
+            this.pointer.down = false;
+            this.press.active = false;
+            this.press.touch = false;
         };
     }
 
@@ -130,9 +142,9 @@ export class Input {
         input.on(EV.EventType.MOUSE_DOWN, this._down, this);
         input.on(EV.EventType.MOUSE_UP, this._up, this);
         input.on(EV.EventType.TOUCH_MOVE, this._move, this);
-        input.on(EV.EventType.TOUCH_START, this._down, this);
+        input.on(EV.EventType.TOUCH_START, this._touchDown, this);
         input.on(EV.EventType.TOUCH_END, this._up, this);
-        input.on(EV.EventType.TOUCH_CANCEL, this._up, this);
+        input.on(EV.EventType.TOUCH_CANCEL, this._cancel, this);
     }
 
     /** Bind a discrete physical key to a named gameplay action; gameplay never needs its key code. */
@@ -177,9 +189,9 @@ export class Input {
         input.off(EV.EventType.MOUSE_DOWN, this._down, this);
         input.off(EV.EventType.MOUSE_UP, this._up, this);
         input.off(EV.EventType.TOUCH_MOVE, this._move, this);
-        input.off(EV.EventType.TOUCH_START, this._down, this);
+        input.off(EV.EventType.TOUCH_START, this._touchDown, this);
         input.off(EV.EventType.TOUCH_END, this._up, this);
-        input.off(EV.EventType.TOUCH_CANCEL, this._up, this);
+        input.off(EV.EventType.TOUCH_CANCEL, this._cancel, this);
     }
 
     /** A fire key held across a modal panel must be released before it can fire again. */

@@ -1246,6 +1246,21 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
     input.setTouchAxis(0, 0);
     if (Math.abs(axis.x - 0.6) > 1e-6 || Math.abs(axis.y - 0.8) > 1e-6 || !touchHold
         || input.sample(1 / 60).hold) throw new Error('mobile stick vector / hold-to-fire input regression');
+    const tapEvent = (x) => ({ getUILocation: () => ({ x, y: 0 }) });
+    const touchTap = new Input(cc, VIEW, CATCH);
+    touchTap._down(tapEvent(100), true);
+    touchTap.press.ms = 350;
+    touchTap._up(tapEvent(112));
+    if (!touchTap.sample(0).tap) throw new Error('mobile tap should tolerate a slower press and small finger drift');
+    const mouseTap = new Input(cc, VIEW, CATCH);
+    mouseTap._down(tapEvent(100));
+    mouseTap.press.ms = 350;
+    mouseTap._up(tapEvent(100));
+    if (mouseTap.sample(0).tap) throw new Error('touch tolerance must not change mouse drag-to-move semantics');
+    const canceledTap = new Input(cc, VIEW, CATCH);
+    canceledTap._down(tapEvent(100), true);
+    canceledTap._cancel();
+    if (canceledTap.sample(0).tap) throw new Error('canceled touch must never confirm a level-up choice');
     // Exercise the actual game cast path: this catches missing combat-helper imports that a
     // key-mapping-only probe cannot see (the user's play log exposed hitArea as undefined here).
     const Game = createGame({ Component: class {}, KeyCode: { KEY_X: 88 } });
