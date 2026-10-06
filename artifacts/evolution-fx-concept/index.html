@@ -106,8 +106,8 @@
         phaseName.textContent=phaseLabel(q);
         const from=sprite(family.from),to=sprite(family.to),cx=500,cy=211;
         const lift=86*Math.sin(Math.PI*clamp((visual-.19)/.70));
-        const flipProgress=clamp((visual-.28)/.46);
-        const flipping=visual>.28&&visual<.74;
+        const flipProgress=clamp((visual-.28)/.34);
+        const flipping=visual>.28&&visual<.62;
         const flipAngle=flipProgress*Math.PI*2;
         const bodyX=cx+(flipping?Math.sin(flipAngle)*22:0),bodyY=cy-lift;
         const strength=mode==='manual'?1:.68;
@@ -115,7 +115,7 @@
         if(focus>.01){const vignette=ctx.createRadialGradient(cx,cy,74,cx,cy,490);vignette.addColorStop(0,'rgba(51,40,61,0)');vignette.addColorStop(.55,`rgba(51,40,61,${.045*focus})`);vignette.addColorStop(1,`rgba(51,40,61,${.23*focus})`);ctx.fillStyle=vignette;ctx.fillRect(0,0,1000,430)}
         // Ground shadow, anchored to the same spot so the animation never nudges collisions or position.
         ctx.fillStyle='#6e8056';ctx.globalAlpha=.16*(1-lift/120);ctx.beginPath();ctx.ellipse(cx,cy+41,55-lift*.22,12-lift*.035,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-        const gather=ease(clamp(visual/.24)),whitening=ease(clamp((visual-.08)/.22)),morph=ease(clamp((visual-.42)/.23)),colorReveal=ease(clamp((visual-.89)/.08)),settle=ease(clamp((visual-.86)/.12));
+        const gather=ease(clamp(visual/.24)),whitening=ease(clamp((visual-.08)/.22)),morph=ease(clamp((visual-.38)/.22)),colorReveal=ease(clamp((visual-.89)/.08)),settle=ease(clamp((visual-.86)/.12));
         const light=focus*(.2+gather*.16+climax*.58*strength);
         const beamLight=light*(1-.54*morph*(1-colorReveal));
         drawPillar(cx,cy,150,380,.56*beamLight,family.color);
