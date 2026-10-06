@@ -1231,8 +1231,14 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
     if (actions.join('|') !== 'z-power|mega-skill' || rawKeyCalls !== 0) {
         throw new Error('Z/X named skill actions / IME physical-key edge regression');
     }
-    input.setTouchAxis(0.6, 0.8);
     const axis = { x: 0, y: 0 };
+    input.setTouchAxis(0.05, 0);
+    input.axis(axis, 0, 0);
+    if (axis.x !== 0 || axis.y !== 0) throw new Error('mobile stick dead zone should ignore sensor noise');
+    input.setTouchAxis(0.08, 0);
+    input.axis(axis, 0, 0);
+    if (axis.x <= 0 || axis.x >= 0.12) throw new Error('mobile stick should respond to small intentional drags');
+    input.setTouchAxis(0.6, 0.8);
     input.axis(axis, 0, 0);
     input.setTouchFire(true);
     const touchHold = input.sample(1 / 60).hold;

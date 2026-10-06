@@ -145,7 +145,7 @@ export class Input {
     /** Feed the mobile virtual stick into the same movement/aim path as keyboard and pointer input. */
     setTouchAxis (x, y) {
         const length = Math.hypot(x, y);
-        if (length < 0.12) {
+        if (length < 0.07) {
             this.touch.x = this.touch.y = 0;
             return;
         }

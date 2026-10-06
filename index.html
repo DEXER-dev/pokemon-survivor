@@ -27,15 +27,16 @@
       box-shadow: 0 3px 12px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.1);
       font: 800 clamp(10px, 1.8vw, 14px)/1.05 var(--game-font); }
     #touchStick { position: absolute; left: max(12px, env(safe-area-inset-left)); top: 55%;
-      width: clamp(92px, 15vw, 138px); aspect-ratio: 1; padding: 0; border-radius: 50%;
+      width: clamp(112px, 18vw, 148px); aspect-ratio: 1; padding: 0; border-radius: 50%;
       transform: translateY(-50%); border-color: rgba(220,211,255,.58) !important;
       background: radial-gradient(circle, rgba(40,33,58,.42) 28%, rgba(34,28,48,.7) 30%, rgba(34,28,48,.46) 72%, rgba(255,255,255,.2) 74%) !important; }
+    #touchStick::before { content: ""; position: absolute; inset: -14px; border-radius: 50%; }
     #touchStick span { position: absolute; left: 50%; top: 50%; width: 34%; aspect-ratio: 1; border-radius: 50%;
       transform: translate(-50%,-50%); background: rgba(218,202,255,.7); border: 1px solid #eee2ff;
       box-shadow: 0 0 14px rgba(193,158,255,.45); }
     #touchActions { position: absolute; right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom));
       display: grid; grid-template-columns: repeat(3, auto); align-items: end; justify-items: end; gap: 4px; }
-    #touchActions button { min-width: clamp(44px, 6vw, 62px); min-height: clamp(36px, 5.5vh, 48px); padding: 4px 6px;
+    #touchActions button { min-width: clamp(52px, 7vw, 64px); min-height: clamp(48px, 6.5vh, 58px); padding: 4px 6px;
       border-radius: 11px; }
     #touchActions .touch-fire { grid-column: 3; grid-row: 3;
       min-width: clamp(78px, 9vw, 94px); min-height: clamp(82px, 11vh, 96px);
@@ -46,10 +47,17 @@
     #touchActions [data-touch-action="dynamax"] { grid-column: 1; grid-row: 2; }
     #touchActions [data-touch-action="zpower"] { grid-column: 2; grid-row: 2; }
     #touchActions [data-touch-action="zselect"] { grid-column: 1; grid-row: 3; }
-    #touchActions .touch-skill { min-height: clamp(44px, 6vh, 52px); border-color: #b4dcff;
+    #touchActions .touch-skill { min-height: clamp(48px, 6vh, 56px); border-color: #b4dcff;
       background: rgba(43,72,108,.84); }
     #touchActions [data-touch-action="skill"] { border-color: #d5b3ff; background: rgba(94,59,132,.94); }
-    #touchActions .touch-item { min-height: 36px; }
+    #touchActions .touch-item { min-height: clamp(46px, 6vh, 54px); }
+    @media (max-width: 420px) {
+      #touchStick { width: clamp(104px, 31vw, 124px); }
+      #touchActions button { min-width: 46px; min-height: 46px; }
+      #touchActions .touch-fire { min-width: 76px; min-height: 76px; }
+      #touchActions .touch-skill { min-height: 46px; }
+      #touchActions .touch-item { min-height: 46px; }
+    }
     #rotatePrompt { display: none; position: fixed; z-index: 10; left: 50%; top: max(8px, env(safe-area-inset-top));
       transform: translateX(-50%); max-width: calc(100vw - 28px); padding: 8px 13px; border: 1px solid rgba(255,229,155,.48);
       border-radius: 999px; color: #fff1c8; background: rgba(28,22,40,.86); font-size: 13px; text-align: center;
