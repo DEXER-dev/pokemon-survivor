@@ -228,11 +228,6 @@ export function createGame (cc) {
             // used before, so a missing asset degrades to the old look instead of to a blank field.
             this.icons = false;
             this.iconAtlas = null;
-            this.iconAtlasPromise = loadIconAtlas(cc, iconKeys()).then((a) => {
-                Object.assign(this.atlas.glyphs, a.glyphs);
-                this.iconAtlas = a;
-                this.icons = true;
-            }).catch((err) => console.warn('[icons] staying greybox:', err && err.message));
             this.lucasReady = false;
             this.playerAppearance = 0;
             try {
@@ -276,30 +271,22 @@ export function createGame (cc) {
                 this.upgradeItemAssets = assets;
                 if (this.panel) this.panel.setUpgradeItemFrames(assets.frames);
             }).catch((err) => console.warn('[upgrade-icons] item icons unavailable:', err && err.message));
-            this.visualAssetsReadyPromise = Promise.all([
-                loadHoohVfxAtlas(cc).then((assets) => {
-                    Object.assign(this.atlas.glyphs, assets.glyphs);
-                    this.hoohVfxAtlas = assets;
-                }).catch((err) => console.warn('[hooh-vfx] using fallback:', err && err.message)),
-                loadLegendaryVfxAtlas(cc).then((assets) => {
-                    Object.assign(this.atlas.glyphs, assets.glyphs);
-                    this.legendaryVfxAtlas = assets;
-                }).catch((err) => console.warn('[legendary-vfx] using glyph fallback:', err && err.message)),
-                loadSubLegendaryVfxAtlas(cc).then((assets) => {
-                    Object.assign(this.atlas.glyphs, assets.glyphs);
-                    this.subLegendaryVfxAtlas = assets;
-                }).catch((err) => console.warn('[sub-legendary-vfx] using procedural fallback:', err && err.message)),
-                loadZMoveVfxAtlas(cc).then((assets) => {
-                    Object.assign(this.atlas.glyphs, assets.glyphs);
-                    this.zMoveVfxAtlas = assets;
-                }).catch((err) => console.warn('[z-move-vfx] using readable glyph fallback:', err && err.message)),
-                this.iconAtlasPromise,
-                this.lucasSpritesPromise,
-                this.trainerSpritesPromise,
-                this.pokeballPromise,
-                this.megaAssetsPromise,
-                this.upgradeItemAssetsPromise,
-            ]).then(() => true);
+            void loadHoohVfxAtlas(cc).then((assets) => {
+                Object.assign(this.atlas.glyphs, assets.glyphs);
+                this.hoohVfxAtlas = assets;
+            }).catch((err) => console.warn('[hooh-vfx] using fallback:', err && err.message));
+            void loadLegendaryVfxAtlas(cc).then((assets) => {
+                Object.assign(this.atlas.glyphs, assets.glyphs);
+                this.legendaryVfxAtlas = assets;
+            }).catch((err) => console.warn('[legendary-vfx] using glyph fallback:', err && err.message));
+            void loadSubLegendaryVfxAtlas(cc).then((assets) => {
+                Object.assign(this.atlas.glyphs, assets.glyphs);
+                this.subLegendaryVfxAtlas = assets;
+            }).catch((err) => console.warn('[sub-legendary-vfx] using procedural fallback:', err && err.message));
+            void loadZMoveVfxAtlas(cc).then((assets) => {
+                Object.assign(this.atlas.glyphs, assets.glyphs);
+                this.zMoveVfxAtlas = assets;
+            }).catch((err) => console.warn('[z-move-vfx] using readable glyph fallback:', err && err.message));
 
             const backdrop = new cc.Node('Backdrop');
             backdrop.layer = cc.Layers.Enum.UI_2D;
@@ -327,6 +314,18 @@ export function createGame (cc) {
             this.treeAtlasPromise = loadTreeAtlas(cc).then((assets) => {
                 this.trees.setFrames(assets.glyphs);
             }).catch((err) => console.warn('[trees] field trees unavailable:', err && err.message));
+            // Start the 278-species atlas only after tree/field art has claimed its image requests.
+            // It can keep loading while the title screen and game are already usable.
+            this.iconAtlasPromise = loadIconAtlas(cc, iconKeys()).then((a) => {
+                Object.assign(this.atlas.glyphs, a.glyphs);
+                this.iconAtlas = a;
+                this.icons = true;
+            }).catch((err) => console.warn('[icons] staying greybox:', err && err.message));
+            this.visualAssetsReadyPromise = Promise.all([
+                this.pondArtPromise,
+                this.floraPromise,
+                this.treeAtlasPromise,
+            ]).then(() => true);
 
             const entities = new cc.Node('Entities');
             entities.layer = cc.Layers.Enum.UI_2D;

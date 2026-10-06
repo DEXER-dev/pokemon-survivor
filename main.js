@@ -10,8 +10,6 @@ import { createGame } from './src/game.js';
 import { TRAINER_SPRITES, PLAYER_APPEARANCES } from './src/trainer-sprites.js';
 import { STARTER_POKEMON, STARTER_GENERATIONS } from './src/starter-pokemon.js';
 import { iconKeys } from './src/species.js';
-import { MEGA_FORMS } from './src/mega.js';
-import { LEVELS } from './src/upgrades.js';
 import { installDex } from './src/dex.js';
 import { GAME_FONT } from './src/ui-font.js';
 
@@ -31,24 +29,14 @@ const updateAssetProgress = (complete, total, failed) => {
     assetProgressBar.parentElement.setAttribute('aria-valuenow', String(percent));
     assetProgressText.textContent = `${complete} / ${total} 张图片${failed ? ` · ${failed} 张未能载入` : ''}`;
 };
-const upgradeAssetPath = (icon) => {
-    if (!icon || ['DYNAMAXBAND', 'ZPOWERBAND', 'RARECANDY'].includes(icon)) return null;
-    if (icon === 'POKEBALL') return 'assets/items/POKEBALL.png';
-    if (icon === 'AUSTRALIANMOUSE') return 'assets/icons/TANDEMAUS.png';
-    return `assets/items/upgrades/${icon}.png`;
-};
 const initialImagePaths = [
-    ...iconKeys().map((key) => `assets/icons/${key}.png`),
-    ...STARTER_POKEMON.map((starter) => `assets/icons/${starter.icon}.png`),
-    'assets/player/NPC_198_Lucas.png',
-    ...TRAINER_SPRITES.map((trainer) => `assets/trainers/${trainer.file}`),
-    'assets/items/POKEBALL.png',
+    // Prioritize the small environment atlases that make the world readable. Species,
+    // trainer, and upgrade art loads progressively in the background and must not keep
+    // the title screen behind a barrier of hundreds of unrelated images.
+    'assets/tilesets/KANTO50S_TREE_FAMILIES.png',
     'assets/tilesets/KANTO50S_FLORA_ADDON.png',
-    'assets/tilesets/KANTO50S_TREES.png',
-    'assets/vfx/zmove/projectile-atlas.png',
-    'assets/vfx/zmove/impact-atlas.png',
-    ...MEGA_FORMS.map((form) => `assets/items/mega/${form.stone}.png`),
-    ...LEVELS.map((entry) => upgradeAssetPath(entry.icon)),
+    'assets/tilesets/lake-processed/Lake_WATER_CORE_64x64.png',
+    'assets/tilesets/lake-processed/Lake_EDGE_TOP_64x16_GAME_GROUND.png',
 ];
 const initialImagesPromise = preloadImages(initialImagePaths, updateAssetProgress);
 
