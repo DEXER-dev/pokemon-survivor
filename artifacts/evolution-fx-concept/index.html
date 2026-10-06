@@ -21,7 +21,9 @@
     .badge{position:absolute;right:14px;top:14px;border:1px solid #9b85bf;border-radius:999px;padding:7px 11px;background:#f8f0ffed;color:#674d92;font-size:10px;box-shadow:0 2px 0 #d9c8ee}
     .callout{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);display:flex;align-items:center;gap:9px;padding:9px 14px;background:#342a3dec;border:2px solid #fff3d2;border-radius:13px;color:#fff8e8;box-shadow:0 3px 0 #ad946a;white-space:nowrap;pointer-events:none;font-size:12px;opacity:0;transition:opacity .2s,transform .2s}.callout.show{opacity:1;transform:translate(-50%,-3px)}.callout .star{color:#ffd970;font-size:15px}
     .toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px}.stage-select,.actions{display:flex;align-items:center;gap:8px}.control-label{font-size:10px;color:#80756e;margin-right:2px}.seg button,.mode button,.replay{border:1px solid #cdbfa6;border-radius:9px;background:#fffaf0;padding:8px 11px;font-size:11px;cursor:pointer;transition:transform .12s,background .12s,border-color .12s,box-shadow .12s}.seg button:hover,.mode button:hover,.replay:hover{transform:translateY(-1px)}.seg button[aria-pressed=true],.mode button[aria-pressed=true]{background:#e9dcf7;border-color:#9672ca;color:#583f80;box-shadow:inset 0 -2px #c0a6df}.replay{border-color:#63536f;background:var(--ink);color:#fff4d7;box-shadow:0 3px 0 #b9a78b;padding-inline:15px}.replay:active{transform:translateY(2px);box-shadow:0 1px 0 #b9a78b}.notes{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 2px 0;color:#81766e;font:11px/1.5 system-ui,sans-serif}.notes strong{color:#55485a}.sound-note{display:flex;align-items:center;gap:6px;white-space:nowrap}.mute{width:18px;height:18px;border:1px solid #c9b99d;border-radius:50%;display:inline-grid;place-items:center;color:#806a9b;font-size:10px;background:#fff8e8}
+    .sound-toggle{border:1px solid #cdbfa6;border-radius:9px;background:#fffaf0;padding:8px 11px;font-size:11px;cursor:pointer;transition:transform .12s,background .12s,border-color .12s,box-shadow .12s}.sound-toggle:hover{transform:translateY(-1px)}.sound-toggle[aria-pressed=true]{background:#e2f0d6;border-color:#8eb67b;color:#3b6645;box-shadow:inset 0 -2px #b8d5a8}
     @media(max-width:720px){body{padding:10px}.shell{border-radius:14px}.topbar{padding:11px 13px;min-height:65px}.brand-mark{width:34px;height:34px}.brand-mark:after{left:9px;top:9px}.brand h1{font-size:16px}.pill{font-size:9px;padding:6px 8px}.content{padding:15px 12px}.intro{align-items:flex-start;flex-direction:column;gap:8px}.intro h2{font-size:15px}.phase-chip{padding:6px 8px}.hud{left:7px;top:7px;gap:5px}.hud-card{padding:5px 7px;border-width:1px;border-radius:8px;gap:5px}.party{min-width:0}.party-face{width:23px;height:23px}.party-face img{width:34px;height:34px}.hud-copy,.xp-top{font-size:8px}.hud-copy b{font-size:9px}.xp{min-width:112px}.xp-bar{height:5px;margin-top:3px}.badge{right:7px;top:7px;padding:5px 7px;font-size:8px}.callout{bottom:9px;font-size:9px;padding:6px 9px}.toolbar{align-items:flex-start;flex-direction:column}.stage-select,.actions{flex-wrap:wrap}.seg button,.mode button,.replay{padding:7px 9px;font-size:10px}.notes{align-items:flex-start;flex-direction:column}.sound-note{white-space:normal}}
+    @media(max-width:720px){.sound-toggle{padding:7px 9px;font-size:10px}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
   </style>
 </head>
@@ -44,9 +46,9 @@
       </div>
       <div class="toolbar">
         <div class="stage-select"><span class="control-label">演示家族</span><div class="seg" role="group" aria-label="演示家族"><button data-family="bulba" aria-pressed="true">妙蛙种子系</button><button data-family="charmander" aria-pressed="false">小火龙系</button></div></div>
-        <div class="actions"><span class="control-label">演出节奏</span><div class="mode" role="group" aria-label="演出节奏"><button data-mode="manual" aria-pressed="true">手动进化</button><button data-mode="auto" aria-pressed="false">自动进化</button></div><button class="replay" id="replay">↻ 重新播放</button></div>
+        <div class="actions"><span class="control-label">演出节奏</span><div class="mode" role="group" aria-label="演出节奏"><button data-mode="manual" aria-pressed="true">手动进化</button><button data-mode="auto" aria-pressed="false">自动进化</button></div><button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false">♫ 音效：关</button><button class="replay" id="replay">↻ 重新播放</button></div>
       </div>
-      <div class="notes"><span><strong>节奏：</strong>光效聚集并洗白 → 空中翻转、白色剪影蜕变 → 落地后恢复颜色</span><span class="sound-note"><i class="mute">♪</i>此预览静音，可反复播放</span></div>
+      <div class="notes"><span><strong>节奏：</strong>光效聚集并洗白 → 空中翻转、白色剪影蜕变 → 落地后恢复颜色</span><span class="sound-note"><i class="mute">♪</i><span id="soundStatus">默认静音；开启音效后从头试听</span></span></div>
     </section>
   </main>
   <script>
@@ -54,11 +56,13 @@
       const canvas=document.getElementById('scene'),ctx=canvas.getContext('2d');
       const phaseName=document.getElementById('phaseName'),callout=document.getElementById('callout'),calloutText=document.getElementById('calloutText');
       const partyImg=document.getElementById('partyImg'),partyName=document.getElementById('partyName');
+      const soundToggle=document.getElementById('soundToggle'),soundStatus=document.getElementById('soundStatus');
       const families={
         bulba:{from:'BULBASAUR',to:'IVYSAUR',fromName:'妙蛙种子',toName:'妙蛙草',color:'#9bcf65',accent:'#8d6ac0'},
         charmander:{from:'CHARMANDER',to:'CHARMELEON',fromName:'小火龙',toName:'火恐龙',color:'#ff9b55',accent:'#e87961'}
       };
-      let family=families.bulba,mode='manual',restartAt=performance.now();
+      const soundParams=new URLSearchParams(location.search);
+      let family=families.bulba,mode='manual',restartAt=performance.now(),soundMuted=soundParams.get('mute')==='1'||soundParams.get('sound')!=='1',audioContext=null,sfxBus=null,audioRun=0,audioCycleKey='',audioPlayed=new Set();
       const imageCache=new Map();
       function sprite(name){
         if(imageCache.has(name))return imageCache.get(name);
@@ -73,6 +77,16 @@
         return entry;
       }
       function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}function ease(v){v=clamp(v);return 1-Math.pow(1-v,3)}
+      function syncSoundUi(){soundToggle.setAttribute('aria-pressed',String(!soundMuted));soundToggle.textContent=soundMuted?'♫ 音效：关':'♫ 音效：开';soundStatus.textContent=soundMuted?'默认静音；开启音效后从头试听':'音效已开启；可随时关闭'}
+      function prepareAudio(){const AudioAPI=window.AudioContext||window.webkitAudioContext;if(!AudioAPI)return false;try{if(!audioContext){audioContext=new AudioAPI();sfxBus=audioContext.createGain();sfxBus.gain.value=soundMuted ? .0001 : .32;sfxBus.connect(audioContext.destination)}sfxBus.gain.setTargetAtTime(soundMuted ? .0001 : .32,audioContext.currentTime,.025);if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});return true}catch{return false}}
+      function playTone(type,fromHz,toHz,duration,volume,delay=0){if(soundMuted||!audioContext||audioContext.state!=='running')return;const start=audioContext.currentTime+delay,osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type=type;osc.frequency.setValueAtTime(fromHz,start);osc.frequency.exponentialRampToValueAtTime(toHz,start+duration);gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(volume,start+.025);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);osc.connect(gain);gain.connect(sfxBus);osc.start(start);osc.stop(start+duration+.02)}
+      function playNoise(duration,volume,low,high){if(soundMuted||!audioContext||audioContext.state!=='running')return;const start=audioContext.currentTime,frames=Math.max(1,Math.floor(audioContext.sampleRate*duration)),buffer=audioContext.createBuffer(1,frames,audioContext.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<frames;i++)data[i]=Math.random()*2-1;const source=audioContext.createBufferSource(),filter=audioContext.createBiquadFilter(),gain=audioContext.createGain();source.buffer=buffer;filter.type='bandpass';filter.frequency.setValueAtTime(high,start);filter.frequency.exponentialRampToValueAtTime(low,start+duration);filter.Q.value=.7;gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(volume,start+.025);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);source.connect(filter);filter.connect(gain);gain.connect(sfxBus);source.start(start);source.stop(start+duration+.02)}
+      function playCharge(){playTone('sine',196,740,.92,.16);playTone('triangle',392,1174,.60,.07,.16)}
+      function playFlip(){playNoise(.38,.16,420,2200);playTone('triangle',820,270,.34,.08)}
+      function playMorph(){[[660,0],[880,.10],[1175,.20],[1568,.30]].forEach(([hz,delay])=>playTone('sine',hz,hz*.82,.24,.075,delay))}
+      function playLanding(){playTone('triangle',132,58,.20,.24);playTone('sine',523,784,.16,.075,.035)}
+      function updateAudio(t,visual,loop){if(soundMuted||!audioContext||audioContext.state!=='running')return;const cycleKey=`${audioRun}:${Math.floor(t/loop)}`;if(cycleKey!==audioCycleKey){audioCycleKey=cycleKey;audioPlayed.clear();playCharge()}[[.28,'flip',playFlip],[.38,'morph',playMorph],[.89,'landing',playLanding]].forEach(([at,name,play])=>{if(visual>=at&&!audioPlayed.has(name)){audioPlayed.add(name);play()}})}
+      function restartAnimation(fromGesture=false){restartAt=performance.now();audioRun++;audioCycleKey='';audioPlayed.clear();callout.classList.remove('show');if(fromGesture&&!soundMuted)prepareAudio()}
       function rnd(seed){let t=seed+0x6D2B79F5;return()=>{t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
       const stars=Array.from({length:54},(_,i)=>{const r=rnd(i*817+23);return{x:r()*1000,y:r()*430,s:1+r()*2,a:.12+r()*.25,phase:r()*6.28}});
       const grass=Array.from({length:29},(_,i)=>{const r=rnd(i*991+101);return{x:30+r()*940,y:55+r()*325,h:5+r()*7,lean:(r()-.5)*6,shade:i%3}});
@@ -102,7 +116,7 @@
         const dpr=Math.min(2,window.devicePixelRatio||1),w=canvas.clientWidth||1000,h=w*.43;
         if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr)}
         ctx.setTransform(canvas.width/1000,0,0,canvas.height/430,0,0);ctx.clearRect(0,0,1000,430);
-        const t=(now-restartAt)/1000,loop=mode==='manual'?2.85:1.78,phaseT=(t%loop)/loop,visual=phaseT>.13?(phaseT-.13)/.84:0,p=clamp(visual),q=phase(visual);background(t);
+        const t=(now-restartAt)/1000,loop=mode==='manual'?2.85:1.78,phaseT=(t%loop)/loop,visual=phaseT>.13?(phaseT-.13)/.84:0,p=clamp(visual),q=phase(visual);updateAudio(t,visual,loop);background(t);
         phaseName.textContent=phaseLabel(q);
         const from=sprite(family.from),to=sprite(family.to),cx=500,cy=211;
         const lift=86*Math.sin(Math.PI*clamp((visual-.19)/.70));
@@ -149,10 +163,11 @@
         requestAnimationFrame(draw);
       }
       function sizePulse(p){return 1+Math.sin(Math.PI*clamp(p/.16))*.035}
-      document.querySelectorAll('[data-family]').forEach(b=>b.addEventListener('click',()=>{family=families[b.dataset.family];document.querySelectorAll('[data-family]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));partyImg.src=`../../assets/icons/${family.from}.png`;const face=sprite(family.from);if(face.ready)partyImg.src=face.canvas.toDataURL();partyName.textContent=family.fromName;restartAt=performance.now()}));
-      document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));restartAt=performance.now()}));
-      document.getElementById('replay').addEventListener('click',()=>{restartAt=performance.now();callout.classList.remove('show')});
-      sprite(family.from);sprite(family.to);requestAnimationFrame(draw);
+      document.querySelectorAll('[data-family]').forEach(b=>b.addEventListener('click',()=>{family=families[b.dataset.family];document.querySelectorAll('[data-family]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));partyImg.src=`../../assets/icons/${family.from}.png`;const face=sprite(family.from);if(face.ready)partyImg.src=face.canvas.toDataURL();partyName.textContent=family.fromName;restartAnimation(true)}));
+      document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));restartAnimation(true)}));
+      soundToggle.addEventListener('click',()=>{soundMuted=!soundMuted;if(soundMuted){if(audioContext&&sfxBus)sfxBus.gain.setTargetAtTime(.0001,audioContext.currentTime,.025)}else{prepareAudio();restartAnimation(false)}syncSoundUi()});
+      document.getElementById('replay').addEventListener('click',()=>restartAnimation(true));
+      syncSoundUi();sprite(family.from);sprite(family.to);requestAnimationFrame(draw);
     })();
   </script>
 </body>
