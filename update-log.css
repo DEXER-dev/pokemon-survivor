@@ -1,0 +1,73 @@
+.update-log-dialog {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(680px, calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 20px));
+  height: min(78dvh, 660px);
+  min-height: min(300px, calc(100dvh - 24px));
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 20px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #8b79ab;
+  border-radius: 17px;
+  color: #f6f1ff;
+  background: linear-gradient(145deg, #27223a, #171d32);
+  box-shadow: 0 20px 60px #000b;
+  font-family: var(--game-font);
+}
+.update-log-dialog:not([open]) { display: none; }
+.update-log-dialog[open] { display: flex; }
+.update-log-dialog::backdrop {
+  background: rgba(8, 10, 20, .78);
+  backdrop-filter: blur(4px);
+}
+.update-log-header { flex: none; }
+.update-log-list {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 9px;
+  min-height: 0;
+  padding: 12px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(198, 181, 244, .55) transparent;
+}
+.update-log-entry {
+  padding: 10px 12px;
+  border: 1px solid rgba(196, 178, 226, .2);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .045);
+  text-align: left;
+}
+.update-log-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.update-log-meta time { color: #f2d78e; font-size: 10px; font-variant-numeric: tabular-nums; }
+.update-log-category {
+  padding: 2px 7px;
+  border: 1px solid rgba(186, 154, 255, .32);
+  border-radius: 999px;
+  color: #d5c3fa;
+  background: rgba(132, 100, 205, .16);
+  font-size: 9px;
+}
+.update-log-entry h3 { margin: 0 0 4px; color: #f8f3ff; font-size: 13px; line-height: 1.4; }
+.update-log-entry p { margin: 0; color: #c7c0d3; font-size: 11px; line-height: 1.55; }
+.update-log-footnote {
+  flex: none;
+  margin: 0;
+  padding: 7px 12px 10px;
+  border-top: 1px solid rgba(196, 178, 226, .14);
+  color: #9f96b0;
+  font-size: 10px;
+  text-align: center;
+}
+.update-log-dialog button:focus-visible,
+#updateLogOpen:focus-visible { outline: 2px solid #ffe38e; outline-offset: 2px; }
+@media (max-width: 420px) {
+  .update-log-list { gap: 7px; padding: 9px; }
+  .update-log-entry { padding: 9px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .update-log-dialog::backdrop { backdrop-filter: none; }
+}

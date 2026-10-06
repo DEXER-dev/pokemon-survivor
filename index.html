@@ -222,6 +222,12 @@
       box-shadow: 0 7px 0 #a96b39, 0 16px 30px rgba(255,180,78,.28); }
     #startAdventure:active { transform: translateY(3px); box-shadow: 0 2px 0 #a96b39; }
     #startAdventure:focus-visible { outline: 3px solid #fff; outline-offset: 5px; }
+    .title-aux-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+      margin: 10px auto 0; max-width: 100%; }
+    .title-aux-links .dex-title-link { display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; min-height: 34px; margin: 0; }
+    .update-log-date { padding-left: 8px; border-left: 1px solid rgba(230,220,255,.25);
+      color: #ffe59b; font-size: 10px; }
     .title-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px;
       margin: clamp(18px, 3vh, 26px) 0 0; color: #c8c2d2; font-size: clamp(11px, 1.5vw, 13px); }
     .title-controls span { white-space: nowrap; }
@@ -305,6 +311,7 @@
     }
   </style>
   <link rel="stylesheet" href="./dex.css">
+  <link rel="stylesheet" href="./update-log.css">
 </head>
 <body>
   <div id="assetLoading" role="status" aria-label="游戏资源加载中">
@@ -355,7 +362,12 @@
           </div>
           <p class="trainer-current" id="trainerCurrent" aria-live="polite"></p>
           <button id="startAdventure" type="button" autofocus>开始冒险 <span aria-hidden="true">➜</span></button>
-          <button id="dexFromTitle" class="dex-title-link" type="button">打开图鉴 · 预览弹幕</button>
+          <div class="title-aux-links">
+            <button id="dexFromTitle" class="dex-title-link" type="button">打开图鉴 · 预览弹幕</button>
+            <button id="updateLogOpen" class="dex-title-link" type="button" aria-haspopup="dialog" aria-expanded="false">
+              更新日志 <span id="updateLogLatestDate" class="update-log-date"></span>
+            </button>
+          </div>
           <p class="title-controls" aria-label="操作提示">
             <span><kbd>WASD</kbd>/<kbd>方向键</kbd> 移动</span>
             <span><kbd>Space</kbd>/<kbd>J</kbd> 丢球</span>
@@ -365,6 +377,14 @@
           <p class="title-footnote">每次开局都是全新的冒险 · 抓住你想要的宝可梦</p>
         </div>
       </section>
+      <dialog id="updateLogDialog" class="update-log-dialog" aria-labelledby="updateLogHeading">
+        <header class="dex-header update-log-header">
+          <div><p>PATCH NOTES / SURVIVOR</p><h2 id="updateLogHeading">更新日志</h2></div>
+          <button id="updateLogClose" type="button" aria-label="关闭更新日志">✕</button>
+        </header>
+        <div id="updateLogEntries" class="update-log-list"></div>
+        <p class="update-log-footnote">每次更新都会继续记录在这里</p>
+      </dialog>
       <section id="dexDialog" class="dex-dialog" role="dialog" aria-modal="true" aria-labelledby="dexHeading" hidden>
         <div class="dex-shell">
           <header class="dex-header"><div><p>POKÉDEX / TRAINING ROOM</p><h2 id="dexHeading">宝可梦图鉴</h2></div><button id="dexClose" type="button" aria-label="关闭图鉴">✕</button></header>

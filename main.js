@@ -12,6 +12,7 @@ import { STARTER_POKEMON, STARTER_GENERATIONS } from './src/starter-pokemon.js';
 import { iconKeys } from './src/species.js';
 import { installDex } from './src/dex.js';
 import { GAME_FONT } from './src/ui-font.js';
+import { UPDATE_LOG_ENTRIES } from './src/update-log.js';
 
 const assetLoading = document.getElementById('assetLoading');
 const assetProgressBar = document.getElementById('assetProgressBar');
@@ -172,6 +173,53 @@ try {
       cc.director.runScene(buildScene());
       const titleScreen = document.getElementById('titleScreen');
       const startButton = document.getElementById('startAdventure');
+      const updateLogDialog = document.getElementById('updateLogDialog');
+      const updateLogOpen = document.getElementById('updateLogOpen');
+      const updateLogClose = document.getElementById('updateLogClose');
+      const updateLogList = document.getElementById('updateLogEntries');
+      const latestUpdate = UPDATE_LOG_ENTRIES[0];
+      document.getElementById('updateLogLatestDate').textContent = latestUpdate.date.replaceAll('-', '.');
+      updateLogOpen.setAttribute('aria-label',
+        `查看更新日志，最近更新：${latestUpdate.title}，${latestUpdate.date}`);
+      const updateLogFragment = document.createDocumentFragment();
+      for (const entry of UPDATE_LOG_ENTRIES) {
+        const article = document.createElement('article');
+        article.className = 'update-log-entry';
+        const meta = document.createElement('div');
+        meta.className = 'update-log-meta';
+        const date = document.createElement('time');
+        date.dateTime = entry.date;
+        date.textContent = entry.date.replaceAll('-', '.');
+        const category = document.createElement('span');
+        category.className = 'update-log-category';
+        category.textContent = entry.category;
+        const heading = document.createElement('h3');
+        heading.textContent = entry.title;
+        const description = document.createElement('p');
+        description.textContent = entry.description;
+        meta.append(date, category);
+        article.append(meta, heading, description);
+        updateLogFragment.append(article);
+      }
+      updateLogList.replaceChildren(updateLogFragment);
+      updateLogOpen.addEventListener('click', () => {
+        if (typeof updateLogDialog.showModal === 'function') updateLogDialog.showModal();
+        else updateLogDialog.setAttribute('open', '');
+        updateLogOpen.setAttribute('aria-expanded', 'true');
+        updateLogClose.focus();
+      });
+      const closeUpdateLog = () => {
+        if (typeof updateLogDialog.close === 'function' && updateLogDialog.open) updateLogDialog.close();
+        else updateLogDialog.removeAttribute('open');
+        updateLogOpen.setAttribute('aria-expanded', 'false');
+        updateLogOpen.focus();
+      };
+      updateLogClose.addEventListener('click', closeUpdateLog);
+      updateLogDialog.addEventListener('cancel', () => updateLogOpen.setAttribute('aria-expanded', 'false'));
+      updateLogDialog.addEventListener('close', () => updateLogOpen.setAttribute('aria-expanded', 'false'));
+      updateLogDialog.addEventListener('click', (event) => {
+        if (event.target === updateLogDialog) closeUpdateLog();
+      });
       installDex(cc, () => !titleScreen.hidden);
       const trainerOptions = document.getElementById('trainerOptions');
       const trainerCurrent = document.getElementById('trainerCurrent');
@@ -505,8 +553,9 @@ try {
         button.addEventListener('pointercancel', releaseFire);
         button.addEventListener('lostpointercapture', releaseFire);
       }
-      // There is one action on this modal screen, so Tab/Shift+Tab stay on its primary control.
+      // Keep the title-screen pickers and utility buttons reachable with Tab/Shift+Tab.
       titleScreen.addEventListener('keydown', (event) => {
+        if (updateLogDialog.open) return;
         if (event.key === 'ArrowLeft') {
           event.preventDefault();
           if (event.target.closest('.starter-options')) {
@@ -529,6 +578,7 @@ try {
           } else selectTrainer(selectedTrainer + 1);
         } else if (event.key === 'Enter' && event.target !== startButton
             && event.target !== document.getElementById('dexFromTitle')
+            && event.target !== updateLogOpen
             && !event.target.closest('.trainer-options')) {
           event.preventDefault();
           startAdventure();
@@ -537,6 +587,7 @@ try {
           event.preventDefault();
             const controls = [...generationButtons, ...starterButtons, ...trainerButtons, document.getElementById('trainerPrevious'),
             document.getElementById('trainerNext'), startButton, document.getElementById('dexFromTitle')];
+          controls.push(updateLogOpen);
           const index = controls.indexOf(document.activeElement);
           controls[(index + (event.shiftKey ? controls.length - 1 : 1)) % controls.length].focus();
         }
