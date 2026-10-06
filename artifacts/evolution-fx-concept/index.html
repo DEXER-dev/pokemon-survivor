@@ -32,7 +32,7 @@
       <div class="top-actions"><span class="pill"><i class="live-dot"></i>像素动画概念稿</span></div>
     </header>
     <section class="content">
-      <div class="intro"><div><h2>从蓄能到新形态揭示</h2><p>预览叠加在真实队伍精灵上的进化表现，不改变移动、碰撞或战斗节奏。</p></div><div class="phase-chip">当前阶段 <strong id="phaseName">能量汇聚</strong></div></div>
+      <div class="intro"><div><h2>升空翻面，完成进化</h2><p>精灵先离地升起、在空中翻转，再由像素光芒揭示新形态。</p></div><div class="phase-chip">当前阶段 <strong id="phaseName">能量汇聚</strong></div></div>
       <div class="stage">
         <canvas id="scene" width="1000" height="430" aria-label="宝可梦精灵进化特效预览"></canvas>
         <div class="hud">
@@ -46,7 +46,7 @@
         <div class="stage-select"><span class="control-label">演示家族</span><div class="seg" role="group" aria-label="演示家族"><button data-family="bulba" aria-pressed="true">妙蛙种子系</button><button data-family="charmander" aria-pressed="false">小火龙系</button></div></div>
         <div class="actions"><span class="control-label">演出节奏</span><div class="mode" role="group" aria-label="演出节奏"><button data-mode="manual" aria-pressed="true">手动进化</button><button data-mode="auto" aria-pressed="false">自动进化</button></div><button class="replay" id="replay">↻ 重新播放</button></div>
       </div>
-      <div class="notes"><span><strong>节奏：</strong>汇聚微粒 → 明亮剪影 → 像素碎光揭示新形态 → 轻柔落定</span><span class="sound-note"><i class="mute">♪</i>此预览静音，可反复播放</span></div>
+      <div class="notes"><span><strong>节奏：</strong>聚光蓄能 → 精灵升空翻面 → 像素碎光揭示新形态 → 轻柔落地</span><span class="sound-note"><i class="mute">♪</i>此预览静音，可反复播放</span></div>
     </section>
   </main>
   <script>
@@ -84,14 +84,20 @@
         // soft footpath and a few low-contrast pebble marks keep the effect readable against the field
         ctx.fillStyle='#d5d9c2';ctx.globalAlpha=.34;ctx.beginPath();ctx.moveTo(0,303);ctx.bezierCurveTo(245,270,330,337,570,306);ctx.bezierCurveTo(758,276,835,305,1000,272);ctx.lineTo(1000,331);ctx.bezierCurveTo(770,363,694,336,551,360);ctx.bezierCurveTo(305,396,199,322,0,358);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
       }
-      function drawOrb(x,y,r,alpha,color){ctx.save();ctx.globalAlpha=alpha;ctx.globalCompositeOperation='lighter';const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'#fffef0');g.addColorStop(.19,'#fff3c9');g.addColorStop(.48,color+'bd');g.addColorStop(1,color+'00');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore()}
-      function drawRing(x,y,r,alpha,color,width=3){ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.ellipse(x,y,r,r*.72,-.08,0,Math.PI*2);ctx.stroke();ctx.restore()}
-      function drawArc(x,y,r,start,end,alpha,color,width=4){ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='square';ctx.beginPath();ctx.ellipse(x,y,r,r*.72,-.08,start,end);ctx.stroke();ctx.restore()}
+      function drawPillar(x,y,width,height,alpha,color){ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=alpha;const g=ctx.createLinearGradient(0,y-height*.52,0,y+height*.48);g.addColorStop(0,color+'00');g.addColorStop(.22,color+'35');g.addColorStop(.49,'#fff9deaa');g.addColorStop(.72,color+'55');g.addColorStop(1,color+'00');ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x-width*.22,y+height*.38);ctx.lineTo(x-width*.15,y-height*.37);ctx.lineTo(x-width*.035,y-height*.51);ctx.lineTo(x+width*.10,y-height*.35);ctx.lineTo(x+width*.27,y+height*.39);ctx.lineTo(x+width*.08,y+height*.33);ctx.lineTo(x-width*.10,y+height*.34);ctx.closePath();ctx.fill();ctx.restore()}
       function drawRays(x,y,t,power,peak){if(peak<=.01)return;ctx.save();ctx.globalCompositeOperation='lighter';for(let i=0;i<22;i++){const a=i*Math.PI*2/22+t*.12+(i%2)*.035,inner=38+(i%4)*7,outer=118+(i%5)*20+peak*82,width=2.4+(i%3)*1.3;const color=i%5===0?'#fffbea':i%2?family.accent:'#f4c75d';ctx.globalAlpha=(.19+(i%4)*.045)*peak*power;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(Math.round(x+Math.cos(a)*inner),Math.round(y+Math.sin(a)*inner*.72));ctx.lineTo(Math.round(x+Math.cos(a+.018)*outer),Math.round(y+Math.sin(a+.018)*outer*.72));ctx.lineTo(Math.round(x+Math.cos(a+width/outer)*outer),Math.round(y+Math.sin(a+width/outer)*outer*.72));ctx.lineTo(Math.round(x+Math.cos(a+width/inner)*inner),Math.round(y+Math.sin(a+width/inner)*inner*.72));ctx.closePath();ctx.fill()}ctx.restore()}
       function drawPixelStar(x,y,size,alpha,color,rotation=0){ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.rotate(rotation);ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fillRect(-size/2,-size/2,size,size);ctx.fillRect(-1,-size*1.6,2,size*3.2);ctx.fillRect(-size*1.6,-1,size*3.2,2);ctx.restore()}
+      function cubicPoint(a,b,c,d,t){const s=1-t;return{x:s*s*s*a.x+3*s*s*t*b.x+3*s*t*t*c.x+t*t*t*d.x,y:s*s*s*a.y+3*s*s*t*b.y+3*s*t*t*c.y+t*t*t*d.y}}
+      function drawRibbon(segments,progress,alpha,color,phase){if(progress<=.01||alpha<=.01)return;const steps=38,count=Math.max(1,Math.ceil(steps*progress));ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';ctx.lineJoin='round';
+        const points=[];for(let i=0;i<=count;i++){const u=Math.min(.99999,i/steps),scaled=u*segments.length,segment=Math.min(segments.length-1,Math.floor(scaled)),p=segments[segment],v=Math.min(1,scaled-segment);points.push(cubicPoint(p[0],p[1],p[2],p[3],v))}
+        if(points.length>1){ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);ctx.strokeStyle=color;ctx.globalAlpha=alpha*.12;ctx.lineWidth=6;ctx.stroke();ctx.strokeStyle='#fff4cb';ctx.globalAlpha=alpha*.4;ctx.lineWidth=1.7;ctx.stroke();
+          for(let i=2;i<points.length;i+=3){const p=points[i],pulse=.62+.38*Math.sin(phase*7+i);ctx.globalAlpha=alpha*pulse*(i%2?.65:1);ctx.fillStyle=i%5===0?'#fffdf0':color;const z=i%6===0?4:2.5;ctx.fillRect(Math.round(p.x-z/2),Math.round(p.y-z/2),z,z)}
+          const tip=points[points.length-1];drawPixelStar(tip.x,tip.y,4,alpha*.95,'#fffbe1',phase*.18);
+        }ctx.restore()}
       function drawCreature(entry,x,y,size,alpha=1,white=false,scaleX=1,scaleY=1){if(!entry?.ready)return;const im=white?entry.silhouette:entry.canvas;ctx.save();ctx.globalAlpha=alpha;ctx.imageSmoothingEnabled=false;ctx.translate(x,y);ctx.scale(scaleX,scaleY);ctx.drawImage(im,-size/2,-size/2,size,size);ctx.restore()}
+      function drawTurnedCreature(entry,x,y,size,alpha,white,scaleX,scaleY,progress,turning){if(!turning)return drawCreature(entry,x,y,size,alpha,white,scaleX,scaleY);const angle=progress*Math.PI*2,planeWidth=.82+.18*Math.abs(Math.cos(angle)),a=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2),seam=.18;let mirrored=0;if(a>=Math.PI/2-seam&&a<=Math.PI/2+seam)mirrored=ease((a-(Math.PI/2-seam))/(seam*2));else if(a>Math.PI/2+seam&&a<Math.PI*1.5-seam)mirrored=1;else if(a>=Math.PI*1.5-seam&&a<=Math.PI*1.5+seam)mirrored=1-ease((a-(Math.PI*1.5-seam))/(seam*2));if(mirrored<.999)drawCreature(entry,x,y,size,alpha*(1-mirrored),white,scaleX*planeWidth,scaleY);if(mirrored>.001)drawCreature(entry,x,y,size,alpha*mirrored,white,-scaleX*planeWidth,scaleY)}
       function phase(t){if(t<.20)return 0;if(t<.48)return 1;if(t<.66)return 2;if(t<.91)return 3;return 4}
-      function phaseLabel(q){return ['能量汇聚','光芒包覆','像素蜕变','新形态揭示','稳定落定'][q]}
+      function phaseLabel(q){return ['能量汇聚','升空翻转','光芒蜕变','新形态显现','稳定落定'][q]}
       function draw(now){
         const dpr=Math.min(2,window.devicePixelRatio||1),w=canvas.clientWidth||1000,h=w*.43;
         if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr)}
@@ -99,42 +105,42 @@
         const t=(now-restartAt)/1000,loop=mode==='manual'?2.85:1.78,phaseT=(t%loop)/loop,visual=phaseT>.13?(phaseT-.13)/.84:0,p=clamp(visual),q=phase(visual);background(t);
         phaseName.textContent=phaseLabel(q);
         const from=sprite(family.from),to=sprite(family.to),cx=500,cy=211;
+        const lift=86*Math.sin(Math.PI*clamp((visual-.025)/.87));
+        const flipProgress=clamp((visual-.12)/.59);
+        const flipping=visual>.12&&visual<.71;
+        const flipAngle=flipProgress*Math.PI*2;
+        const bodyX=cx+(flipping?Math.sin(flipAngle)*22:0),bodyY=cy-lift;
         const strength=mode==='manual'?1:.68;
         const climax=Math.pow(clamp(1-Math.abs(visual-.64)/.19),2),focus=ease(clamp(visual/.2))*(1-ease(clamp((visual-.9)/.1)));
         if(focus>.01){const vignette=ctx.createRadialGradient(cx,cy,74,cx,cy,490);vignette.addColorStop(0,'rgba(51,40,61,0)');vignette.addColorStop(.55,`rgba(51,40,61,${.045*focus})`);vignette.addColorStop(1,`rgba(51,40,61,${.23*focus})`);ctx.fillStyle=vignette;ctx.fillRect(0,0,1000,430)}
         // Ground shadow, anchored to the same spot so the animation never nudges collisions or position.
-        ctx.fillStyle='#6e8056';ctx.globalAlpha=.17;ctx.beginPath();ctx.ellipse(cx,cy+41,55,12,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-        const gather=ease(clamp(visual/.24)),veil=ease(clamp((visual-.21)/.23)),reveal=ease(clamp((visual-.56)/.18)),settle=ease(clamp((visual-.72)/.28));
-        const auraRadius=108+gather*26+climax*94;
-        drawOrb(cx,cy,auraRadius,.32+gather*.14+climax*.53*strength,'#fff0bd');
-        drawOrb(cx,cy,auraRadius*.68,.24+climax*.58*strength,family.color);
-        drawRays(cx,cy,t,strength,climax);
-        if(climax>.04){const flash=climax*strength;drawOrb(cx,cy,42+climax*90,.42+flash*.56,'#fff9df');ctx.save();ctx.globalCompositeOperation='lighter';const beam=ctx.createLinearGradient(0,cy-188,0,cy+188);beam.addColorStop(0,'#fff8d900');beam.addColorStop(.28,`rgba(255,246,204,${.15*flash})`);beam.addColorStop(.5,`rgba(255,255,238,${.44*flash})`);beam.addColorStop(.72,`rgba(255,225,155,${.18*flash})`);beam.addColorStop(1,'#fff8d900');ctx.fillStyle=beam;ctx.fillRect(cx-13,cy-188,26,376);ctx.restore()}
+        ctx.fillStyle='#6e8056';ctx.globalAlpha=.16*(1-lift/120);ctx.beginPath();ctx.ellipse(cx,cy+41,55-lift*.22,12-lift*.035,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+        const gather=ease(clamp(visual/.24)),veil=ease(clamp((visual-.46)/.17)),reveal=ease(clamp((visual-.56)/.18)),settle=ease(clamp((visual-.72)/.28));
+        const light=focus*(.2+gather*.16+climax*.58*strength);
+        drawPillar(cx,cy,150,380,.56*light,family.color);
+        drawPillar(cx-5,cy-3,56,292,.62*light,'#f4d875');
+        drawRays(bodyX,bodyY,t,strength,climax);
+        if(climax>.04){const flash=climax*strength;ctx.save();ctx.globalCompositeOperation='lighter';const beam=ctx.createLinearGradient(0,cy-188,0,cy+188);beam.addColorStop(0,'#fff8d900');beam.addColorStop(.28,`rgba(255,246,204,${.11*flash})`);beam.addColorStop(.5,`rgba(255,255,238,${.31*flash})`);beam.addColorStop(.72,`rgba(255,225,155,${.14*flash})`);beam.addColorStop(1,'#fff8d900');ctx.fillStyle=beam;ctx.fillRect(cx-9,cy-188,18,376);ctx.restore()}
         // Converging motes become a brighter, wider orbit before the transformation burst.
         for(let i=0;i<32;i++){
-          const a=i*2.399+t*(.78+i%2*.42),radius=(57+((i*37)%106))*(1-gather*.68)+climax*((i%4)*8),px=cx+Math.cos(a)*radius,py=cy+Math.sin(a)*radius*.72;
+          const a=i*2.399+t*(.78+i%2*.42),radius=(57+((i*37)%106))*(1-gather*.68)+climax*((i%4)*8),px=bodyX+Math.cos(a)*radius,py=bodyY+Math.sin(a)*radius*.72;
           const tw=.58+.42*Math.sin(t*8+i);ctx.globalAlpha=(.24+gather*.58+climax*.17)*tw*strength;ctx.fillStyle=i%6===0?'#fffbea':i%3===0?family.accent:'#f2c45f';const z=i%5===0?5:3;ctx.fillRect(Math.round(px),Math.round(py),z,z);
         }ctx.globalAlpha=1;
-        // Several orbital bands bloom in sequence, then break into rotating arcs at the reveal.
-        const ringIn=ease(clamp(visual/.24)),ringOut=ease(clamp((visual-.76)/.2)),ringFade=(1-ringOut*.62)*strength;
-        drawRing(cx,cy,30+ringIn*57,.9*ringFade,family.accent,3);
-        drawRing(cx,cy,48+ringIn*82,.76*ringFade,'#f4c75d',2.5);
-        drawRing(cx,cy,66+ringIn*103,.58*ringFade,'#fff2c7',2);
-        const orbitR=102+ringIn*74+climax*22;
-        drawArc(cx,cy,orbitR,t*.72+.25,t*.72+2.45,.84*strength*focus,'#fff4ce',4);
-        drawArc(cx,cy,orbitR*.86,-t*.88+3.6,-t*.88+5.72,.74*strength*focus,family.accent,5);
-        drawArc(cx,cy,orbitR*1.08,t*.52+2.9,t*.52+3.95,.68*strength*climax,'#f3c153',3);
-        for(let i=0;i<8;i++){const a=t*.72+i*Math.PI/4,rr=orbitR+(i%2)*10;const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.72;drawPixelStar(x,y,i%3===0?4:2.5,(.4+.48*climax)*strength,i%3===0?'#fff9dc':i%2?family.accent:'#f1c15a',a*.16)}
+        // Two diagonal comets cross behind the creature and leave the frame; neither circles nor encloses it.
+        const flow=ease(clamp((visual-.04)/.48))*(1-ease(clamp((visual-.82)/.16)))*strength;
+        const left=[[{x:cx-242,y:cy+138},{x:cx-172,y:cy+83-lift*.24},{x:cx-56,y:bodyY+16},{x:cx+12,y:bodyY-67}],[{x:cx+12,y:bodyY-67},{x:cx+58,y:bodyY-126},{x:cx+108,y:bodyY-153},{x:cx+143,y:bodyY-213}]];
+        const right=[[{x:cx+240,y:cy+130},{x:cx+157,y:cy+74-lift*.24},{x:cx+53,y:bodyY+9},{x:cx-12,y:bodyY-68}],[{x:cx-12,y:bodyY-68},{x:cx-54,y:bodyY-123},{x:cx-104,y:bodyY-158},{x:cx-143,y:bodyY-211}]];
+        drawRibbon(left,flow,.98,family.accent,t);drawRibbon(right,flow*.96,.92,'#f2c45f',t+1.3);
         // Transform beat: keep the creature's baseline fixed; veil briefly silhouettes the current art.
         const pulse=visual<.25?1-.05*Math.sin(gather*Math.PI):visual<.58?1+Math.sin(veil*Math.PI)*.12:1+.12*(1-settle)-.02*Math.sin(t*8)*(1-settle);
         const sx=visual<.58?1-.20*Math.sin(veil*Math.PI):1+.08*(1-settle),sy=visual<.58?pulse:1+.13*(1-settle);
         const oldA=1-reveal,newA=reveal;
-        if(visual<.75){drawCreature(from,cx,cy,100*sizePulse(p),(1-reveal)*(1-veil*.27),false,sx,sy);if(veil>.2)drawCreature(from,cx,cy,100*sizePulse(p),Math.min(.92,(veil-.2)*1.16)*(1-reveal*.2),true,sx,sy)}
-        if(visual>=.48&&climax>.04)drawCreature(to,cx,cy,122*sizePulse(p),.36*climax*strength,true,1,1);
-        if(visual>=.48)drawCreature(to,cx,cy,106*sizePulse(p),newA,false,1+.05*(1-settle),1+.05*(1-settle));
+        if(visual<.75){drawTurnedCreature(from,bodyX,bodyY,100*sizePulse(p),(1-reveal)*(1-veil*.27),false,sx,sy,flipProgress,flipping);if(veil>.2)drawTurnedCreature(from,bodyX,bodyY,100*sizePulse(p),Math.min(.58,(veil-.2)*.9)*(1-reveal*.2),true,sx,sy,flipProgress,flipping)}
+        if(visual>=.48&&climax>.04)drawTurnedCreature(to,bodyX,bodyY,122*sizePulse(p),.2*climax*strength,true,1,1,flipProgress,flipping);
+        if(visual>=.48)drawTurnedCreature(to,bodyX,bodyY,106*sizePulse(p),newA,false,1+.05*(1-settle),1+.05*(1-settle),flipProgress,flipping);
         // Pixel shards travel outward during the swap, then become a sparse celebratory sparkle.
-        if(visual>.45&&visual<.91){const burst=ease(clamp((visual-.45)/.24));for(let i=0;i<34;i++){const seed=rnd(i*177+5),a=i*2.399,dist=10+burst*(70+seed()*84),px=cx+Math.cos(a)*dist,py=cy+Math.sin(a)*dist*.78;ctx.save();ctx.translate(Math.round(px),Math.round(py));ctx.rotate(a*.25);ctx.globalAlpha=(.86-burst*.34)*(1-clamp((visual-.78)/.15))*strength;ctx.fillStyle=i%6===0?'#fffbea':i%3===0?family.color:family.accent;const sz=3+seed()*4;ctx.fillRect(-sz/2,-sz/2,sz,sz);if(i%4===0){ctx.fillStyle='#fff9de';ctx.fillRect(-1,-sz*1.5,2,sz*3);ctx.fillRect(-sz*1.5,-1,sz*3,2)}ctx.restore()}}
-        if(visual>.58){const sparkle=ease(clamp((visual-.58)/.12));for(let i=0;i<12;i++){const a=-Math.PI/2+i*Math.PI/6+t*.13,r=69+Math.sin(t*4+i)*8;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r*.78;drawPixelStar(x,y,i%3===0?4:2.8,(.4+.58*sparkle)*(1-settle*.55)*strength,i%3?'#fffbe3':'#f0bf54',a*.12)}}
+        if(visual>.45&&visual<.91){const burst=ease(clamp((visual-.45)/.24));for(let i=0;i<36;i++){const seed=rnd(i*177+5),a=-Math.PI/2+(seed()-.5)*2.45,dist=10+burst*(45+seed()*122),drift=(seed()-.5)*34,px=bodyX+Math.cos(a)*dist,py=bodyY+Math.sin(a)*dist+drift+burst*18;ctx.save();ctx.translate(Math.round(px),Math.round(py));ctx.rotate(a*.25);ctx.globalAlpha=(.88-burst*.36)*(1-clamp((visual-.78)/.15))*strength;ctx.fillStyle=i%6===0?'#fffbea':i%3===0?family.color:family.accent;const sz=3+seed()*4;ctx.fillRect(-sz/2,-sz/2,sz,sz);if(i%4===0){ctx.fillStyle='#fff9de';ctx.fillRect(-1,-sz*1.5,2,sz*3);ctx.fillRect(-sz*1.5,-1,sz*3,2)}ctx.restore()}}
+        if(visual>.58){const sparkle=ease(clamp((visual-.58)/.12));for(let i=0;i<8;i++){const x=bodyX+Math.sin(t*.8+i*1.7)*(26+i*14),y=bodyY-22-i*13+Math.cos(t*1.1+i)*8;drawPixelStar(x,y,i%3===0?4:2.8,(.4+.58*sparkle)*(1-settle*.55)*strength,i%3?'#fffbe3':'#f0bf54',t*.08+i*.12)}}
         ctx.globalAlpha=1;
         const show=visual>.70&&visual<.96;callout.classList.toggle('show',show);calloutText.textContent=`${family.toName}，进化完成！`;
         requestAnimationFrame(draw);
