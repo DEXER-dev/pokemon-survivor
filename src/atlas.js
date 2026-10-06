@@ -460,13 +460,23 @@ const FIT = (CELL / 2 - PAD) * 2;
 const MAX_ZOOM = 4;
 
 const PNG_CACHE = new Map();
+const PNG_LOAD_TIMEOUT_MS = 12000;
 
 function loadPng (src) {
     if (PNG_CACHE.has(src)) return PNG_CACHE.get(src);
     const promise = new Promise((resolve, reject) => {
         const im = new Image();
-        im.onload = () => resolve(im);
-        im.onerror = () => reject(new Error(`icon ${src} failed to load`));
+        let settled = false;
+        const finish = (settle, value) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeout);
+            settle(value);
+        };
+        const timeout = setTimeout(() => finish(reject,
+            new Error(`icon ${src} timed out after ${PNG_LOAD_TIMEOUT_MS}ms`)), PNG_LOAD_TIMEOUT_MS);
+        im.onload = () => finish(resolve, im);
+        im.onerror = () => finish(reject, new Error(`icon ${src} failed to load`));
         im.src = src;
     });
     PNG_CACHE.set(src, promise);
