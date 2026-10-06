@@ -44,6 +44,20 @@
       background: linear-gradient(155deg, rgba(161,94,44,.9), rgba(54,37,49,.92)); font-size: clamp(12px, 1.6vw, 15px); }
     #touchActions [data-touch-action="cycle"] { grid-column: 1; grid-row: 1; }
     #touchActions [data-touch-action="skill"] { grid-column: 2; grid-row: 1; }
+    #touchAimHint { display: none; position: absolute; right: 0; bottom: calc(100% + 8px); max-width: min(76vw, 250px);
+      padding: 7px 11px; border: 1px solid rgba(255,237,188,.72); border-radius: 999px;
+      color: #fff5d6; background: rgba(31,25,47,.9); box-shadow: 0 3px 12px rgba(0,0,0,.28);
+      font: 700 12px/1.15 var(--game-font); white-space: nowrap; pointer-events: none; }
+    #touchActions.touch-aiming #touchAimHint { display: block; }
+    #touchActions [data-touch-action="cycle"].touch-cancel-slot {
+      border-color: rgba(255,153,148,.95); color: #fff0ea;
+      background: linear-gradient(155deg, rgba(161,53,62,.96), rgba(82,27,48,.96));
+      box-shadow: 0 0 0 2px rgba(255,151,143,.18), 0 3px 12px rgba(0,0,0,.34);
+    }
+    #touchActions [data-touch-action="skill"].touch-aiming-button {
+      border-color: #fff0b5; background: linear-gradient(155deg, rgba(126,91,45,.98), rgba(79,47,74,.98));
+      box-shadow: 0 0 0 2px rgba(255,235,171,.2), 0 3px 14px rgba(0,0,0,.36);
+    }
     #touchActions [data-touch-action="dynamax"] { grid-column: 1; grid-row: 2; }
     #touchActions [data-touch-action="zpower"] { grid-column: 2; grid-row: 2; }
     #touchActions [data-touch-action="zselect"] { grid-column: 1; grid-row: 3; }
@@ -313,6 +327,7 @@
       <div id="mobileTouchControls" aria-label="触屏操作">
         <button id="touchStick" type="button" aria-label="按住并拖动移动"><span></span></button>
         <div id="touchActions">
+          <span id="touchAimHint" aria-live="polite">拖动选位置 · 松手释放</span>
           <button class="touch-fire" data-touch-action="fire" type="button" aria-label="按住连续投球">按住<br>投球</button>
           <button class="touch-skill" data-touch-action="cycle" type="button" aria-label="切换到下一个没有冷却的主动技能">Q<br>切换</button>
           <button class="touch-skill" data-touch-action="skill" type="button" aria-label="使用当前主动技能，使用后自动切换到下一个就绪技能">技能<br>使用</button>

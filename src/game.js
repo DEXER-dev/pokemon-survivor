@@ -563,6 +563,8 @@ export function createGame (cc) {
             this.aimWorld = { x: 0, y: 0 };
             this.selectedMega = null;
             this.touchSkillAutoCycle = false;
+            this.touchSkillAiming = false;
+            this.touchSkillAimClamped = false;
             this.pendingZCast = false;
             this.dynamax = { segment: null, remaining: 0, cooldown: 0, auraTimer: 0 };
             // Which animal the current crosshair line would take if 【掷】 fired this instant. -1 is
@@ -1032,7 +1034,7 @@ export function createGame (cc) {
         }
 
         cycleTouchMegaSkill () {
-            if (this.player.dead || this.levelUp || this.furnace.open || this.evolutionReward.open
+            if (this.touchSkillAiming || this.player.dead || this.levelUp || this.furnace.open || this.evolutionReward.open
                 || this.dynamaxSelector.open || this.zCrystalSelector.open) return false;
             this.touchSkillAutoCycle = true;
             const next = this.nextReadyMegaSkill(this.selectedMega);
@@ -1045,6 +1047,11 @@ export function createGame (cc) {
         }
 
         useTouchMegaSkill () {
+            if (!this.beginTouchMegaSkillAim()) return false;
+            return this.endTouchMegaSkillAim(false);
+        }
+
+        beginTouchMegaSkillAim () {
             if (this.player.dead || this.levelUp || this.furnace.open || this.evolutionReward.open
                 || this.dynamaxSelector.open || this.zCrystalSelector.open) return false;
             this.touchSkillAutoCycle = true;
@@ -1053,6 +1060,34 @@ export function createGame (cc) {
                 this.say(this.megaSkillUsers().length ? '所有主动技能都在冷却中' : '队伍里还没有可用主动技能的宝可梦', 1.8);
                 return false;
             }
+            this.touchSkillAimClamped = false;
+            this.touchSkillAiming = true;
+            return true;
+        }
+
+        updateTouchMegaSkillAim (x, y) {
+            if (!this.touchSkillAiming || !Number.isFinite(x) || !Number.isFinite(y)) return false;
+            const form = this.combatFormForSegment(this.selectedMega);
+            const skill = form && this.activeSkillForForm(form);
+            const baseRange = skill && (Number(skill.range) || Number(skill.radius) * 2.5) || 420;
+            const maxRange = Math.max(420, Math.min(760, baseRange));
+            const dx = x - this.player.x;
+            const dy = y - this.player.y;
+            const distance = Math.hypot(dx, dy);
+            const clamped = distance > maxRange;
+            const scale = clamped ? maxRange / distance : 1;
+            this.aimWorld.x = this.player.x + dx * scale;
+            this.aimWorld.y = this.player.y + dy * scale;
+            this.touchSkillAimClamped = clamped;
+            return !clamped;
+        }
+
+        endTouchMegaSkillAim (canceled = false) {
+            if (!this.touchSkillAiming) return false;
+            this.touchSkillAiming = false;
+            this.touchSkillAimClamped = false;
+            if (canceled || this.player.dead || this.levelUp || this.furnace.open || this.evolutionReward.open
+                || this.dynamaxSelector.open || this.zCrystalSelector.open) return false;
             const used = this.selectedMega;
             const cast = this.castMegaSkill();
             if (cast) {
@@ -1353,8 +1388,10 @@ export function createGame (cc) {
             const pulse = 0.5 + 0.5 * Math.sin(this.wall * 3.5);
             const alpha = ready ? Math.round(108 + pulse * 48) : 58;
             const module = activeSkillModuleForForm(form);
+            this.drawTouchSkillAim(g, pulse, true);
             if (module && module.drawPreview) {
                 module.drawPreview(this, g, form, skill, ready, pulse);
+                this.drawTouchSkillAim(g, pulse, false);
                 return;
             }
             g.fillColor = this.pal.get(form.color, Math.round(alpha * 0.16));
@@ -1366,16 +1403,18 @@ export function createGame (cc) {
             g.stroke();
             // A short radius spoke and four edge ticks turn the translucent circle into a clear
             // targeting footprint, rather than an easily missed decorative outline.
-            const dx = this.aimWorld.x - this.player.x;
-            const dy = this.aimWorld.y - this.player.y;
-            const length = Math.hypot(dx, dy) || 1;
-            const ux = dx / length;
-            const uy = dy / length;
-            g.strokeColor = this.pal.get(form.color, ready ? 205 : 115);
-            g.lineWidth = 2;
-            g.moveTo(this.aimWorld.x, this.aimWorld.y);
-            g.lineTo(this.aimWorld.x - ux * skill.radius, this.aimWorld.y - uy * skill.radius);
-            g.stroke();
+            if (!this.touchSkillAiming) {
+                const dx = this.aimWorld.x - this.player.x;
+                const dy = this.aimWorld.y - this.player.y;
+                const length = Math.hypot(dx, dy) || 1;
+                const ux = dx / length;
+                const uy = dy / length;
+                g.strokeColor = this.pal.get(form.color, ready ? 205 : 115);
+                g.lineWidth = 2;
+                g.moveTo(this.aimWorld.x, this.aimWorld.y);
+                g.lineTo(this.aimWorld.x - ux * skill.radius, this.aimWorld.y - uy * skill.radius);
+                g.stroke();
+            }
             for (let i = 0; i < 4; i++) {
                 const a = i * Math.PI / 2;
                 const tx = Math.cos(a);
@@ -1388,6 +1427,33 @@ export function createGame (cc) {
             g.stroke();
             g.fillColor = this.pal.get(form.color, ready ? 240 : 150);
             g.circle(this.aimWorld.x, this.aimWorld.y, 5 + pulse * 2);
+            g.fill();
+            this.drawTouchSkillAim(g, pulse, false);
+        }
+
+        drawTouchSkillAim (g, pulse, guide) {
+            if (!this.touchSkillAiming) return;
+            const color = this.touchSkillAimClamped ? '#ff776f' : '#fff1b8';
+            const x = this.aimWorld.x;
+            const y = this.aimWorld.y;
+            if (guide) {
+                g.strokeColor = this.pal.get(color, 180);
+                g.lineWidth = 4;
+                g.moveTo(this.player.x, this.player.y);
+                g.lineTo(x, y);
+                g.stroke();
+            }
+            const radius = 13 + pulse * 3;
+            g.strokeColor = this.pal.get('#382b43', 235);
+            g.lineWidth = 7;
+            g.circle(x, y, radius + 2);
+            g.stroke();
+            g.strokeColor = this.pal.get(color, 255);
+            g.lineWidth = 3.5;
+            g.circle(x, y, radius);
+            g.stroke();
+            g.fillColor = this.pal.get(color, 245);
+            g.circle(x, y, 3.5);
             g.fill();
         }
 
@@ -3797,21 +3863,24 @@ export function createGame (cc) {
                 document.body.classList.toggle('game-modal-open', touchUiBlocked);
             }
             if (touchUiBlocked) {
+                if (this.touchSkillAiming) this.endTouchMegaSkillAim(true);
                 this.input.setTouchFire(false);
                 this.input.setTouchAxis(0, 0);
             }
             // The pointer is view space and the catch is world space; a player who never touched the
             // mouse gets the crosshair 1.2 m in front of the hero instead (§6.1, keyboard row).
             const ptr = this.input.pointer;
-            if (this.input.touch.aimSeen) {
-                this.aimWorld.x = this.player.x + this.input.touch.aimX * CATCH.aimAhead;
-                this.aimWorld.y = this.player.y + this.input.touch.aimY * CATCH.aimAhead;
-            } else if (ptr.seen) {
-                this.aimWorld.x = this.cam.x + ptr.x / this.cam.z;
-                this.aimWorld.y = this.cam.y + ptr.y / this.cam.z;
-            } else {
-                this.aimWorld.x = this.player.x + this.player.facing * CATCH.aimAhead;
-                this.aimWorld.y = this.player.y;
+            if (!this.touchSkillAiming) {
+                if (this.input.touch.aimSeen) {
+                    this.aimWorld.x = this.player.x + this.input.touch.aimX * CATCH.aimAhead;
+                    this.aimWorld.y = this.player.y + this.input.touch.aimY * CATCH.aimAhead;
+                } else if (ptr.seen) {
+                    this.aimWorld.x = this.cam.x + ptr.x / this.cam.z;
+                    this.aimWorld.y = this.cam.y + ptr.y / this.cam.z;
+                } else {
+                    this.aimWorld.x = this.player.x + this.player.facing * CATCH.aimAhead;
+                    this.aimWorld.y = this.player.y;
+                }
             }
 
             const w = this.want;

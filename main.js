@@ -415,8 +415,83 @@ try {
       stick.addEventListener('pointercancel', releaseStick);
       stick.addEventListener('lostpointercapture', releaseStick);
       const touchKeys = { dynamax: cc.KeyCode.KEY_G, restart: cc.KeyCode.KEY_R };
+      const touchActions = document.getElementById('touchActions');
+      const skillButton = touchActions.querySelector('[data-touch-action="skill"]');
+      const cancelSkillButton = touchActions.querySelector('[data-touch-action="cycle"]');
+      const touchAimHint = document.getElementById('touchAimHint');
+      let skillPointer = -1;
+      let skillPointerStart = null;
+      let skillPointerDragged = false;
+      const setTouchAimUi = (active) => {
+        touchActions.classList.toggle('touch-aiming', active);
+        skillButton.classList.toggle('touch-aiming-button', active);
+        cancelSkillButton.classList.toggle('touch-cancel-slot', active);
+        skillButton.innerHTML = active ? '松手<br>释放' : '技能<br>使用';
+        cancelSkillButton.innerHTML = active ? '拖到<br>取消' : 'Q<br>切换';
+        skillButton.setAttribute('aria-label', active ? '拖动选择技能落点，松手释放' : '按住并拖动选择技能落点，松手释放');
+        cancelSkillButton.setAttribute('aria-label', active ? '将技能按钮拖到此处取消技能' : '切换到下一个没有冷却的主动技能');
+        if (active) touchAimHint.textContent = '拖动选位置 · 松手释放';
+      };
+      const updateTouchSkillAim = (event) => {
+        const game = window.__game;
+        const canvas = cc.game.canvas;
+        const rect = canvas && canvas.getBoundingClientRect();
+        if (!game || !rect || rect.width <= 0 || rect.height <= 0 || !game.updateTouchMegaSkillAim) return;
+        const px = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+        const py = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+        const designScale = VIEW.H / rect.height;
+        const zoom = Math.max(0.001, game.cam && game.cam.z || 1);
+        const x = game.cam.x + (px - rect.width / 2) * designScale / zoom;
+        const y = game.cam.y + (rect.height / 2 - py) * designScale / zoom;
+        const inRange = game.updateTouchMegaSkillAim(x, y);
+        touchAimHint.textContent = inRange ? '拖动选位置 · 松手释放' : '超出技能距离 · 已贴近最远处';
+      };
+      const endTouchSkillAim = (event, canceled) => {
+        if (skillPointer < 0 || (event && event.pointerId !== skillPointer)) return;
+        const game = window.__game;
+        if (!canceled && event) {
+          if (skillPointerDragged) updateTouchSkillAim(event);
+          const rect = cancelSkillButton.getBoundingClientRect();
+          canceled = skillPointerDragged && event.clientX >= rect.left && event.clientX <= rect.right
+            && event.clientY >= rect.top && event.clientY <= rect.bottom;
+        }
+        skillPointer = -1;
+        skillPointerStart = null;
+        skillPointerDragged = false;
+        if (game && game.endTouchMegaSkillAim) game.endTouchMegaSkillAim(!!canceled);
+        skillButton.classList.remove('pressed');
+        setTouchAimUi(false);
+      };
       for (const button of document.querySelectorAll('[data-touch-action]')) {
         const action = button.dataset.touchAction;
+        if (action === 'skill') {
+          button.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (skillPointer >= 0) return;
+            const game = window.__game;
+            if (!game || !game.beginTouchMegaSkillAim || !game.beginTouchMegaSkillAim()) return;
+            skillPointer = event.pointerId;
+            skillPointerStart = { x: event.clientX, y: event.clientY };
+            skillPointerDragged = false;
+            button.classList.add('pressed');
+            if (button.setPointerCapture) button.setPointerCapture(event.pointerId);
+            if (game.input) game.input.setTouchFire(false);
+            setTouchAimUi(true);
+          });
+          button.addEventListener('pointermove', (event) => {
+            if (event.pointerId !== skillPointer || !skillPointerStart) return;
+            if (!skillPointerDragged
+                && Math.hypot(event.clientX - skillPointerStart.x, event.clientY - skillPointerStart.y) >= 10) {
+              skillPointerDragged = true;
+            }
+            if (skillPointerDragged) updateTouchSkillAim(event);
+          });
+          button.addEventListener('pointerup', (event) => endTouchSkillAim(event, false));
+          button.addEventListener('pointercancel', (event) => endTouchSkillAim(event, true));
+          button.addEventListener('lostpointercapture', (event) => endTouchSkillAim(event, true));
+          continue;
+        }
         const releaseFire = () => {
           const game = window.__game;
           if (action === 'fire' && game && game.input) game.input.setTouchFire(false);
@@ -425,13 +500,15 @@ try {
         button.addEventListener('pointerdown', (event) => {
           event.preventDefault();
           event.stopPropagation();
-          button.classList.add('pressed');
-          if (button.setPointerCapture) button.setPointerCapture(event.pointerId);
           const game = window.__game;
           if (!game) return;
+          // The other finger may keep steering with the left stick, but no right-side action can
+          // fire or switch the selected skill while this finger is choosing its landing point.
+          if (game.touchSkillAiming) return;
+          button.classList.add('pressed');
+          if (button.setPointerCapture) button.setPointerCapture(event.pointerId);
           if (action === 'fire' && game.input) game.input.setTouchFire(true);
           else if (action === 'cycle' && game.cycleTouchMegaSkill) game.cycleTouchMegaSkill();
-          else if (action === 'skill' && game.useTouchMegaSkill) game.useTouchMegaSkill();
           else if (action === 'zpower') game.pressAction('z-power');
           else if (action === 'zselect') game.pressAction('z-crystal-select');
           else if (touchKeys[action] !== undefined) game.press(touchKeys[action]);

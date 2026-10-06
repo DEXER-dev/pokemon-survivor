@@ -1306,6 +1306,34 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
         || touchUsers[0].megaSkillCd !== 10) {
         throw new Error('touch skill cast should fire once and auto-select the next ready user, skipping cooldowns');
     }
+    const dragUsers = [{ fam: 'bloom', megaSkillCd: 0 }, { fam: 'tide', megaSkillCd: 0 }];
+    let dragCasts = 0;
+    const dragGame = Object.create(Game.prototype);
+    Object.assign(dragGame, {
+        selectedMega: dragUsers[0], player: { x: 0, y: 0, dead: false }, aimWorld: { x: 80, y: 0 },
+        levelUp: null, furnace: { open: false }, evolutionReward: { open: false },
+        dynamaxSelector: { open: false }, zCrystalSelector: { open: false },
+        touchSkillAutoCycle: false, touchSkillAiming: false,
+        megaSkillUsers: () => dragUsers,
+        combatFormForSegment: (user) => ({ id: user.fam, fam: user.fam, megaName: user.fam, kind: 'mega' }),
+        activeSkillForForm: () => ({ name: 'test', shape: 'circle', radius: 20, cooldown: 10 }),
+        logEvent () {}, say () {},
+        castMegaSkill () { dragCasts++; dragUsers[0].megaSkillCd = 10; return true; },
+    });
+    if (!Game.prototype.beginTouchMegaSkillAim.call(dragGame)
+        || Game.prototype.updateTouchMegaSkillAim.call(dragGame, 1000, 0) !== false
+        || dragGame.aimWorld.x !== 420 || !dragGame.touchSkillAimClamped) {
+        throw new Error('mobile skill drag should clamp its preview to a readable maximum target range');
+    }
+    if (Game.prototype.endTouchMegaSkillAim.call(dragGame, true) || dragCasts !== 0 || dragGame.touchSkillAiming) {
+        throw new Error('mobile skill drag released on cancel must not cast or spend cooldown');
+    }
+    if (!Game.prototype.beginTouchMegaSkillAim.call(dragGame)
+        || Game.prototype.updateTouchMegaSkillAim.call(dragGame, 120, 80) !== true
+        || !Game.prototype.endTouchMegaSkillAim.call(dragGame, false)
+        || dragCasts !== 1 || dragGame.selectedMega !== dragUsers[1]) {
+        throw new Error('mobile skill drag should cast at its selected point on release and auto-cycle afterward');
+    }
     touchUsers[0].megaSkillCd = 0;
     if (!Game.prototype.cycleTouchMegaSkill.call(touchGame) || touchGame.selectedMega !== touchUsers[0]) {
         throw new Error('touch switch should manually cycle only to a ready skill');
