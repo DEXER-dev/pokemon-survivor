@@ -38,6 +38,7 @@ import {
 import { Player } from './src/player.js';
 import { TRAINER_SPRITES, PLAYER_APPEARANCES } from './src/trainer-sprites.js';
 import { MEGA_FORMS, MEGA_ACTIVE_SKILLS, megaCardsFor, megaFormForSegment } from './src/mega.js';
+import { createMegaEvolutionFx, megaEvolutionVisual, stepMegaEvolutionFx } from './src/mega-evolution-fx.js';
 import {
     activeSkillForForm, activeSkillModuleForForm, rosterActiveFormForSegment,
     drawMegaProjectile, drawMegaActiveArea, drawMegaEffects,
@@ -3017,6 +3018,21 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
 
 // Regression guard: stones require the final stage, and ordinary promotion is no longer a mechanic.
 {
+    const transition = createMegaEvolutionFx('CHARIZARD_3');
+    transition.elapsed = 0.58;
+    if (megaEvolutionVisual(transition).shell < 0.95
+        || megaEvolutionVisual(transition).bodyAlpha !== 0) {
+        throw new Error('MEGA presentation regression: the closed orb must fully cover the source sprite');
+    }
+    const burst = stepMegaEvolutionFx(transition, 0.24);
+    const reveal = stepMegaEvolutionFx(transition, 0.2);
+    if (burst.cues.join(',') !== 'burst' || reveal.cues.join(',') !== 'reveal'
+        || stepMegaEvolutionFx(transition, 0.9).done === false
+        || stepMegaEvolutionFx(transition, 0.1).cues.length !== 0) {
+        throw new Error('MEGA presentation regression: burst/reveal audio cues must fire once and finish cleanly');
+    }
+    console.log('MEGA stone animation: opaque orb, reveal, and one-shot cue timing: PASS');
+
     const build = { stacks: Object.create(null) };
     const makeSeg = (fam, tier, count = 1, mega = null) => ({ fam, tier, count, mega });
     if (megaCardsFor({ segments: [makeSeg('lizard', 1), makeSeg('lizard', 2)] }, build).length !== 0) {

@@ -27,7 +27,9 @@ import { TrainerBossSystem } from './trainer-boss.js';
 import { CaptureSystem, EV_HIT, EV_MISS, EV_POP, EV_BOSS } from './capture.js';
 import { CaptureSfx } from './capture-sfx.js';
 import { CombatSfx } from './combat-sfx.js';
+import { EvolutionSfx } from './evolution-sfx.js';
 import { UpgradeSfx } from './upgrade-sfx.js';
+import { createMegaEvolutionFx, megaEvolutionVisual, stepMegaEvolutionFx } from './mega-evolution-fx.js';
 import { MusicManager } from './music-manager.js';
 import { CombatSystem, chainDps, segDps, lateDamageMultiplier, hitArea } from './combat.js';
 import {
@@ -401,6 +403,7 @@ export function createGame (cc) {
             this.capture = new CaptureSystem(BALL, CATCH, this.rng);
             this.captureSfx = new CaptureSfx(cc, this.node);
             this.combatSfx = new CombatSfx(cc, this.node);
+            this.evolutionSfx = new EvolutionSfx(cc, this.node);
             this.music = new MusicManager(cc, this.node);
             // The ball system knows nothing about rings and toasts: it reports outcomes, this file
             // decides what each one looks like.
@@ -478,6 +481,7 @@ export function createGame (cc) {
             this.playLog.destroy();
             if (this.captureSfx) this.captureSfx.destroy();
             if (this.combatSfx) this.combatSfx.destroy();
+            if (this.evolutionSfx) this.evolutionSfx.destroy();
             if (this.upgradeSfx) this.upgradeSfx.destroy();
             if (this.music) this.music.destroy();
         }
@@ -1122,6 +1126,94 @@ export function createGame (cc) {
             this.combatSfx.flush();
         }
 
+        startMegaEvolution (seg, oldIcon) {
+            if (!seg || !megaFormForSegment(seg)) return;
+            seg.megaEvolutionFx = createMegaEvolutionFx(oldIcon);
+            if (this.evolutionSfx) this.evolutionSfx.play('charge');
+            const index = this.chain.segments.indexOf(seg);
+            const node = index >= 0 ? this.chain.headOf(index) : -1;
+            const x = node >= 0 && node < this.chain.nCount ? this.chain.nx[node] : this.player.x;
+            const y = node >= 0 && node < this.chain.nCount ? this.chain.ny[node] : this.player.y;
+            this.wave(x, y, 8, 48, 0.36, WAVE_DIM);
+            this.kick(0.055);
+        }
+
+        drawMegaEvolutionFx (b, fx, x, y, scale, pack, seed) {
+            const visual = megaEvolutionVisual(fx);
+            if (!visual) return;
+            const { progress, shell, charge, burst } = visual;
+            const orb = scale * (2.2 + 0.11 * Math.max(0, pack - 1));
+            const pulse = 1 + Math.sin(this.wall * 10 + seed) * 0.025;
+
+            if (charge > 0.01) {
+                const gather = 0.72 + (1 - charge) * 0.42;
+                b.draw('aura', x, y, scale * 2.5 * gather, scale * 2.5 * gather,
+                    0, this.pal.get('#a66be3', Math.round(90 * charge)));
+                b.draw('ring', x, y, scale * (1.25 + gather * 0.42),
+                    scale * (1.25 + gather * 0.42), -this.wall * 1.9,
+                    this.pal.get('#e6c5ff', Math.round(190 * charge)));
+                for (let spark = 0; spark < 5; spark++) {
+                    const angle = this.wall * 1.8 + spark * TAU / 5 + seed;
+                    const radius = scale * (1.05 + 0.3 * Math.sin(this.wall * 5 + spark));
+                    b.draw('star', x + Math.cos(angle) * radius, y + Math.sin(angle) * radius,
+                        0.2 + charge * 0.12, 0.2 + charge * 0.12, angle,
+                        this.pal.get('#f6eaff', Math.round(225 * charge)));
+                }
+            }
+
+            if (shell > 0.015) {
+                b.draw('aura', x, y, orb * 1.7 * pulse, orb * 1.7 * pulse, 0,
+                    this.pal.get('#ae62f3', Math.round(104 * shell)));
+                // Opaque nested discs make the shell read as a closed orb and fully hide the sprite.
+                b.draw('circle', x, y, orb * 1.08 * pulse, orb * 1.08 * pulse, 0,
+                    this.pal.get('#35194f', Math.round(250 * shell)));
+                b.draw('circle', x, y, orb * 0.94 * pulse, orb * 0.94 * pulse, 0,
+                    this.pal.get('#8551b2', Math.round(248 * shell)));
+                b.draw('circle', x - orb * 0.12, y + orb * 0.08, orb * 0.65 * pulse,
+                    orb * 0.73 * pulse, -0.4, this.pal.get('#b584db', Math.round(74 * shell)));
+                b.draw('ring', x, y, orb * 1.04 * pulse, orb * 1.04 * pulse,
+                    this.wall * 0.42, this.pal.get('#f4e3ff', Math.round(235 * shell)));
+                b.draw('ring', x, y, orb * 1.24 * pulse, orb * 0.78 * pulse,
+                    -this.wall * 0.78, this.pal.get('#d9aeff', Math.round(135 * shell)));
+                b.draw('circle', x - orb * 0.26, y + orb * 0.27, orb * 0.16, orb * 0.12,
+                    -0.55, this.pal.get('#fff8ff', Math.round(165 * shell)));
+
+                const crack = Math.max(0, Math.min(1, (progress - 0.47) / 0.18)) * (1 - burst);
+                for (let shard = 0; shard < 7; shard++) {
+                    const angle = shard * TAU / 7 + seed * 0.3;
+                    const radius = orb * (0.24 + crack * 0.2);
+                    b.draw('shard', x + Math.cos(angle) * radius, y + Math.sin(angle) * radius,
+                        0.13 + crack * 0.08, 0.28 + crack * 0.08, angle,
+                        this.pal.get('#f7eaff', Math.round(190 * crack * shell)));
+                }
+            }
+
+            if (burst > 0.01) {
+                const scatter = Math.min(1, burst);
+                const fade = 1 - scatter;
+                b.draw('aura', x, y, orb * (1.45 + scatter * 1.45), orb * (1.45 + scatter * 1.45), 0,
+                    this.pal.get('#c181ff', Math.round(145 * fade)));
+                b.draw('ring', x, y, orb * (1.05 + scatter * 1.6), orb * (1.05 + scatter * 1.6),
+                    this.wall * 0.28, this.pal.get('#f5e7ff', Math.round(220 * fade)));
+                for (let shard = 0; shard < 10; shard++) {
+                    const angle = shard * TAU / 10 + seed * 0.71;
+                    const radius = orb * (0.5 + scatter * (0.7 + (shard % 3) * 0.15));
+                    b.draw('shard', x + Math.cos(angle) * radius, y + Math.sin(angle) * radius,
+                        0.2 + (shard % 3) * 0.035, 0.34 + (shard % 2) * 0.06,
+                        angle + this.wall * scatter * 1.4,
+                        this.pal.get(shard % 3 === 0 ? '#fff5ff' : '#c98cf4', Math.round(245 * fade)));
+                }
+            }
+
+            if (visual.reveal > 0.01) {
+                const landing = 1 + (1 - visual.reveal) * 0.65;
+                b.draw('ring', x, y, scale * 1.8 * landing, scale * 1.15 * landing,
+                    0, this.pal.get('#f4ddff', Math.round(205 * (1 - visual.reveal) * 0.8)));
+                b.draw('star', x, y + scale * 0.2, scale * 0.48, scale * 0.48,
+                    this.wall * 0.4, this.pal.get('#fff9ff', Math.round(190 * visual.reveal)));
+            }
+        }
+
         stepMegaChannels (dt) {
             for (const seg of this.chain.segments) {
                 if (!(seg.megaSkillActive > 0)) continue;
@@ -1364,6 +1456,27 @@ export function createGame (cc) {
             for (const s of this.chain.segments) {
                 if (s.fx > 0) s.fx = Math.max(0, s.fx - dt * FOLD_DECAY);
                 if (s.legendaryCatchFx > 0) s.legendaryCatchFx = Math.max(0, s.legendaryCatchFx - dt * 2.5);
+                if (s.megaEvolutionFx) {
+                    const transition = s.megaEvolutionFx;
+                    const { cues, done } = stepMegaEvolutionFx(transition, dt);
+                    const form = megaFormForSegment(s);
+                    const index = this.chain.segments.indexOf(s);
+                    const node = index >= 0 ? this.chain.headOf(index) : -1;
+                    const x = node >= 0 && node < this.chain.nCount ? this.chain.nx[node] : this.player.x;
+                    const y = node >= 0 && node < this.chain.nCount ? this.chain.ny[node] : this.player.y;
+                    for (const cue of cues) {
+                        if (cue === 'burst') {
+                            if (this.evolutionSfx) this.evolutionSfx.play('burst');
+                            if (form) this.particleBursts.burst(s.fam, x, y, 0, 'mega', form.id);
+                            this.wave(x, y, 24, 154, 0.46, WAVE_DIM);
+                            this.kick(0.22);
+                        } else if (cue === 'reveal') {
+                            if (this.evolutionSfx) this.evolutionSfx.play('reveal');
+                            this.wave(x, y, 10, 76, 0.38, WAVE_GOLD);
+                        }
+                    }
+                    if (done) s.megaEvolutionFx = null;
+                }
                 const entry = s.gigaEntry;
                 if (!entry) continue;
                 const previous = entry.elapsed;
@@ -1508,7 +1621,15 @@ export function createGame (cc) {
         applyLevelChoice (i) {
             if (!this.levelUp || i < 0 || i >= this.levelUp.length) return false;
             const choice = this.levelUp[i];
+            const megaTransition = choice.megaForm && choice.megaSegment
+                ? {
+                    segment: choice.megaSegment,
+                    oldIcon: choice.megaSegment.shiny
+                        ? shinyKey(iconKey(choice.megaSegment.fam, choice.megaSegment.tier))
+                        : iconKey(choice.megaSegment.fam, choice.megaSegment.tier),
+                } : null;
             const text = take(choice, this.build, this.ctx);
+            if (megaTransition) this.startMegaEvolution(megaTransition.segment, megaTransition.oldIcon);
             this.stats_.picks.push(choice.id);
             this.logEvent('upgrade.choice', {
                 id: choice.id, name: choice.name, mega: choice.megaForm || null,
@@ -3405,6 +3526,12 @@ export function createGame (cc) {
                 const partyShinyIcon = s.shiny && iconBase ? shinyKey(iconBase) : null;
                 const icon = this.icons
                     ? (partyShinyIcon && this.atlas.glyphs[partyShinyIcon] ? partyShinyIcon : iconBase) : null;
+                const megaEvolutionFx = s.megaEvolutionFx;
+                const isMegaEvolutionHead = !!megaEvolutionFx && ch.headOf(si) === i;
+                const megaEvolution = isMegaEvolutionHead ? megaEvolutionVisual(megaEvolutionFx) : null;
+                const sourceIcon = megaEvolution && megaEvolution.progress < 0.42
+                    ? megaEvolutionFx.oldIcon : null;
+                const shownIcon = sourceIcon && this.atlas.glyphs[sourceIcon] ? sourceIcon : icon;
                 // Same floor as the horde, applied before crowd division: a lone starter is readable,
                 // while a 4-pack can still thin out so the tail does not become one continuous worm.
                 // The explicit stage multiplier comes after that compression, so evolution remains
@@ -3416,12 +3543,13 @@ export function createGame (cc) {
                     * formScale(s.tier) * (mega ? 1.22 : (gigantamax ? gigantamax.size : 1))
                     * (legendary ? legendaryBodyScale(s) * (1 + 0.15 * Math.sin((1 - legendaryArrival) * Math.PI)) : 1)
                     * (dynamax ? DYNAMAX_BAND.pokemonScale : 1) * entryScale;
-                const glyph = icon || TIER_GLYPH[Math.min(3, Math.max(0, s.tier - 1))];
+                const glyph = shownIcon || TIER_GLYPH[Math.min(3, Math.max(0, s.tier - 1))];
                 // A 段's species is its family, so once the art is real the 元素 tint is no longer
                 // carrying identity and only gets in the way: white multiply = the icon's own colours.
                 const occluded = nodeOccluded(i);
-                const col = this.pal.get(icon ? ICON_TINT : ELEMENT[family(s.fam).element],
-                    occluded ? Math.round((head ? 255 : body) * 0.42) : (head ? 255 : body));
+                const bodyOpacity = occluded ? Math.round((head ? 255 : body) * 0.42) : (head ? 255 : body);
+                const col = this.pal.get(shownIcon ? ICON_TINT : ELEMENT[family(s.fam).element],
+                    Math.round(bodyOpacity * (megaEvolution ? megaEvolution.bodyAlpha : 1)));
                 const flip = Math.cos(ch.na[i]) < 0;
                 // The pet that just arrived gets a landing squash on the node it landed on, because a
                 // new link silently appearing in the line is the same as no feedback at all.
@@ -3441,7 +3569,7 @@ export function createGame (cc) {
                     const r = 24 * scale;
                     const px = ch.nx[i] + o[0] * r;
                     const groundY = ch.ny[i] + o[1] * r + Math.abs(bob) * 2.6 + pop * 3;
-                    const py = groundY + entryLift;
+                    const py = groundY + entryLift + (megaEvolution ? megaEvolution.lift : 0);
                     if (gigaEntry && k === 0) {
                         const liftRatio = entryLift / 58;
                         const shadowScale = scale * (1.45 + liftRatio * 0.48);
@@ -3488,7 +3616,7 @@ export function createGame (cc) {
                         }
                     }
                     const meowthGigantamax = gigantamax?.id === 'meowth';
-                    if (mega && k === 0) {
+                    if (mega && !megaEvolution && k === 0) {
                         const pulse = 1 + 0.1 * Math.sin(this.wall * 5 + i);
                         b.draw('aura', px, py, scale * 2.7 * pulse, scale * 2.7 * pulse, 0,
                             this.pal.get(mega.color, 70));
@@ -3519,7 +3647,7 @@ export function createGame (cc) {
                         scale * (1 + 0.08 * bob) * (1 - 0.24 * pop) * (1 + swing) * entrySqueezeY,
                         0, col, flip,
                         dynamax ? DYNAMAX_BAND.shader : gigantamax ? 'gigantamax-pokemon' : null);
-                    if (mega && k === 0) {
+                    if (mega && !megaEvolution && k === 0) {
                         const ring = scale * (1.62 + 0.12 * Math.sin(this.wall * 6 + i));
                         b.draw('ring', px, py, ring, ring, -this.wall * 0.55,
                             this.pal.get(combatForm.color, 235));
@@ -3530,6 +3658,10 @@ export function createGame (cc) {
                                 py + Math.sin(a) * scale * 35, 0.58, 0.58, -a, null);
                         }
                     }
+                }
+                if (megaEvolution) {
+                    this.drawMegaEvolutionFx(b, megaEvolutionFx, ch.nx[i],
+                        ch.ny[i] + megaEvolution.lift, scale, pack, si);
                 }
                 // 家主鼠本体不随重复捕捉膨胀；同族小鼠在本体侧后方收拢，数量不会增加碰撞体或攻击段数。
                 const partySize = ch.segments.length;
