@@ -24,6 +24,9 @@
     .sound-toggle{border:1px solid #cdbfa6;border-radius:9px;background:#fffaf0;padding:8px 11px;font-size:11px;cursor:pointer;transition:transform .12s,background .12s,border-color .12s,box-shadow .12s}.sound-toggle:hover{transform:translateY(-1px)}.sound-toggle[aria-pressed=true]{background:#e2f0d6;border-color:#8eb67b;color:#3b6645;box-shadow:inset 0 -2px #b8d5a8}
     @media(max-width:720px){body{padding:10px}.shell{border-radius:14px}.topbar{padding:11px 13px;min-height:65px}.brand-mark{width:34px;height:34px}.brand-mark:after{left:9px;top:9px}.brand h1{font-size:16px}.pill{font-size:9px;padding:6px 8px}.content{padding:15px 12px}.intro{align-items:flex-start;flex-direction:column;gap:8px}.intro h2{font-size:15px}.phase-chip{padding:6px 8px}.hud{left:7px;top:7px;gap:5px}.hud-card{padding:5px 7px;border-width:1px;border-radius:8px;gap:5px}.party{min-width:0}.party-face{width:23px;height:23px}.party-face img{width:34px;height:34px}.hud-copy,.xp-top{font-size:8px}.hud-copy b{font-size:9px}.xp{min-width:112px}.xp-bar{height:5px;margin-top:3px}.badge{right:7px;top:7px;padding:5px 7px;font-size:8px}.callout{bottom:9px;font-size:9px;padding:6px 9px}.toolbar{align-items:flex-start;flex-direction:column}.stage-select,.actions{flex-wrap:wrap}.seg button,.mode button,.replay{padding:7px 9px;font-size:10px}.notes{align-items:flex-start;flex-direction:column}.sound-note{white-space:normal}}
     @media(max-width:720px){.sound-toggle{padding:7px 9px;font-size:10px}}
+    .shell.mega-mode .stage{border-color:#80559f;box-shadow:inset 0 2px 0 #fff9e5,0 0 0 3px #d6b9f0}.shell.mega-mode .badge{border-color:#a684c8;background:#f5eaffed;color:#68428e}.shell.mega-mode .phase-chip{background:#f1e5fa;border-color:#c8aedf}
+    .control-label{white-space:nowrap}
+    @media(max-width:900px){.toolbar{align-items:flex-start;flex-direction:column}.stage-select,.actions{flex-wrap:wrap}.notes{align-items:flex-start;flex-direction:column}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
   </style>
 </head>
@@ -34,35 +37,36 @@
       <div class="top-actions"><span class="pill"><i class="live-dot"></i>像素动画概念稿</span></div>
     </header>
     <section class="content">
-      <div class="intro"><div><h2>集光洗白，空中蜕变</h2><p>原形态化作白色剪影，翻转中融合为进化形态，落地后显现颜色。</p></div><div class="phase-chip">当前阶段 <strong id="phaseName">光效聚集</strong></div></div>
+      <div class="intro"><div><h2 id="previewTitle">集光洗白，空中蜕变</h2><p id="previewDescription">原形态化作白色剪影，翻转中融合为进化形态，落地后显现颜色。</p></div><div class="phase-chip">当前阶段 <strong id="phaseName">光效聚集</strong></div></div>
       <div class="stage">
         <canvas id="scene" width="1000" height="430" aria-label="宝可梦精灵进化特效预览"></canvas>
         <div class="hud">
           <div class="hud-card party"><span class="party-face"><img id="partyImg" src="../../assets/icons/BULBASAUR.png" alt="" /></span><span class="hud-copy"><b>队伍 3 / 12</b><br><span id="partyName">妙蛙种子</span> · 伙伴</span></div>
           <div class="hud-card xp"><div class="xp-top"><span>Lv 12</span><span>EXP 3 / 5</span></div><span class="xp-bar"><i></i></span></div>
         </div>
-        <div class="badge">✦ 进化条件已满足</div>
+        <div class="badge" id="stageBadge">✦ 进化条件已满足</div>
         <div class="callout" id="callout"><span class="star">✦</span><span id="calloutText">全新的伙伴登场！</span></div>
       </div>
       <div class="toolbar">
-        <div class="stage-select"><span class="control-label">演示家族</span><div class="seg" role="group" aria-label="演示家族"><button data-family="bulba" aria-pressed="true">妙蛙种子系</button><button data-family="charmander" aria-pressed="false">小火龙系</button></div></div>
+        <div class="stage-select"><span class="control-label">演示家族</span><div class="seg" role="group" aria-label="演示家族"><button data-family="bulba" aria-pressed="true">妙蛙种子系</button><button data-family="charmander" aria-pressed="false">小火龙系</button></div><span class="control-label">演出</span><div class="seg" role="group" aria-label="进化演出"><button data-show="evolution" aria-pressed="true">普通进化</button><button data-show="mega" aria-pressed="false">MEGA进化</button></div></div>
         <div class="actions"><span class="control-label">演出节奏</span><div class="mode" role="group" aria-label="演出节奏"><button data-mode="manual" aria-pressed="true">手动进化</button><button data-mode="auto" aria-pressed="false">自动进化</button></div><button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false">♫ 音效：关</button><button class="replay" id="replay">↻ 重新播放</button></div>
       </div>
-      <div class="notes"><span><strong>节奏：</strong>光效聚集并洗白 → 空中翻转、白色剪影蜕变 → 落地后恢复颜色</span><span class="sound-note"><i class="mute">♪</i><span id="soundStatus">默认静音；开启音效后从头试听</span></span></div>
+      <div class="notes"><span><strong>节奏：</strong><span id="sequenceNote">光效聚集并洗白 → 空中翻转、白色剪影蜕变 → 落地后恢复颜色</span></span><span class="sound-note"><i class="mute">♪</i><span id="soundStatus">默认静音；开启音效后从头试听</span></span></div>
     </section>
   </main>
   <script>
     (()=>{
       const canvas=document.getElementById('scene'),ctx=canvas.getContext('2d');
       const phaseName=document.getElementById('phaseName'),callout=document.getElementById('callout'),calloutText=document.getElementById('calloutText');
+      const previewTitle=document.getElementById('previewTitle'),previewDescription=document.getElementById('previewDescription'),stageBadge=document.getElementById('stageBadge'),sequenceNote=document.getElementById('sequenceNote'),shell=document.querySelector('.shell');
       const partyImg=document.getElementById('partyImg'),partyName=document.getElementById('partyName');
       const soundToggle=document.getElementById('soundToggle'),soundStatus=document.getElementById('soundStatus');
       const families={
-        bulba:{from:'BULBASAUR',to:'IVYSAUR',fromName:'妙蛙种子',toName:'妙蛙草',color:'#9bcf65',accent:'#8d6ac0'},
-        charmander:{from:'CHARMANDER',to:'CHARMELEON',fromName:'小火龙',toName:'火恐龙',color:'#ff9b55',accent:'#e87961'}
+        bulba:{from:'BULBASAUR',to:'IVYSAUR',fromName:'妙蛙种子',toName:'妙蛙草',megaFrom:'VENUSAUR',megaTo:'VENUSAUR_1',megaFromName:'妙蛙花',megaToName:'超级妙蛙花',color:'#9bcf65',accent:'#8d6ac0'},
+        charmander:{from:'CHARMANDER',to:'CHARMELEON',fromName:'小火龙',toName:'火恐龙',megaFrom:'CHARIZARD',megaTo:'CHARIZARD_1',megaFromName:'喷火龙',megaToName:'超级喷火龙X',color:'#ff9b55',accent:'#e87961'}
       };
       const soundParams=new URLSearchParams(location.search);
-      let family=families.bulba,mode='manual',restartAt=performance.now(),soundMuted=soundParams.get('mute')==='1'||soundParams.get('sound')!=='1',audioRun=0,audioCycleKey='',audioPlayed=new Set();
+      let family=families.bulba,mode='manual',megaMode=false,restartAt=performance.now(),soundMuted=soundParams.get('mute')==='1'||soundParams.get('sound')!=='1',audioRun=0,audioCycleKey='',audioPlayed=new Set();
       const soundClips={
         charge:{src:'../../assets/audio/evolution-preview/charge.ogg',volume:.28,rate:2.15},
         flip:{src:'../../assets/audio/evolution-preview/flip-whoosh.mp3',volume:.34,rate:1},
@@ -80,16 +84,18 @@
           const c=document.createElement('canvas');c.width=64;c.height=64;const x=c.getContext('2d',{willReadFrequently:true});
           x.drawImage(img,0,0,128,64);const px=x.getImageData(0,0,64,64).data;let x0=64,y0=64,x1=-1,y1=-1;
           for(let y=0;y<64;y++)for(let xx=0;xx<64;xx++)if(px[(y*64+xx)*4+3]>12){x0=Math.min(x0,xx);x1=Math.max(x1,xx);y0=Math.min(y0,y);y1=Math.max(y1,y)}
-          if(x1>=x0){const w=x1-x0+1,h=y1-y0+1,pad=4,d=document.createElement('canvas');d.width=w+pad*2;d.height=h+pad*2;d.getContext('2d').drawImage(c,x0,y0,w,h,pad,pad,w,h);entry.canvas=d;entry.silhouette=document.createElement('canvas');entry.silhouette.width=d.width;entry.silhouette.height=d.height;const sc=entry.silhouette.getContext('2d');sc.drawImage(d,0,0);sc.globalCompositeOperation='source-in';sc.fillStyle='#fffef2';sc.fillRect(0,0,d.width,d.height);entry.ready=true;if(family.from===name)partyImg.src=d.toDataURL()}
+          if(x1>=x0){const w=x1-x0+1,h=y1-y0+1,pad=4,d=document.createElement('canvas');d.width=w+pad*2;d.height=h+pad*2;d.getContext('2d').drawImage(c,x0,y0,w,h,pad,pad,w,h);entry.canvas=d;entry.silhouette=document.createElement('canvas');entry.silhouette.width=d.width;entry.silhouette.height=d.height;const sc=entry.silhouette.getContext('2d');sc.drawImage(d,0,0);sc.globalCompositeOperation='source-in';sc.fillStyle='#fffef2';sc.fillRect(0,0,d.width,d.height);entry.ready=true;if(currentPreview().from===name)partyImg.src=d.toDataURL()}
         };
         return entry;
       }
       function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}function ease(v){v=clamp(v);return 1-Math.pow(1-v,3)}
+      function currentPreview(){return megaMode?{from:family.megaFrom,to:family.megaTo,fromName:family.megaFromName,toName:family.megaToName}:family}
+      function syncPresentation(){const preview=currentPreview();partyImg.src=`../../assets/icons/${preview.from}.png`;const face=sprite(preview.from);if(face.ready)partyImg.src=face.canvas.toDataURL();partyName.textContent=preview.fromName;shell.classList.toggle('mega-mode',megaMode);previewTitle.textContent=megaMode?'MEGA进化，紫球爆裂':'集光洗白，空中蜕变';previewDescription.textContent=megaMode?'紫色能量球包围伙伴，裂纹绽开后爆散，超级形态从核心显现。':'原形态化作白色剪影，翻转中融合为进化形态，落地后显现颜色。';stageBadge.textContent=megaMode?'✦ MEGA共鸣启动':'✦ 进化条件已满足';sequenceNote.textContent=megaMode?'紫色光球聚集笼罩 → 裂纹蔓延、能量压缩 → 球体爆裂 → 超级形态显现':'光效聚集并洗白 → 空中翻转、白色剪影蜕变 → 落地后恢复颜色';calloutText.textContent=`${preview.toName}，${megaMode?'MEGA进化完成！':'进化完成！'}`}
       function syncSoundUi(){soundToggle.setAttribute('aria-pressed',String(!soundMuted));soundToggle.textContent=soundMuted?'♫ 音效：关':'♫ 音效：开';soundStatus.textContent=soundMuted?'默认静音；点击开启素材音效':'素材音效已开启；可随时关闭'}
       function stopSounds(){activeSounds.forEach(audio=>{audio.pause();audio.currentTime=0});activeSounds.clear()}
       function playCue(name){if(soundMuted)return;const clip=soundClips[name],audio=soundPlayers[name];if(!clip||!audio)return;audio.pause();audio.currentTime=0;audio.volume=clip.volume;audio.playbackRate=clip.rate;activeSounds.add(audio);const cleanup=()=>activeSounds.delete(audio);audio.addEventListener('ended',cleanup,{once:true});audio.addEventListener('error',cleanup,{once:true});audio.play().catch(()=>{cleanup();if(!soundMuted)soundStatus.textContent='浏览器未播放音效；点重新播放再试'})}
       function playCharge(){playCue('charge')}function playFlip(){playCue('flip')}function playMorph(){playCue('morph')}function playLanding(){playCue('landing')}
-      function updateAudio(t,visual,loop){if(soundMuted)return;const cycleKey=`${audioRun}:${Math.floor(t/loop)}`;if(cycleKey!==audioCycleKey){audioCycleKey=cycleKey;audioPlayed.clear();playCharge()}[[.28,'flip',playFlip],[.31,'morph',playMorph],[.89,'landing',playLanding]].forEach(([at,name,play])=>{if(visual>=at&&!audioPlayed.has(name)){audioPlayed.add(name);play()}})}
+      function updateAudio(t,visual,loop){if(soundMuted)return;const cycleKey=`${audioRun}:${Math.floor(t/loop)}`;if(cycleKey!==audioCycleKey){audioCycleKey=cycleKey;audioPlayed.clear();playCharge()}const cues=megaMode?[[.53,'orb-break',playFlip],[.58,'mega-reveal',playMorph],[.89,'landing',playLanding]]:[[.28,'flip',playFlip],[.31,'morph',playMorph],[.89,'landing',playLanding]];cues.forEach(([at,name,play])=>{if(visual>=at&&!audioPlayed.has(name)){audioPlayed.add(name);play()}})}
       function restartAnimation(fromGesture=false){stopSounds();restartAt=performance.now();audioRun++;audioCycleKey='';audioPlayed.clear();callout.classList.remove('show');if(fromGesture&&!soundMuted){audioCycleKey=`${audioRun}:0`;audioPlayed.add('charge');playCharge()}}
       function rnd(seed){let t=seed+0x6D2B79F5;return()=>{t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
       const stars=Array.from({length:54},(_,i)=>{const r=rnd(i*817+23);return{x:r()*1000,y:r()*430,s:1+r()*2,a:.12+r()*.25,phase:r()*6.28}});
@@ -114,14 +120,31 @@
         }ctx.restore()}
       function drawCreature(entry,x,y,size,alpha=1,white=false,scaleX=1,scaleY=1){if(!entry?.ready)return;const im=white?entry.silhouette:entry.canvas;ctx.save();ctx.globalAlpha=alpha;ctx.imageSmoothingEnabled=false;ctx.translate(x,y);ctx.scale(scaleX,scaleY);if(white){ctx.globalAlpha=alpha*.72;ctx.shadowColor='#514660';ctx.shadowBlur=0;ctx.shadowOffsetX=1;ctx.shadowOffsetY=2;ctx.drawImage(im,-size/2,-size/2,size,size);ctx.shadowColor='transparent';ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;ctx.globalAlpha=alpha}ctx.drawImage(im,-size/2,-size/2,size,size);ctx.restore()}
       function drawTurnedCreature(entry,x,y,size,alpha,white,scaleX,scaleY,progress,turning){if(!turning)return drawCreature(entry,x,y,size,alpha,white,scaleX,scaleY);const angle=progress*Math.PI*2,planeWidth=.82+.18*Math.abs(Math.cos(angle)),a=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2),seam=.18;let mirrored=0;if(a>=Math.PI/2-seam&&a<=Math.PI/2+seam)mirrored=ease((a-(Math.PI/2-seam))/(seam*2));else if(a>Math.PI/2+seam&&a<Math.PI*1.5-seam)mirrored=1;else if(a>=Math.PI*1.5-seam&&a<=Math.PI*1.5+seam)mirrored=1-ease((a-(Math.PI*1.5-seam))/(seam*2));if(mirrored<.999)drawCreature(entry,x,y,size,alpha*(1-mirrored),white,scaleX*planeWidth,scaleY);if(mirrored>.001)drawCreature(entry,x,y,size,alpha*mirrored,white,-scaleX*planeWidth,scaleY)}
+      function drawMegaOrb(x,y,r,alpha,t){if(alpha<=.01)return;ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=alpha*.55;const glow=ctx.createRadialGradient(x,y,r*.2,x,y,r*1.45);glow.addColorStop(0,'rgba(199,142,255,.05)');glow.addColorStop(.62,'rgba(151,83,220,.16)');glow.addColorStop(1,'rgba(111,51,176,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(x,y,r*1.45,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=alpha;const sphere=ctx.createRadialGradient(x-r*.28,y-r*.38,r*.04,x,y,r);sphere.addColorStop(0,'rgba(250,235,255,.30)');sphere.addColorStop(.44,'rgba(194,139,241,.19)');sphere.addColorStop(.76,'rgba(139,75,197,.31)');sphere.addColorStop(.91,'rgba(105,51,160,.66)');sphere.addColorStop(.97,'rgba(237,213,255,.94)');sphere.addColorStop(1,'rgba(156,91,213,.35)');ctx.fillStyle=sphere;ctx.shadowColor='#9c53e6';ctx.shadowBlur=24;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.lineWidth=2.5;ctx.strokeStyle='rgba(246,229,255,.88)';ctx.stroke();ctx.lineWidth=1.4;ctx.strokeStyle='rgba(228,190,255,.47)';for(let i=0;i<2;i++){ctx.globalAlpha=alpha*(.34+i*.12);ctx.beginPath();ctx.ellipse(x,y,r*(.76-i*.12),r*(.34+i*.06),-.42+i*.84,t*.42+i*1.7,t*.42+i*1.7+Math.PI*1.46);ctx.stroke()}ctx.globalAlpha=alpha*.62;const shine=ctx.createRadialGradient(x-r*.31,y-r*.40,1,x-r*.27,y-r*.38,r*.38);shine.addColorStop(0,'rgba(255,255,255,.88)');shine.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=shine;ctx.beginPath();ctx.ellipse(x-r*.27,y-r*.38,r*.34,r*.20,-.62,0,Math.PI*2);ctx.fill();ctx.restore()}
+      function drawMegaCracks(x,y,r,amount){if(amount<=.01)return;ctx.save();ctx.globalAlpha=amount;ctx.lineJoin='miter';ctx.lineCap='square';for(let i=0;i<8;i++){const a=i*Math.PI/4-.23,dirX=Math.cos(a),dirY=Math.sin(a),sideX=-dirY,sideY=dirX;ctx.beginPath();ctx.moveTo(x+dirX*r*.08,y+dirY*r*.08);for(let k=1;k<=5;k++){const d=r*(.08+k*.17),jitter=((i*11+k*7)%5-2)*r*.018;ctx.lineTo(x+dirX*d+sideX*jitter,y+dirY*d+sideY*jitter)}ctx.strokeStyle='rgba(248,229,255,.94)';ctx.lineWidth=3.2;ctx.stroke();ctx.strokeStyle='rgba(119,53,168,.82)';ctx.lineWidth=1.2;ctx.stroke()}ctx.restore()}
+      function drawMegaBurst(x,y,r,progress,t){if(progress<=0)return;const fade=Math.pow(1-progress,1.35);ctx.save();ctx.globalCompositeOperation='lighter';for(let i=0;i<28;i++){const a=i*Math.PI*2/28+t*.025,inner=r*(.26+progress*.24),outer=r*(.64+progress*(1.3+(i%5)*.08)),half=.018+(i%3)*.006;ctx.globalAlpha=fade*(.28+(i%4)*.09);ctx.fillStyle=i%5===0?'#fff8ff':i%2?'#c98aff':'#8d4bd0';ctx.beginPath();ctx.moveTo(x+Math.cos(a-half)*inner,y+Math.sin(a-half)*inner);ctx.lineTo(x+Math.cos(a)*outer,y+Math.sin(a)*outer);ctx.lineTo(x+Math.cos(a+half)*inner,y+Math.sin(a+half)*inner);ctx.closePath();ctx.fill()}ctx.restore();for(let i=0;i<22;i++){const rand=rnd(i*991+302),a=i*Math.PI*2/22+(rand()-.5)*.16,d=r*(.64+progress*(.75+rand()*.98)),px=x+Math.cos(a)*d,py=y+Math.sin(a)*d*.78,size=5+rand()*11;ctx.save();ctx.translate(Math.round(px),Math.round(py));ctx.rotate(a+progress*(rand()-.3)*2.8);ctx.globalAlpha=fade*(.7+rand()*.3);ctx.fillStyle=['#f8eaff','#d19aff','#9e61d3','#713ba8'][i%4];ctx.beginPath();ctx.moveTo(-size*.55,-size*.22);ctx.lineTo(-size*.05,-size*.56);ctx.lineTo(size*.58,-size*.19);ctx.lineTo(size*.22,size*.44);ctx.lineTo(-size*.34,size*.31);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(255,255,255,.64)';ctx.fillRect(-size*.08,-size*.28,Math.max(1,size*.18),Math.max(1,size*.3));ctx.restore()}}
+      function drawMegaScene(t,visual){const preview=currentPreview(),from=sprite(preview.from),to=sprite(preview.to),cx=500,cy=211;const rise=Math.sin(Math.PI*clamp((visual-.12)/.74)),bodyY=cy-rise*30,shellIn=ease(clamp((visual-.03)/.17)),shellOut=1-ease(clamp((visual-.52)/.19)),orbAlpha=shellIn*shellOut,orbPulse=1+Math.sin(t*11)*.028,orbRadius=(18+68*ease(clamp(visual/.27)))*orbPulse,crack=ease(clamp((visual-.39)/.15))*(1-ease(clamp((visual-.53)/.035))),burstProgress=clamp((visual-.53)/.31),flash=Math.max(0,1-Math.abs(visual-.575)/.055),megaColor=ease(clamp((visual-.68)/.12)),megaWhite=ease(clamp((visual-.54)/.17))*(1-megaColor),settle=ease(clamp((visual-.82)/.12));
+        ctx.fillStyle='#6e8056';ctx.globalAlpha=.16*(1-rise*.45);ctx.beginPath();ctx.ellipse(cx,cy+42,57-rise*9,12-rise*3,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+        if(orbAlpha>.01){ctx.save();ctx.globalCompositeOperation='lighter';const aura=ctx.createRadialGradient(cx,bodyY,10,cx,bodyY,orbRadius*1.8);aura.addColorStop(0,`rgba(194,132,255,${.08*orbAlpha})`);aura.addColorStop(.54,`rgba(153,86,220,${.14*orbAlpha})`);aura.addColorStop(1,'rgba(122,57,184,0)');ctx.fillStyle=aura;ctx.beginPath();ctx.arc(cx,bodyY,orbRadius*1.8,0,Math.PI*2);ctx.fill();ctx.restore()}
+        const baseFade=1-ease(clamp((visual-.51)/.10));drawCreature(from,cx,bodyY,108,baseFade*.12,false,1,1);
+        if(visual<.58){for(let i=0;i<14;i++){const a=i*Math.PI*2/14-t*(.85+(i%3)*.16),rad=orbRadius*(.80+.055*Math.sin(t*4+i)),px=cx+Math.cos(a)*rad,py=bodyY+Math.sin(a)*rad*.82;drawPixelStar(px,py,i%4===0?5:3,.35+shellIn*.56,'#e9c8ff',a*.25)}}
+        drawMegaOrb(cx,bodyY,orbRadius,orbAlpha,t);drawCreature(from,cx,bodyY,100,baseFade*.94,false,1,1);drawMegaCracks(cx,bodyY,orbRadius,crack);
+        if(flash>.01){ctx.save();ctx.globalCompositeOperation='lighter';const f=ctx.createRadialGradient(cx,bodyY,4,cx,bodyY,orbRadius*2.2);f.addColorStop(0,`rgba(255,255,255,${.76*flash})`);f.addColorStop(.22,`rgba(239,218,255,${.64*flash})`);f.addColorStop(1,'rgba(167,104,224,0)');ctx.fillStyle=f;ctx.beginPath();ctx.arc(cx,bodyY,orbRadius*2.2,0,Math.PI*2);ctx.fill();ctx.restore()}
+        drawMegaBurst(cx,bodyY,orbRadius,burstProgress,t);
+        const megaScale=(.84+.34*ease(clamp((visual-.53)/.14))-.18*settle);if(megaWhite>.005)drawCreature(to,cx,bodyY,116,megaWhite,true,megaScale,megaScale);if(megaColor>.005)drawCreature(to,cx,bodyY,116,megaColor,false,megaScale,megaScale);
+        if(visual>.70){const sparkle=ease(clamp((visual-.70)/.12))*(1-settle*.55);for(let i=0;i<12;i++){const a=i*2.399+t*.34,r=52+(i%4)*16,px=cx+Math.cos(a)*r,py=bodyY+Math.sin(a)*r*.78;drawPixelStar(px,py,i%3===0?5:3,sparkle*(.42+.5*Math.abs(Math.sin(t*5+i))),'#ebceff',a*.14)}}
+        ctx.globalAlpha=1;
+      }
       function phase(t){if(t<.20)return 0;if(t<.48)return 1;if(t<.71)return 2;if(t<.92)return 3;return 4}
       function phaseLabel(q){return ['光效聚集','升空翻转','白色剪影蜕变','进化形态落地','稳定落定'][q]}
+      function megaPhase(t){if(t<.16)return '紫光汇聚';if(t<.38)return '能量球笼罩';if(t<.54)return '球内聚能';if(t<.72)return '光球爆裂';if(t<.91)return '超级形态显现';return 'MEGA降临'}
       function draw(now){
         const dpr=Math.min(2,window.devicePixelRatio||1),w=canvas.clientWidth||1000,h=w*.43;
         if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr)}
         ctx.setTransform(canvas.width/1000,0,0,canvas.height/430,0,0);ctx.clearRect(0,0,1000,430);
         const t=(now-restartAt)/1000,loop=mode==='manual'?2.85:1.78,phaseT=(t%loop)/loop,visual=phaseT>.13?(phaseT-.13)/.84:0,p=clamp(visual),q=phase(visual);updateAudio(t,visual,loop);background(t);
-        phaseName.textContent=phaseLabel(q);
+        phaseName.textContent=megaMode?megaPhase(visual):phaseLabel(q);
+        if(megaMode){drawMegaScene(t,visual);const megaShow=visual>.94&&visual<.995;callout.classList.toggle('show',megaShow);calloutText.textContent=`${currentPreview().toName}，MEGA进化完成！`;requestAnimationFrame(draw);return}
         const from=sprite(family.from),to=sprite(family.to),cx=500,cy=211;
         const lift=86*Math.sin(Math.PI*clamp((visual-.19)/.70));
         const flipProgress=clamp((visual-.30)/.16);
@@ -167,11 +190,12 @@
         requestAnimationFrame(draw);
       }
       function sizePulse(p){return 1+Math.sin(Math.PI*clamp(p/.16))*.035}
-      document.querySelectorAll('[data-family]').forEach(b=>b.addEventListener('click',()=>{family=families[b.dataset.family];document.querySelectorAll('[data-family]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));partyImg.src=`../../assets/icons/${family.from}.png`;const face=sprite(family.from);if(face.ready)partyImg.src=face.canvas.toDataURL();partyName.textContent=family.fromName;restartAnimation(true)}));
+      document.querySelectorAll('[data-family]').forEach(b=>b.addEventListener('click',()=>{family=families[b.dataset.family];document.querySelectorAll('[data-family]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));syncPresentation();restartAnimation(true)}));
+      document.querySelectorAll('[data-show]').forEach(b=>b.addEventListener('click',()=>{megaMode=b.dataset.show==='mega';document.querySelectorAll('[data-show]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));syncPresentation();restartAnimation(true)}));
       document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));restartAnimation(true)}));
       soundToggle.addEventListener('click',()=>{soundMuted=!soundMuted;if(soundMuted)stopSounds();else restartAnimation(true);syncSoundUi()});
       document.getElementById('replay').addEventListener('click',()=>restartAnimation(true));
-      syncSoundUi();sprite(family.from);sprite(family.to);requestAnimationFrame(draw);
+      syncSoundUi();syncPresentation();sprite(family.from);sprite(family.to);sprite(family.megaFrom);sprite(family.megaTo);requestAnimationFrame(draw);
     })();
   </script>
 </body>
