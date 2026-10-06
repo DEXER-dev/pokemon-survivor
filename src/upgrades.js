@@ -258,10 +258,9 @@ export const LEVELS = [
         id: 'rareCandy',
         name: '奇异糖果',
         icon: 'RARECANDY',
-        rarity: 'legendary',
         max: 1,
         delta: () => '选择一只可进化的队伍精灵，免费进化一阶段',
-        note: '传说道具：不消耗同族数量，进化后保留原有队伍数量',
+        note: '不消耗同族数量，进化后保留原有队伍数量',
         done: (b, x) => !x || !x.chain || !x.chain.segments.some((seg) =>
             !lineTop(seg.fam, seg.tier) && !gigantamaxLocksEvolution(seg)),
         apply: () => {},

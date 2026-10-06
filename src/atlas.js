@@ -794,7 +794,7 @@ export async function loadMegaStoneAtlas (cc, forms) {
 /** Load real Pokémon item icons for the level-up cards, keyed by the upgrade's icon id. */
 export async function loadUpgradeItemAtlas (cc, upgrades) {
     const ids = [...new Set(upgrades.map((entry) => entry.icon).filter(Boolean))];
-    const images = await Promise.all(ids.map((id) => (id === 'ZPOWERBAND' || id === 'RARECANDY')
+    const images = await Promise.all(ids.map((id) => id === 'ZPOWERBAND'
         ? null : loadPng(id === 'POKEBALL'
         ? 'assets/items/POKEBALL.png' : id === 'AUSTRALIANMOUSE'
             ? 'assets/icons/TANDEMAUS.png' : `assets/items/upgrades/${id}.png`)));

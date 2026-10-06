@@ -1975,8 +1975,11 @@ console.log('调试按键门禁：默认关闭 · 仅 ?debug 参数可启用 PAS
     chain.reset(0, 0);
     chain.add('mush', 1, 1);
     const ctx = { chain };
-    if (!candy || candy.name !== '奇异糖果' || candy.rarity !== 'legendary' || candy.max !== 1
-        || candy.icon !== 'RARECANDY' || !available(candy, build, ctx)
+    if (!candy || candy.name !== '奇异糖果' || candy.rarity || candy.max !== 1
+        || candy.icon !== 'RARECANDY'
+        || candy.note.startsWith('传说道具')
+        || !existsSync(new URL('./assets/items/upgrades/RARECANDY.png', import.meta.url))
+        || !available(candy, build, ctx)
         || available(candy, build, { chain: { segments: [{ fam: 'mush', tier: 3 }] } })) {
         throw new Error('Rare Candy upgrade availability / one-time card regression');
     }
