@@ -400,7 +400,7 @@ export function createGame (cc) {
             this.legendaryMap = { active: false, x: 0, y: 0, famIdx: -1 };
             this._trainerMegaAnnounced = false;
             this.blockTrainerShot = this.blockTrainerShot.bind(this);
-            this.capture = new CaptureSystem(BALL, CATCH, this.rng);
+            this.capture = new CaptureSystem(BALL, CATCH);
             this.captureSfx = new CaptureSfx(cc, this.node);
             this.combatSfx = new CombatSfx(cc, this.node);
             this.evolutionSfx = new EvolutionSfx(cc, this.node);
@@ -525,7 +525,6 @@ export function createGame (cc) {
             if (this.trees) this.trees.setWorldLayout(this.worldLayout);
             if (this.pond) this.pond.setWorldLayout(this.worldLayout);
             this.enemies.rng = this.rng;
-            this.capture.rng = this.rng;
             this.build.reset();
             resetRotationTracker(this.alcremieRotation);
             this.player.reset();
@@ -1941,13 +1940,6 @@ export function createGame (cc) {
 
         /** Absorb what landed this step. Overflow is the doc's one trade surface, and it pays out. */
         drainLanded () {
-            // 投球升级的每帧同步：回收绳的球先回弹匣，攥紧之爪只在装了以后开口。
-            if (this.capture.recycled > 0) {
-                this.build.balls += this.capture.recycled;
-                this.capture.recycled = 0;
-            }
-            const stackR = this.build.stacks.recycle || 0;
-            this.capture.recycle = stackR >= 2 ? 1 : stackR === 1 ? 0.5 : 0;
             const list = this.capture.landed;
             let lairCatch = false;
             for (let k = 0; k < list.length; k++) {

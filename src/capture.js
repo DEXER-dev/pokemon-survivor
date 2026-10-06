@@ -36,10 +36,9 @@ export function graze (x, y, dx, dy, max, cx, cy, rr) {
 }
 
 export class CaptureSystem {
-    constructor (ball, catc, rng) {
+    constructor (ball, catc) {
         this.ball = ball;
         this.c = catc;
-        this.rng = rng;
         const bcap = ball.cap;
         // Balls in flight. `bleft` is the remaining 投程 in px, so a 投程 card taken mid-flight cannot
         // retro-extend a ball that was already thrown.
@@ -83,10 +82,6 @@ export class CaptureSystem {
         // (kind, x, y, gold, shiny) once per outcome, so the visual layer can put a ring exactly where it
         // happened without the simulation knowing anything about rings.
         this.onEvent = null;
-        // 投球升级的挂点（默认关闭）：回收绳让投空的球按概率滚回弹匣。
-        // 由 game.js 从 Build 同步，捕捉模拟本身不知道升级。
-        this.recycle = 0;
-        this.recycled = 0;
     }
 
     reset () {
@@ -294,7 +289,6 @@ export class CaptureSystem {
             this.by[i] += uy * step;
             if (this.bleft[i] <= 0.001) {
                 this.whiffed++;
-                if (this.rng.next() < this.recycle) this.recycled++;
                 this._ev(EV_MISS, this.bx[i], this.by[i]);
                 this._removeBall(i);
                 i--;

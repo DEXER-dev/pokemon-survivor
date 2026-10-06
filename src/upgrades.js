@@ -12,8 +12,6 @@ import { AUSTRALIAN_MOUSE_INTERVAL, australianMouseCount, grantAustralianMouse }
 
 export const CARDS = 3;
 
-const nextRepeat = (r) => Math.max(0.12, r * 0.82);
-
 export class Build {
     constructor () {
         this.reset();
@@ -56,18 +54,6 @@ export const LEVELS = [
         note: '队伍上限 +2，可以多收宝可梦',
         done: (b, x) => x.chain.cap >= CHAIN.hardCap,
         apply: (b, x) => { x.chain.growCap(2); },
-    },
-    {
-        id: 'repeat',
-        name: '先制之爪',
-        icon: 'QUICKCLAW',
-        max: 5,
-        // The clamp is in `delta` too: a card that advertises 0.09 s and delivers 0.10 s is the one
-        // kind of lie a greybox is not allowed to tell.
-        delta: (b) => `${(1 / b.repeat).toFixed(1)} → ${(1 / nextRepeat(b.repeat)).toFixed(1)} 球/秒`,
-        note: '投球冷却 -18%，更快连续捕捉',
-        done: (b) => b.repeat <= 0.1,
-        apply: (b) => { b.repeat = nextRepeat(b.repeat); },
     },
     {
         id: 'machoBrace',
@@ -137,19 +123,6 @@ export const LEVELS = [
         delta: (b) => `溅射半径 ×${b.splashR.toFixed(2)} → ×${(b.splashR * 1.15).toFixed(2)}`,
         note: '弹幕命中溅射范围 +15%，一片怪一起带走',
         apply: (b) => { b.splashR *= 1.15; },
-    },
-    {
-        id: 'recycle',
-        name: '逃脱绳',
-        icon: 'ESCAPEROPE',
-        max: 2,
-        delta: (b) => {
-            const cur = (b.stacks.recycle || 0) >= 2 ? 100 : (b.stacks.recycle || 0) === 1 ? 50 : 0;
-            const nxt = cur === 0 ? 50 : 100;
-            return `投空的球回收率 ${cur}% → ${nxt}%`;
-        },
-        note: '没扔中的球有概率滚回弹匣，不再白白损失',
-        apply: () => {},
     },
     {
         id: 'speed',

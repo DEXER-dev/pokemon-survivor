@@ -472,7 +472,7 @@ const TAU = Math.PI * 2;
         throw new Error('capture cry must load and play the captured species audio');
     }
     sfx.destroy();
-    const capture = new CaptureSystem(BALL, CATCH, makeRng(77));
+    const capture = new CaptureSystem(BALL, CATCH);
     let reveal = null;
     capture.onEvent = (...args) => { if (args[0] === EV_POP) reveal = args; };
     const familyIndex = FAMILIES.findIndex((family) => family.id === 'mush');
@@ -781,7 +781,7 @@ const TAU = Math.PI * 2;
         || enemies.dead[index] || enemies.bossN !== 1 || enemies.hurt(index, 1)) {
         throw new Error('wild boss must survive party damage until the player defeats it and unlocks capture');
     }
-    const balls = new CaptureSystem(BALL, CATCH, makeRng(1234));
+    const balls = new CaptureSystem(BALL, CATCH);
     if (!balls._take(0, index, 0, 0, enemies) || !enemies.dead[index] || enemies.bossN !== 0
         || balls.bfam[0] !== enemies.fam[index]) {
         throw new Error('weakened roaming wild boss must be catchable and release the boss slot');
@@ -1904,7 +1904,7 @@ console.log('调试按键门禁：默认关闭 · 仅 ?debug 参数可启用 PAS
     if (enemies.hurt(wild, hp * 4) || enemies.hp[wild] !== hp || enemies.dead[wild]) {
         throw new Error('Party damage defeated or weakened a shiny encounter');
     }
-    const balls = new CaptureSystem(BALL, CATCH, makeRng(9));
+    const balls = new CaptureSystem(BALL, CATCH);
     if (!balls._take(0, wild, 0, 0, enemies) || balls.bshiny[0] !== 1
         || balls.bgold[0] !== 0 || enemies.dead[wild] !== 1) {
         throw new Error('A hit ball did not catch a shiny elite without the normal weaken gate');
@@ -1955,7 +1955,7 @@ console.log('调试按键门禁：默认关闭 · 仅 ?debug 参数可启用 PAS
         || !enemies.hurt(boss, enemies.hp[boss] * 4) || !enemies.dead[boss]) {
         throw new Error('family ward must not protect unrelated wild Pokémon or bosses');
     }
-    const balls = new CaptureSystem(BALL, CATCH, makeRng(812));
+    const balls = new CaptureSystem(BALL, CATCH);
     if (!balls._take(0, protectedWild, 0, 0, enemies) || !enemies.dead[protectedWild]) {
         throw new Error('protected wild Pokémon must remain catchable');
     }
@@ -3149,25 +3149,19 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
     console.log('极巨手环：G道具解锁、目标限制、单体弹幕增幅、30秒/60秒参数 PASS');
 }
 
-// 投球升级：回收绳（miss 不再白费）；弹道统计与每掷额外球数固定，不进入升级池。
-// 捕捉系统的回收挂点必须默认休眠——普通一局里它们不该有半点存在感。
+// 投球升级：弹道、投掷节奏与弹药数量不进入升级池，基础投球属性仍由配置决定。
 // 命中即收服 (design call)：球碰到精英也直接收服，没有任何虚弱门槛。
 {
-    const balls = new CaptureSystem(BALL, CATCH, makeRng(7));
-    if (balls.recycle !== 0 || balls.recycled !== 0) {
-        throw new Error('capture recycle hook must ship dormant');
-    }
+    const balls = new CaptureSystem(BALL, CATCH);
     const ids = Object.fromEntries(LEVELS.map((entry) => [entry.id, entry]));
-    if (ids.range || ids.ballR || ids.ballSpeed || ids.ballAmmo || ids.twinBall) {
-        throw new Error('throw range, ball speed/radius, and ammo upgrades must not be rollable');
+    if (ids.range || ids.ballR || ids.ballSpeed || ids.ballAmmo || ids.twinBall || ids.repeat || ids.recycle) {
+        throw new Error('throw range, speed, radius, ammo, cadence, and recovery upgrades must not be rollable');
     }
     const fixedThrow = new Build();
     if (fixedThrow.range !== BALL.rangeBase || fixedThrow.ballSpeed !== BALL.speedBase
-        || fixedThrow.ballR !== BALL.rBase || fixedThrow.balls !== BALL.startingAmmo || BALL.levelAmmo !== 5) {
+        || fixedThrow.ballR !== BALL.rBase || fixedThrow.repeat !== CATCH.repeat
+        || fixedThrow.balls !== BALL.startingAmmo || BALL.levelAmmo !== 5) {
         throw new Error('removing throw-stat upgrades must retain fixed base stats and starting ammo');
-    }
-    if (!ids.recycle || ids.recycle.max !== 2) {
-        throw new Error('recycle capture upgrade regression');
     }
     // 命中即收服：满血精英被球碰到就直接入队，不需要任何前置状态。
     const eliteMock = {
@@ -3191,15 +3185,14 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
     if (eliteTier !== 2 || gold !== 1) {
         throw new Error('elite catch must keep its tier-2 gold rewards');
     }
-    // 回收绳：投空的球按 100% 概率记入回收计数。
-    balls.recycle = 1;
+    // 投空只记录结果，不会凭空回到弹匣。
     const emptyMock = { n: 0, dead: new Uint8Array(0), trainerActive: false };
     balls.throw(0, 0, 1, 0, { range: 100, speed: 2000, r: 15 });
     for (let i = 0; i < 60 && balls.bn > 0; i++) balls.update(0.02, emptyMock, 0, 0);
-    if (balls.whiffed !== 1 || balls.recycled !== 1) {
-        throw new Error('recycle did not return the whiffed ball');
+    if (balls.whiffed !== 1 || 'recycled' in balls) {
+        throw new Error('missed balls must not be recycled by a removed upgrade hook');
     }
-    console.log('投球升级：回收绳注册 · 命中即收服无虚弱门槛 · 弹道统计/单掷球数固定 PASS');
+    console.log('投球升级：投掷调整选项已移除 · 命中即收服无虚弱门槛 · 弹道统计/单掷球数固定 PASS');
 }
 
 // 讲究围巾：全队弹幕发射间隔缩短。伤害经济按 cd 同比例缩包，所以这是节奏与击杀延迟的提升，
@@ -3422,7 +3415,7 @@ enemies.spawn = (x, y, famIdx, tier, elite, minute, boss) => {
     if (horde.seq.length < 4) horde.seq.push(`${FAMILIES[famIdx].id}${tier}${elite ? 'e' : ''}${boss ? 'B' : ''}`);
     return rawSpawn(x, y, famIdx, tier, elite, minute, boss);
 };
-const capture = new CaptureSystem(BALL, CATCH, makeRng(SEED + 1));
+const capture = new CaptureSystem(BALL, CATCH);
 const combat = new CombatSystem(ENEMY, PLAYER);
 {
     if (Math.abs(combat.bite(0, 0, 0, 1) - 6.6) > 1e-8 || BOSS.projectileDamage !== 14
@@ -3565,7 +3558,7 @@ skills.on = SKILL;
     const aimed = captureProbe.spawn(60, 0, 0, 1, false, 0);
     const captureGuard = {
         trainerBoss: { active: false }, build: { balls: 1, range: 120, ballR: 5 },
-        enemies: captureProbe, capture: new CaptureSystem(BALL, CATCH, makeRng(SEED + 93)),
+        enemies: captureProbe, capture: new CaptureSystem(BALL, CATCH),
         aim: () => ({ x: 0, y: 0, dx: 1, dy: 0 }),
     };
     if (GameProbe.prototype.captureGuardTarget.call(captureGuard) !== aimed) {
@@ -4133,17 +4126,17 @@ const BOTS = {
     run: { move: 'wander' },
     kite: { move: 'flee' },
     // The honest novice: nearest thing, no lead, no idea that an elite shrugs a ball off.
-    greedy: { move: 'flee', throw: true, pref: ['repeat', 'cap', 'dmg', 'skillSize', 'hp', 'speed'] },
+    greedy: { move: 'flee', throw: true, pref: ['cap', 'dmg', 'skillSize', 'hp', 'speed'] },
     // The builder: aims for a link that folds, leads the target, and spends a full chain on 融核.
-    merge: { move: 'flee', throw: true, fold: true, lead: true, pref: ['cap', 'dmg', 'skillSize', 'repeat', 'hp', 'speed'] },
+    merge: { move: 'flee', throw: true, fold: true, lead: true, pref: ['cap', 'dmg', 'skillSize', 'hp', 'speed'] },
     // §7.1-4's arm: the same builder, and every legal 段内进化 taken the instant it becomes legal. That is
     // the upper bound on the rule's strength rather than a play pattern - a player folds when they want
     // one, and a row that dies with the rule switched on is the finding, not the bot being dumb.
-    evo: { move: 'flee', throw: true, fold: true, lead: true, evolve: true, pref: ['cap', 'dmg', 'skillSize', 'repeat', 'hp', 'speed'] },
+    evo: { move: 'flee', throw: true, fold: true, lead: true, evolve: true, pref: ['cap', 'dmg', 'skillSize', 'hp', 'speed'] },
     // v0.9.2's shipping rule, and deliberately not an upper bound like `evo`: the same builder, taking one
     // `chain.findAuto` fold per turn - the exact function `game.step` calls. So this row is what the default
     // does to a run, while `evo` stays what the rule *could* do if nothing were forbidden.
-    auto: { move: 'flee', throw: true, fold: true, lead: true, auto: true, pref: ['cap', 'dmg', 'skillSize', 'repeat', 'hp', 'speed'] },
+    auto: { move: 'flee', throw: true, fold: true, lead: true, auto: true, pref: ['cap', 'dmg', 'skillSize', 'hp', 'speed'] },
 };
 
 function folds (famIdx, tier) {
