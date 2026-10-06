@@ -30,6 +30,7 @@ import { CombatSfx } from './combat-sfx.js';
 import { EvolutionSfx } from './evolution-sfx.js';
 import { UpgradeSfx } from './upgrade-sfx.js';
 import { createMegaEvolutionFx, megaEvolutionVisual, stepMegaEvolutionFx } from './mega-evolution-fx.js';
+import { createEvolutionFx, evolutionVisual, stepEvolutionFx } from './evolution-fx.js';
 import { MusicManager } from './music-manager.js';
 import { CombatSystem, chainDps, segDps, lateDamageMultiplier, hitArea } from './combat.js';
 import {
@@ -1541,6 +1542,25 @@ export function createGame (cc) {
                     }
                     if (done) s.megaEvolutionFx = null;
                 }
+                if (s.evolutionFx) {
+                    const transition = s.evolutionFx;
+                    const { cues, done } = stepEvolutionFx(transition, dt);
+                    const index = this.chain.segments.indexOf(s);
+                    const node = index >= 0 ? this.chain.headOf(index) : -1;
+                    const x = node >= 0 && node < this.chain.nCount ? this.chain.nx[node] : this.player.x;
+                    const y = node >= 0 && node < this.chain.nCount ? this.chain.ny[node] : this.player.y;
+                    for (const cue of cues) {
+                        if (cue === 'morph') {
+                            this.particleBursts.burst(s.fam, x, y, Math.PI / 2, 'evolve');
+                            this.wave(x, y, 10, 88, 0.42, WAVE_ACCENT);
+                            this.kick(0.13);
+                        } else if (cue === 'landing') {
+                            this.wave(x, y, 12, 76, 0.36, WAVE_GOLD);
+                            this.kick(0.1);
+                        }
+                    }
+                    if (done) s.evolutionFx = null;
+                }
                 const entry = s.gigaEntry;
                 if (!entry) continue;
                 const previous = entry.elapsed;
@@ -1955,6 +1975,9 @@ export function createGame (cc) {
             if (!entry || this.chain.segments[entry.index] !== entry.seg) return false;
             const source = this.evolutionReward.source;
             const fromTier = entry.seg.tier;
+            const oldIconBase = iconKey(entry.seg.fam, fromTier);
+            const shinyOldIcon = entry.seg.shiny && oldIconBase ? shinyKey(oldIconBase) : null;
+            const oldIcon = shinyOldIcon && this.atlas.glyphs[shinyOldIcon] ? shinyOldIcon : oldIconBase;
             const node = this.chain.headOf(entry.index);
             const x = node >= 0 ? this.chain.nx[node] : this.player.x;
             const y = node >= 0 ? this.chain.ny[node] : this.player.y;
@@ -1965,9 +1988,14 @@ export function createGame (cc) {
                 auto: false, source: source === 'rare-candy' ? 'rare-candy' : 'boss-reward',
                 count: seg.count, mergedSegments: result.merged, shiny: !!seg.shiny });
             this.stats_.evolved++;
-            this.foldFx(seg, 'evo');
-            this.wave(x, y, 14, 108, 0.5, WAVE_ACCENT);
-            this.particleBursts.burst(seg.fam, x, y, 0, 'evolve');
+            if (source === 'boss') {
+                seg.evolutionFx = createEvolutionFx(oldIcon, fromTier);
+                this.kick(0.14);
+            } else {
+                this.foldFx(seg, 'evo');
+                this.wave(x, y, 14, 108, 0.5, WAVE_ACCENT);
+                this.particleBursts.burst(seg.fam, x, y, 0, 'evolve');
+            }
             this.evolutionReward.hide();
             this.refreshLinks();
             this.say(`${source === 'rare-candy' ? '奇异糖果进化' : 'BOSS奖励进化'} · ${seg.shiny ? '✨闪光' : ''}${displayName(seg.fam, fromTier)} → ${displayName(seg.fam, seg.tier)} · 队伍数量不变`
@@ -3586,6 +3614,9 @@ export function createGame (cc) {
                 const megaEvolutionFx = s.megaEvolutionFx;
                 const isMegaEvolutionHead = !!megaEvolutionFx && ch.headOf(si) === i;
                 const megaEvolution = isMegaEvolutionHead ? megaEvolutionVisual(megaEvolutionFx) : null;
+                const evolutionFx = s.evolutionFx;
+                const isEvolutionHead = !!evolutionFx && ch.headOf(si) === i;
+                const evolution = isEvolutionHead ? evolutionVisual(evolutionFx) : null;
                 const sourceIcon = megaEvolution && megaEvolution.progress < 0.42
                     ? megaEvolutionFx.oldIcon : null;
                 const shownIcon = sourceIcon && this.atlas.glyphs[sourceIcon] ? sourceIcon : icon;
@@ -3626,12 +3657,36 @@ export function createGame (cc) {
                     const r = 24 * scale;
                     const px = ch.nx[i] + o[0] * r;
                     const groundY = ch.ny[i] + o[1] * r + Math.abs(bob) * 2.6 + pop * 3;
-                    const py = groundY + entryLift + (megaEvolution ? megaEvolution.lift : 0);
+                    const py = groundY + entryLift + (megaEvolution ? megaEvolution.lift : 0)
+                        + (evolution && k === 0 ? evolution.lift : 0);
                     if (gigaEntry && k === 0) {
                         const liftRatio = entryLift / 58;
                         const shadowScale = scale * (1.45 + liftRatio * 0.48);
                         b.draw('aura', px, groundY, shadowScale * 1.35, shadowScale * 0.42,
                             0, this.pal.get('#60452f', Math.round(46 + liftRatio * 34)));
+                    }
+                    if (evolution && k === 0) {
+                        const riseRatio = Math.max(0, Math.min(1, evolution.lift / 46));
+                        const energy = Math.max(evolution.gather * 0.78,
+                            evolution.whiten * (1 - evolution.reveal) * 0.56);
+                        const shadow = 48 + riseRatio * 30;
+                        b.draw('aura', px, groundY, scale * (1.7 + riseRatio * 0.38),
+                            scale * 0.56, 0, this.pal.get('#665038', shadow));
+                        if (energy > 0.025) {
+                            b.draw('beam', px, groundY + evolution.lift * 0.48,
+                                scale * (1.25 + energy * 1.15), scale * 0.26,
+                                Math.PI / 2, this.pal.get('#fff6ce', Math.round(42 + energy * 104)));
+                            for (let mote = 0; mote < 7; mote++) {
+                                const angle = this.wall * (2.4 + mote * 0.035) + mote * TAU / 7 + si * 1.73;
+                                const radius = scale * (0.72 + (1 - energy) * 1.72);
+                                const mx = px + Math.cos(angle) * radius;
+                                const my = py + Math.sin(angle) * radius * 0.76;
+                                const moteScale = 0.22 + energy * 0.16;
+                                b.draw(mote % 3 === 0 ? 'shard' : 'star', mx, my,
+                                    moteScale, moteScale, angle,
+                                    this.pal.get(mote % 2 ? '#fff4b5' : '#a9eaff', Math.round(130 + energy * 115)));
+                            }
+                        }
                     }
                     if (gigantamax && gigaEntry && impactFlash > 0.015 && k === 0) {
                         const expansion = 1 + (1 - impactFlash) * 1.45;
@@ -3685,7 +3740,7 @@ export function createGame (cc) {
                         b.draw('ring', px, py, scale * 2.55 * pulse, scale * 2.55 * pulse,
                             this.wall * 1.8, this.pal.get('#ff9a91', 238));
                     }
-                    if (s.shiny && k === 0) {
+                    if (s.shiny && !evolution && k === 0) {
                         const shimmer = 1 + 0.08 * Math.sin(this.wall * 7 + si);
                         b.draw('aura', px, py, scale * 2.35 * shimmer, scale * 2.35 * shimmer,
                             0, this.pal.get(SHINY_GOLD, 78));
@@ -3698,12 +3753,42 @@ export function createGame (cc) {
                                 this.pal.get('#fff9d6', 245));
                         }
                     }
-                    b.draw(glyph,
-                        px, py,
-                        scale * (1 - 0.08 * bob) * (1 + 0.34 * pop) * (1 - 0.72 * swing) * entrySqueezeX,
-                        scale * (1 + 0.08 * bob) * (1 - 0.24 * pop) * (1 + swing) * entrySqueezeY,
-                        0, col, flip,
-                        dynamax ? DYNAMAX_BAND.shader : gigantamax ? 'gigantamax-pokemon' : null);
+                    const spriteScaleX = scale * (1 - 0.08 * bob) * (1 + 0.34 * pop)
+                        * (1 - 0.72 * swing) * entrySqueezeX
+                        * (1 + (evolution ? 0.56 * evolution.landing * (1 - evolution.landing) : 0));
+                    const spriteScaleY = scale * (1 + 0.08 * bob) * (1 - 0.24 * pop)
+                        * (1 + swing) * entrySqueezeY
+                        * (1 - (evolution ? 0.34 * evolution.landing * (1 - evolution.landing) : 0));
+                    if (evolution && k === 0) {
+                        const oldIcon = evolutionFx.oldIcon && this.atlas.glyphs[evolutionFx.oldIcon]
+                            ? evolutionFx.oldIcon : icon;
+                        const targetIcon = icon;
+                        const oldGlyph = oldIcon || glyph;
+                        const targetGlyph = targetIcon || glyph;
+                        const oldScale = spriteScaleX * formScale(evolutionFx.fromTier) / formScale(s.tier);
+                        const flipScale = evolution.flipScale;
+                        const drawX = px + evolution.flipOffset * scale;
+                        const sourceOpacity = megaEvolution ? megaEvolution.bodyAlpha : 1;
+                        const drawLayer = (name, alpha, white, xScale) => {
+                            if (alpha <= 0.015) return;
+                            const tint = white ? '#fffef4'
+                                : (this.atlas.glyphs[name] && (name === oldIcon || name === targetIcon)
+                                    ? ICON_TINT : ELEMENT[family(s.fam).element]);
+                            const layerColor = this.pal.get(tint,
+                                Math.round(bodyOpacity * sourceOpacity * alpha));
+                            b.draw(name, drawX, py, xScale * flipScale, spriteScaleY, 0, layerColor,
+                                flip !== evolution.flipSign,
+                                white ? 'evolution-white'
+                                    : dynamax ? DYNAMAX_BAND.shader : gigantamax ? 'gigantamax-pokemon' : null);
+                        };
+                        drawLayer(oldGlyph, (1 - evolution.whiten) * (1 - evolution.morph), false, oldScale);
+                        drawLayer(oldGlyph, evolution.whiten * (1 - evolution.morph), true, oldScale);
+                        drawLayer(targetGlyph, evolution.morph * (1 - evolution.reveal), true, spriteScaleX);
+                        drawLayer(targetGlyph, evolution.reveal, false, spriteScaleX);
+                    } else {
+                        b.draw(glyph, px, py, spriteScaleX, spriteScaleY, 0, col, flip,
+                            dynamax ? DYNAMAX_BAND.shader : gigantamax ? 'gigantamax-pokemon' : null);
+                    }
                     if (mega && !megaEvolution && k === 0) {
                         const ring = scale * (1.62 + 0.12 * Math.sin(this.wall * 6 + i));
                         b.draw('ring', px, py, ring, ring, -this.wall * 0.55,

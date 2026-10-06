@@ -39,6 +39,7 @@ import { Player } from './src/player.js';
 import { TRAINER_SPRITES, PLAYER_APPEARANCES } from './src/trainer-sprites.js';
 import { MEGA_FORMS, MEGA_ACTIVE_SKILLS, megaCardsFor, megaFormForSegment } from './src/mega.js';
 import { createMegaEvolutionFx, megaEvolutionVisual, stepMegaEvolutionFx } from './src/mega-evolution-fx.js';
+import { createEvolutionFx, evolutionVisual, stepEvolutionFx, EVOLUTION_FX_DURATION } from './src/evolution-fx.js';
 import {
     activeSkillForForm, activeSkillModuleForForm, rosterActiveFormForSegment,
     drawMegaProjectile, drawMegaActiveArea, drawMegaEffects,
@@ -1409,6 +1410,11 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
     if (names.length < 36 || !names.includes('dynamax-pokemon')
         || !names.includes('gigantamax-pokemon') || !names.includes('psychic')) {
         throw new Error('bullet style roster regression');
+    }
+    const evolutionWhite = bulletFragmentSource('evolution-white');
+    if (!names.includes('evolution-white') || !evolutionWhite.includes('ink = vec3(1.0);')
+        || !evolutionWhite.includes('texel.a * color.a')) {
+        throw new Error('ordinary evolution white-silhouette material regression');
     }
     for (const name of names) {
         const body = bulletStyleBodySource(name);
@@ -3070,17 +3076,56 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
 
 // Regression guard: stones require the final stage, and ordinary promotion is no longer a mechanic.
 {
-    const transition = createMegaEvolutionFx('CHARIZARD_3');
-    transition.elapsed = 0.58;
-    if (megaEvolutionVisual(transition).shell < 0.95
-        || megaEvolutionVisual(transition).bodyAlpha !== 0) {
+    const transition = createEvolutionFx('BULBASAUR', 1);
+    const gathering = evolutionVisual(transition);
+    if (gathering.progress !== 0 || gathering.lift !== 0 || transition.oldIcon !== 'BULBASAUR') {
+        throw new Error('BOSS evolution presentation must begin grounded with its captured source icon');
+    }
+    transition.elapsed = EVOLUTION_FX_DURATION * 0.3;
+    const whiteSource = evolutionVisual(transition);
+    if (whiteSource.whiten < 0.99 || whiteSource.morph !== 0 || whiteSource.lift <= 0) {
+        throw new Error('BOSS evolution presentation must lift and whiten the source before morphing');
+    }
+    transition.elapsed = EVOLUTION_FX_DURATION * 0.3775;
+    const midFlip = evolutionVisual(transition);
+    if (midFlip.flipScale > 0.12) {
+        throw new Error('BOSS evolution horizontal flip must pass through a brief fast silhouette turn');
+    }
+    transition.elapsed = EVOLUTION_FX_DURATION * 0.56;
+    const whiteTarget = evolutionVisual(transition);
+    if (whiteTarget.morph < 0.99 || whiteTarget.reveal !== 0) {
+        throw new Error('BOSS evolution presentation must flip quickly into the white target silhouette');
+    }
+    const morphProbe = createEvolutionFx('BULBASAUR', 1);
+    const morphCue = stepEvolutionFx(morphProbe, EVOLUTION_FX_DURATION * 0.44);
+    if (morphCue.cues.join(',') !== 'morph') throw new Error('BOSS evolution morph cue must fire once when crossed');
+    if (stepEvolutionFx(morphProbe, 0.1).cues.length !== 0) {
+        throw new Error('BOSS evolution morph cue must not replay after its threshold');
+    }
+    transition.elapsed = EVOLUTION_FX_DURATION * 0.94;
+    if (evolutionVisual(transition).reveal <= 0) {
+        throw new Error('BOSS evolution target must regain color before landing');
+    }
+    transition.elapsed = EVOLUTION_FX_DURATION * 0.87;
+    const landingCue = stepEvolutionFx(transition, EVOLUTION_FX_DURATION * 0.02);
+    const doneCue = stepEvolutionFx(transition, 0.2);
+    if (landingCue.cues.join(',') !== 'landing' || !doneCue.done
+        || stepEvolutionFx(transition, 0.1).cues.length !== 0) {
+        throw new Error('BOSS evolution landing cue must fire once and animation must finish cleanly');
+    }
+    console.log('BOSS evolution animation: source white-out, fast flip, target reveal, landing timing: PASS');
+
+    const megaTransition = createMegaEvolutionFx('CHARIZARD_3');
+    megaTransition.elapsed = 0.58;
+    if (megaEvolutionVisual(megaTransition).shell < 0.95
+        || megaEvolutionVisual(megaTransition).bodyAlpha !== 0) {
         throw new Error('MEGA presentation regression: the closed orb must fully cover the source sprite');
     }
-    const burst = stepMegaEvolutionFx(transition, 0.24);
-    const reveal = stepMegaEvolutionFx(transition, 0.2);
+    const burst = stepMegaEvolutionFx(megaTransition, 0.24);
+    const reveal = stepMegaEvolutionFx(megaTransition, 0.2);
     if (burst.cues.join(',') !== 'burst' || reveal.cues.join(',') !== 'reveal'
-        || stepMegaEvolutionFx(transition, 0.9).done === false
-        || stepMegaEvolutionFx(transition, 0.1).cues.length !== 0) {
+        || stepMegaEvolutionFx(megaTransition, 0.9).done === false
+        || stepMegaEvolutionFx(megaTransition, 0.1).cues.length !== 0) {
         throw new Error('MEGA presentation regression: burst/reveal audio cues must fire once and finish cleanly');
     }
     console.log('MEGA stone animation: opaque orb, reveal, and one-shot cue timing: PASS');

@@ -464,6 +464,7 @@ void main () {
     ${styleBody}
     ${artStyle ? 'ink = mix(ink, edgeColor, insideRim * 0.42);' : ''}
     ${artStyle ? '' : 'ink = mix(ink, min(vec3(1.0), color.rgb * 1.65 + vec3(0.12)), edge * 0.82);'}
+    ${style === 'evolution-white' ? 'ink = vec3(1.0);' : ''}
     ${artPost}
 }
 `;
@@ -482,7 +483,7 @@ export function bulletFragmentSource (style) {
 /** Every bullet material the installer registers, in registration order. */
 export function bulletStyleNames () {
     return [
-        'nature', 'wind', 'fire', 'water', 'electric', 'crystal', 'psychic', 'shadow',
+        'nature', 'wind', 'fire', 'water', 'electric', 'crystal', 'psychic', 'shadow', 'evolution-white',
         'normal', 'bug', 'dark', 'dragon', 'fairy', 'ground', 'ice', 'poison', 'rock', 'steel',
         'mega', 'dynamax', 'dynamax-pokemon', 'gigantamax-pokemon',
         ...MEGA_FORMS.map((form) => `mega-${form.id}`),
