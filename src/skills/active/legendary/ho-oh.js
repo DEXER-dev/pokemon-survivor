@@ -1,4 +1,5 @@
 import { hitArea, lateDamageMultiplier, segDps } from '../../../combat.js';
+import { drawHoohMaterialStorm } from './hooh-material-effects.js';
 
 export const FORM = Object.freeze({
     id: 'legend-hooh', fam: 'legend-hooh', kind: 'legendary', category: '传说宝可梦',
@@ -101,5 +102,8 @@ export function drawPreview (game, g, form, skill, ready, pulse) {
 }
 
 export function drawEffect (game, batch, fx, skill, effectStyle) {
-    // Fire comets are emitted by the bounded legendary particle sampler; the radius guide remains in the preview.
+    drawHoohMaterialStorm(batch, game.pal, {
+        x: fx.x, y: fx.y, age: fx.age, duration: fx.duration || skill.duration,
+        radius: fx.radius || skill.radius,
+    });
 }

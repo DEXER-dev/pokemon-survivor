@@ -10,10 +10,10 @@ import { TRAINER_SPRITES } from './trainer-sprites.js';
 const CELL = 56;
 const PAD = 4;
 
-const GLYPHS = ['circle', 'ring', 'square', 'diamond', 'hex', 'star', 'blob', 'pill', 'cross', 'dot', 'aura', 'ball', 'field', 'beam', 'feather', 'flame', 'spark', 'shard', 'leaf', 'claw', 'cannon', 'wave', 'shadow', 'crescent', 'needle', 'bolt', 'ember', 'boulder', 'leafblade', 'dragon', 'fang', 'spear', 'meteor', 'heart', 'coin', 'cake', 'dust'];
+const GLYPHS = ['circle', 'ring', 'square', 'diamond', 'hex', 'star', 'blob', 'pill', 'cross', 'dot', 'aura', 'ball', 'field', 'beam', 'feather', 'flame', 'spark', 'shard', 'leaf', 'claw', 'cannon', 'wave', 'shadow', 'crescent', 'needle', 'bolt', 'ember', 'boulder', 'leafblade', 'dragon', 'fang', 'spear', 'meteor', 'heart', 'coin', 'cake', 'dust', 'legendSeal', 'legendRay', 'legendArc', 'legendRift'];
 
 // Glyphs whose holes are the design: everything else is a solid silhouette.
-const EVENODD = new Set(['ring', 'ball', 'field', 'beam', 'coin']);
+const EVENODD = new Set(['ring', 'ball', 'field', 'beam', 'coin', 'legendSeal']);
 
 /** Rounded bar with half-extents `hx, hy`; the corner radius is the short side, so it is a capsule. */
 function capsulePath (ctx, cx, cy, hx, hy) {
@@ -29,6 +29,47 @@ function capsulePath (ctx, cx, cy, hx, hy) {
 function glyphPath (ctx, name, cx, cy, r) {
     ctx.beginPath();
     switch (name) {
+        case 'legendSeal': {
+            // Fine concentric circles and radial runes scale into an ultimate-weapon sigil.
+            for (const radius of [0.96, 0.91, 0.72, 0.69]) {
+                ctx.moveTo(cx + r * radius, cy);
+                ctx.arc(cx, cy, r * radius, 0, Math.PI * 2);
+            }
+            for (let i = 0; i < 12; i++) {
+                const a = i * Math.PI / 6;
+                const ux = Math.cos(a), uy = Math.sin(a);
+                const px = -uy, py = ux;
+                ctx.moveTo(cx + ux * r * 0.85, cy + uy * r * 0.85);
+                ctx.lineTo(cx + ux * r * 0.78 + px * r * 0.045, cy + uy * r * 0.78 + py * r * 0.045);
+                ctx.lineTo(cx + ux * r * 0.74, cy + uy * r * 0.74);
+                ctx.lineTo(cx + ux * r * 0.78 - px * r * 0.045, cy + uy * r * 0.78 - py * r * 0.045);
+                ctx.closePath();
+            }
+            break;
+        }
+        case 'legendRay':
+            ctx.moveTo(cx - r, cy);
+            ctx.bezierCurveTo(cx - r * 0.4, cy - r * 0.3, cx + r * 0.3, cy - r * 0.12, cx + r, cy);
+            ctx.bezierCurveTo(cx + r * 0.3, cy + r * 0.12, cx - r * 0.4, cy + r * 0.3, cx - r, cy);
+            ctx.closePath();
+            break;
+        case 'legendArc':
+            ctx.moveTo(cx - r * 0.95, cy - r * 0.25);
+            ctx.bezierCurveTo(cx - r * 0.4, cy + r * 1.1, cx + r * 0.8, cy + r * 0.75, cx + r * 0.95, cy - r * 0.65);
+            ctx.bezierCurveTo(cx + r * 0.55, cy + r * 0.4, cx - r * 0.3, cy + r * 0.6, cx - r * 0.95, cy - r * 0.25);
+            ctx.closePath();
+            break;
+        case 'legendRift':
+            ctx.moveTo(cx - r, cy);
+            ctx.lineTo(cx - r * 0.38, cy - r * 0.16);
+            ctx.lineTo(cx - r * 0.2, cy + r * 0.04);
+            ctx.lineTo(cx + r * 0.24, cy - r * 0.24);
+            ctx.lineTo(cx + r, cy);
+            ctx.lineTo(cx + r * 0.3, cy + r * 0.06);
+            ctx.lineTo(cx + r * 0.14, cy + r * 0.24);
+            ctx.lineTo(cx - r * 0.28, cy + r * 0.1);
+            ctx.closePath();
+            break;
         case 'circle':
             ctx.arc(cx, cy, r, 0, Math.PI * 2);
             break;
@@ -456,6 +497,199 @@ export async function preloadImages (paths, onProgress = null) {
     return { total: sources.length, loaded: sources.length - failed, failed };
 }
 
+/** Both authored fire loops share one texture and their original centered 64px cells. */
+export async function loadHoohVfxAtlas (cc) {
+    const image = await loadPng('assets/vfx/hooh/hooh-fire-atlas.png');
+    if (image.width !== 1024 || image.height !== 512) throw new Error('Ho-Oh fire atlas must be 1024×512');
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    const sheet = cc.SpriteFrame.createWithImage(canvas);
+    if (sheet.texture && typeof sheet.texture.setFilters === 'function') sheet.texture.setFilters(1, 1);
+    const glyphs = {};
+    for (let index = 0; index < 120; index++) {
+        const frame = new cc.SpriteFrame();
+        frame.reset({ texture: sheet.texture,
+            rect: new cc.Rect(index % 16 * 64, Math.floor(index / 16) * 64, 64, 64),
+            originalSize: new cc.Size(64, 64), offset: new cc.Vec2(0, 0) });
+        const name = index < 60 ? `hoohFire_${index}` : `hoohFlare_${index - 60}`;
+        glyphs[name] = { frame, size: 64 };
+    }
+    return { glyphs, texture: sheet.texture };
+}
+
+/** Pixel-art field plants in a compact 4×3 sheet; point filtering keeps the authored edges crisp. */
+export async function loadFloraAtlas (cc) {
+    const image = await loadPng('assets/tilesets/KANTO50S_FLORA_ADDON.png');
+    if (image.width !== 256 || image.height !== 192) {
+        throw new Error(`Field flora atlas must be 256×192, got ${image.width}×${image.height}`);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    const sheet = cc.SpriteFrame.createWithImage(canvas);
+    if (sheet.texture && typeof sheet.texture.setFilters === 'function') sheet.texture.setFilters(1, 1);
+    const glyphs = {};
+    const names = [
+        'grass_tuft_01', 'grass_tuft_02', 'grass_tuft_03', 'grass_tuft_04',
+        'flowers_cream', 'flowers_yellow', 'flowers_pink', 'flowers_blueviolet',
+        'mixed_cream', 'mixed_yellow', 'mixed_pink', 'mixed_blueviolet',
+    ];
+    for (let index = 0; index < names.length; index++) {
+        const frame = new cc.SpriteFrame();
+        frame.reset({ texture: sheet.texture,
+            rect: new cc.Rect(index % 4 * 64, Math.floor(index / 4) * 64, 64, 64),
+            originalSize: new cc.Size(64, 64), offset: new cc.Vec2(0, 0) });
+        glyphs[names[index]] = { frame, size: 64 };
+    }
+    return { glyphs, texture: sheet.texture };
+}
+
+/** Native Lake.png water and keyed bank textures used by the procedurally shaped world lakes. */
+export async function loadPondAtlas () {
+    const [waterCore, shoreEdge] = await Promise.all([
+        loadPng('assets/tilesets/lake-processed/Lake_WATER_CORE_64x64.png'),
+        loadPng('assets/tilesets/lake-processed/Lake_EDGE_TOP_64x16_GAME_GROUND.png'),
+    ]);
+    if (waterCore.width !== 64 || waterCore.height !== 64) {
+        throw new Error(`Lake water core must be 64×64, got ${waterCore.width}×${waterCore.height}`);
+    }
+    if (shoreEdge.width !== 64 || shoreEdge.height !== 16) {
+        throw new Error(`Lake bank strip must be 64×16, got ${shoreEdge.width}×${shoreEdge.height}`);
+    }
+    return { waterCore, shoreEdge };
+}
+
+/** Source-resolution Kanto tree families, with crisp pixel edges. */
+export async function loadTreeAtlas (cc) {
+    const image = await loadPng('assets/tilesets/KANTO50S_TREE_FAMILIES.png');
+    if (image.width !== 160 || image.height !== 64) {
+        throw new Error(`Field tree atlas must be 160×64, got ${image.width}×${image.height}`);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    const sheet = cc.SpriteFrame.createWithImage(canvas);
+    if (sheet.texture && typeof sheet.texture.setFilters === 'function') sheet.texture.setFilters(1, 1);
+    const glyphs = {};
+    const species = ['tree_blossom_light', 'tree_blossom_pink', 'tree_broadleaf', 'tree_evergreen', 'tree_spruce'];
+    species.forEach((name, index) => {
+        const frame = new cc.SpriteFrame();
+        frame.reset({ texture: sheet.texture,
+            rect: new cc.Rect(index * 32, 0, 32, 64),
+            originalSize: new cc.Size(32, 64), offset: new cc.Vec2(0, 0) });
+        glyphs[name] = { frame, size: 64 };
+    });
+    // Preserve the old glyph name for any remaining tree preview or consumer.
+    glyphs.tree_full = glyphs.tree_broadleaf;
+    return { glyphs, texture: sheet.texture };
+}
+
+/** Selected source-verified CC0 spell frames share a compact 150px-cell atlas. */
+export async function loadLegendaryVfxAtlas (cc) {
+    const image = await loadPng('assets/vfx/legendary/legendary-material-atlas.png');
+    if (image.width !== 1050 || image.height !== 1500) {
+        throw new Error(`Legendary VFX atlas must be 1050×1500, got ${image.width}×${image.height}`);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    const sheet = cc.SpriteFrame.createWithImage(canvas);
+    if (sheet.texture && typeof sheet.texture.setFilters === 'function') sheet.texture.setFilters(1, 1);
+    const glyphs = {};
+    const groups = [
+        ['arcane', 7], ['water04', 5], ['water03', 5], ['water05', 5],
+        ['earth03', 5], ['earth04', 5], ['cosmic02', 5], ['cosmic05', 5],
+        ['slash04', 6], ['pure05', 5],
+    ];
+    let row = 0;
+    for (const [group, frames] of groups) {
+        for (let index = 1; index <= frames; index++) {
+            const frame = new cc.SpriteFrame();
+            frame.reset({ texture: sheet.texture,
+                rect: new cc.Rect((index - 1) * 150, row * 150, 150, 150),
+                originalSize: new cc.Size(150, 150), offset: new cc.Vec2(0, 0) });
+            glyphs[`vfx_${group}_${String(index).padStart(2, '0')}`] = { frame, size: 150 };
+        }
+        row++;
+    }
+    return { glyphs, texture: sheet.texture };
+}
+
+/** Source-backed sub-legendary spell frames share a 512px nearest-filtered 64px-cell atlas. */
+export async function loadSubLegendaryVfxAtlas (cc) {
+    const [image, response] = await Promise.all([
+        loadPng('assets/vfx/sublegendary/sublegendary-atlas.png'),
+        fetch('assets/vfx/sublegendary/manifest.json'),
+    ]);
+    if (!response.ok) throw new Error(`Sub-legendary VFX manifest failed: ${response.status}`);
+    const manifest = await response.json();
+    if (image.width !== manifest.width || image.height !== manifest.height || manifest.cellSize !== 64) {
+        throw new Error(`Sub-legendary VFX atlas dimensions do not match its manifest (${image.width}×${image.height})`);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    const sheet = cc.SpriteFrame.createWithImage(canvas);
+    if (sheet.texture && typeof sheet.texture.setFilters === 'function') sheet.texture.setFilters(1, 1);
+    const glyphs = {};
+    for (const [name, frameData] of Object.entries(manifest.frames)) {
+        const frame = new cc.SpriteFrame();
+        frame.reset({ texture: sheet.texture,
+            rect: new cc.Rect(frameData.x, frameData.y, frameData.width, frameData.height),
+            originalSize: new cc.Size(frameData.size, frameData.size), offset: new cc.Vec2(0, 0) });
+        glyphs[name] = { frame, size: frameData.size };
+    }
+    return { glyphs, texture: sheet.texture, manifest };
+}
+
+/** Source-backed Z move projectiles and six-frame elemental impacts, point-filtered for crisp pixels. */
+export async function loadZMoveVfxAtlas (cc) {
+    const [projectileImage, impactImage, response] = await Promise.all([
+        loadPng('assets/vfx/zmove/projectile-atlas.png'),
+        loadPng('assets/vfx/zmove/impact-atlas.png'),
+        fetch('assets/vfx/zmove/manifest.json'),
+    ]);
+    if (!response.ok) throw new Error(`Z-move VFX manifest failed: ${response.status}`);
+    const manifest = await response.json();
+    if (projectileImage.width !== manifest.width || projectileImage.height !== manifest.height
+        || impactImage.width !== manifest.impactWidth || impactImage.height !== manifest.impactHeight
+        || manifest.frameSize !== 48 || manifest.impactFrameSize !== 64 || manifest.framesPerType !== 6) {
+        throw new Error('Z-move VFX atlas dimensions do not match its manifest');
+    }
+
+    const makeSheet = (image) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        canvas.getContext('2d').drawImage(image, 0, 0);
+        const sheet = cc.SpriteFrame.createWithImage(canvas);
+        if (sheet.texture && typeof sheet.texture.setFilters === 'function') sheet.texture.setFilters(1, 1);
+        return sheet.texture;
+    };
+    const sheets = {
+        projectile: makeSheet(projectileImage),
+        impact: makeSheet(impactImage),
+    };
+    const glyphs = {};
+    for (const [name, frameData] of Object.entries(manifest.frames)) {
+        const frame = new cc.SpriteFrame();
+        frame.reset({
+            texture: sheets[frameData.atlas],
+            rect: new cc.Rect(frameData.x, frameData.y, frameData.width, frameData.height),
+            originalSize: new cc.Size(frameData.width, frameData.height),
+            offset: new cc.Vec2(0, 0),
+        });
+        glyphs[name] = { frame, size: frameData.width };
+    }
+    return { glyphs, textures: sheets, manifest };
+}
+
 /** Lucas is a 4×4 overworld sheet: rows face down/left/right/up, columns are walk frames. */
 export async function loadLucasAtlas (cc) {
     const image = await loadPng('assets/player/NPC_198_Lucas.png');
@@ -560,8 +794,8 @@ export async function loadMegaStoneAtlas (cc, forms) {
 /** Load real Pokémon item icons for the level-up cards, keyed by the upgrade's icon id. */
 export async function loadUpgradeItemAtlas (cc, upgrades) {
     const ids = [...new Set(upgrades.map((entry) => entry.icon).filter(Boolean))];
-    const images = await Promise.all(ids.map((id) => (id === 'DYNAMAXBAND' || id === 'ZPOWERBAND'
-        || id === 'RARECANDY' || id === 'MACHOBRACE') ? null : loadPng(id === 'POKEBALL'
+    const images = await Promise.all(ids.map((id) => (id === 'ZPOWERBAND' || id === 'RARECANDY')
+        ? null : loadPng(id === 'POKEBALL'
         ? 'assets/items/POKEBALL.png' : id === 'AUSTRALIANMOUSE'
             ? 'assets/icons/TANDEMAUS.png' : `assets/items/upgrades/${id}.png`)));
     const frames = {};
@@ -601,27 +835,6 @@ export async function loadUpgradeItemAtlas (cc, upgrades) {
             canvas.width = 64;
             canvas.height = 64;
             const ctx = canvas.getContext('2d');
-            if (ids[i] === 'MACHOBRACE') {
-                // Draw a distinct steel training cuff in-project instead of relying on an
-                // untracked image asset for this new card.
-                ctx.save();
-                ctx.translate(32, 32);
-                ctx.rotate(-Math.PI / 5);
-                ctx.fillStyle = '#25243b';
-                ctx.beginPath(); ctx.ellipse(0, 0, 15, 25, 0, 0, Math.PI * 2); ctx.fill();
-                ctx.strokeStyle = '#8992a8'; ctx.lineWidth = 11;
-                ctx.beginPath(); ctx.ellipse(0, 0, 14, 23, 0, 0, Math.PI * 2); ctx.stroke();
-                ctx.strokeStyle = '#d7deeb'; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.ellipse(0, 0, 14, 23, 0, -0.7, 0.7); ctx.stroke();
-                ctx.fillStyle = '#c28b48'; ctx.fillRect(-5, -10, 10, 20);
-                ctx.fillStyle = '#f1cf77'; ctx.fillRect(-2, -7, 4, 14);
-                ctx.fillStyle = '#4c5367'; ctx.fillRect(-19, -6, 5, 12); ctx.fillRect(14, -6, 5, 12);
-                ctx.restore();
-                const frame = cc.SpriteFrame.createWithImage(canvas);
-                if (frame.texture && typeof frame.texture.setFilters === 'function') frame.texture.setFilters(1, 1);
-                frames[ids[i]] = frame;
-                return;
-            }
             ctx.save();
             ctx.translate(32, 32);
             ctx.rotate(-Math.PI / 4);

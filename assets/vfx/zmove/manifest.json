@@ -1,0 +1,1622 @@
+{
+  "projectileAtlas": "assets/vfx/zmove/projectile-atlas.png",
+  "impactAtlas": "assets/vfx/zmove/impact-atlas.png",
+  "frameSize": 48,
+  "impactFrameSize": 64,
+  "framesPerType": 6,
+  "width": 288,
+  "height": 864,
+  "impactWidth": 384,
+  "impactHeight": 1152,
+  "types": {
+    "fire": {
+      "sprite": "Fireball.png",
+      "tint": "#ff7047",
+      "row": 0
+    },
+    "water": {
+      "sprite": "Water Blast.png",
+      "tint": "#55c9f2",
+      "row": 1
+    },
+    "grass": {
+      "sprite": "Plant Missle.png",
+      "tint": "#78d66b",
+      "row": 2
+    },
+    "electric": {
+      "sprite": "Light Bolt.png",
+      "tint": "#ffe36b",
+      "row": 3
+    },
+    "fighting": {
+      "sprite": "Arcane Bolt.png",
+      "tint": "#ff9a57",
+      "row": 4
+    },
+    "psychic": {
+      "sprite": "Magic Orb.png",
+      "tint": "#e68bff",
+      "row": 5
+    },
+    "normal": {
+      "sprite": "Pure Bolt 2.png",
+      "tint": "#e8d4a1",
+      "row": 6
+    },
+    "bug": {
+      "sprite": "Water Bolt.png",
+      "tint": "#a9c83f",
+      "row": 7
+    },
+    "dark": {
+      "sprite": "Darkness Bolt.png",
+      "tint": "#75618e",
+      "row": 8
+    },
+    "dragon": {
+      "sprite": "Firebomb.png",
+      "tint": "#7468e8",
+      "row": 9
+    },
+    "fairy": {
+      "sprite": "Bolt Of Purity.png",
+      "tint": "#f48fcd",
+      "row": 10
+    },
+    "flying": {
+      "sprite": "Wind Bolt.png",
+      "tint": "#86baf3",
+      "row": 11
+    },
+    "ghost": {
+      "sprite": "Darkness Orb.png",
+      "tint": "#8f72c8",
+      "row": 12
+    },
+    "ground": {
+      "sprite": "Water Orb.png",
+      "tint": "#d2a15f",
+      "row": 13
+    },
+    "ice": {
+      "sprite": "Ice Lance.png",
+      "tint": "#83e8ed",
+      "row": 14
+    },
+    "poison": {
+      "sprite": "Magic Sparks.png",
+      "tint": "#c878dd",
+      "row": 15
+    },
+    "rock": {
+      "sprite": "Rock Sling.png",
+      "tint": "#d59b67",
+      "row": 16
+    },
+    "steel": {
+      "sprite": "Black And White Ray.png",
+      "tint": "#a9c6d9",
+      "row": 17
+    }
+  },
+  "frames": {
+    "zmove_fire_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 0,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fire_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 0,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fire_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 0,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fire_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 0,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fire_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 0,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fire_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 0,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_fire_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fire_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fire_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fire_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fire_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fire_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_water_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 48,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_water_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 48,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_water_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 48,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_water_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 48,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_water_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 48,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_water_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 48,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_water_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_water_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_water_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_water_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_water_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_water_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_grass_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 96,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_grass_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 96,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_grass_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 96,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_grass_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 96,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_grass_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 96,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_grass_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 96,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_grass_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_grass_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_grass_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_grass_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_grass_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_grass_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_electric_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 144,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_electric_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 144,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_electric_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 144,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_electric_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 144,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_electric_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 144,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_electric_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 144,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_electric_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_electric_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_electric_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_electric_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_electric_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_electric_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_fighting_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 192,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fighting_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 192,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fighting_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 192,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fighting_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 192,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fighting_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 192,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fighting_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 192,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_fighting_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 256,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fighting_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 256,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fighting_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 256,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fighting_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 256,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fighting_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 256,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fighting_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 256,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_psychic_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 240,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_psychic_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 240,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_psychic_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 240,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_psychic_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 240,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_psychic_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 240,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_psychic_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 240,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_psychic_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 320,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_psychic_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 320,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_psychic_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 320,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_psychic_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 320,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_psychic_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 320,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_psychic_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 320,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_normal_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 288,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_normal_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 288,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_normal_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 288,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_normal_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 288,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_normal_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 288,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_normal_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 288,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_normal_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 384,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_normal_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 384,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_normal_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 384,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_normal_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 384,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_normal_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 384,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_normal_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 384,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_bug_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 336,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_bug_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 336,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_bug_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 336,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_bug_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 336,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_bug_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 336,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_bug_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 336,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_bug_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 448,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_bug_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 448,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_bug_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 448,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_bug_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 448,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_bug_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 448,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_bug_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 448,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_dark_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 384,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dark_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 384,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dark_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 384,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dark_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 384,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dark_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 384,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dark_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 384,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_dark_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 512,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dark_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 512,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dark_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 512,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dark_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 512,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dark_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 512,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dark_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 512,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_dragon_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 432,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dragon_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 432,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dragon_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 432,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dragon_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 432,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dragon_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 432,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_dragon_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 432,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_dragon_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 576,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dragon_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 576,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dragon_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 576,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dragon_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 576,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dragon_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 576,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_dragon_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 576,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_fairy_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 480,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fairy_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 480,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fairy_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 480,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fairy_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 480,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fairy_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 480,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_fairy_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 480,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_fairy_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 640,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fairy_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 640,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fairy_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 640,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fairy_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 640,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fairy_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 640,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_fairy_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 640,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_flying_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 528,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_flying_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 528,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_flying_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 528,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_flying_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 528,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_flying_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 528,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_flying_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 528,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_flying_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 704,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_flying_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 704,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_flying_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 704,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_flying_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 704,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_flying_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 704,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_flying_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 704,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_ghost_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 576,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ghost_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 576,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ghost_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 576,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ghost_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 576,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ghost_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 576,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ghost_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 576,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_ghost_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 768,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ghost_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 768,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ghost_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 768,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ghost_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 768,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ghost_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 768,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ghost_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 768,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_ground_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 624,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ground_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 624,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ground_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 624,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ground_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 624,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ground_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 624,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ground_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 624,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_ground_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 832,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ground_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 832,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ground_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 832,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ground_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 832,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ground_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 832,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ground_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 832,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_ice_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 672,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ice_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 672,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ice_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 672,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ice_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 672,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ice_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 672,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_ice_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 672,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_ice_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 896,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ice_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 896,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ice_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 896,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ice_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 896,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ice_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 896,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_ice_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 896,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_poison_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 720,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_poison_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 720,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_poison_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 720,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_poison_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 720,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_poison_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 720,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_poison_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 720,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_poison_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 960,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_poison_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 960,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_poison_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 960,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_poison_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 960,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_poison_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 960,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_poison_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 960,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_rock_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 768,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_rock_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 768,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_rock_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 768,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_rock_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 768,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_rock_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 768,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_rock_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 768,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_rock_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 1024,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_rock_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 1024,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_rock_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 1024,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_rock_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 1024,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_rock_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 1024,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_rock_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 1024,
+      "width": 64,
+      "height": 64
+    },
+    "zmove_steel_00": {
+      "atlas": "projectile",
+      "x": 0,
+      "y": 816,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_steel_01": {
+      "atlas": "projectile",
+      "x": 48,
+      "y": 816,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_steel_02": {
+      "atlas": "projectile",
+      "x": 96,
+      "y": 816,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_steel_03": {
+      "atlas": "projectile",
+      "x": 144,
+      "y": 816,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_steel_04": {
+      "atlas": "projectile",
+      "x": 192,
+      "y": 816,
+      "width": 48,
+      "height": 48
+    },
+    "zmove_steel_05": {
+      "atlas": "projectile",
+      "x": 240,
+      "y": 816,
+      "width": 48,
+      "height": 48
+    },
+    "zimpact_steel_00": {
+      "atlas": "impact",
+      "x": 0,
+      "y": 1088,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_steel_01": {
+      "atlas": "impact",
+      "x": 64,
+      "y": 1088,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_steel_02": {
+      "atlas": "impact",
+      "x": 128,
+      "y": 1088,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_steel_03": {
+      "atlas": "impact",
+      "x": 192,
+      "y": 1088,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_steel_04": {
+      "atlas": "impact",
+      "x": 256,
+      "y": 1088,
+      "width": 64,
+      "height": 64
+    },
+    "zimpact_steel_05": {
+      "atlas": "impact",
+      "x": 320,
+      "y": 1088,
+      "width": 64,
+      "height": 64
+    }
+  },
+  "source": {
+    "spells": "https://opengameart.org/content/pixel-art-spells",
+    "impact": "https://opengameart.org/content/explosion-animation-1",
+    "license": "CC0"
+  }
+}

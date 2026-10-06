@@ -1,0 +1,156 @@
+import { BOSS } from './config.js';
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const TAU = Math.PI * 2;
+const MATERIAL_FRAMES = Object.freeze({
+    arcane: 7, water03: 5, water04: 5, water05: 5,
+    earth03: 5, earth04: 5, cosmic02: 5, cosmic05: 5, slash04: 6, pure05: 5,
+});
+const BOSS_STYLE = Object.freeze({
+    'legend-mewtwo': { color: '#d49af2', glyph: 'star', material: 'arcane' },
+    'legend-lugia': { color: '#72def2', glyph: 'wave', material: 'water04' },
+    'legend-hooh': { color: '#ff9c4d', glyph: 'feather', material: 'hooh' },
+    'legend-rayquaza': { color: '#78e6a6', glyph: 'dragon', material: 'native' },
+    'legend-kyogre': { color: '#4f9dff', glyph: 'wave', material: 'water05' },
+    'legend-groudon': { color: '#ff7657', glyph: 'boulder', material: 'earth03' },
+    'legend-dialga': { color: '#7bdcf4', glyph: 'hex', material: 'cosmic02' },
+    'legend-palkia': { color: '#f28fda', glyph: 'crescent', material: 'slash04' },
+    'legend-arceus': { color: '#e6bc52', glyph: 'star', material: 'pure05' },
+});
+
+function materialFor (fam, moveIndex) {
+    switch (fam) {
+    case 'legend-lugia': return moveIndex === 1 ? 'water03' : 'water04';
+    case 'legend-kyogre': return moveIndex === 0 ? 'water03' : 'water05';
+    case 'legend-groudon': return moveIndex === 0 ? 'earth04' : 'earth03';
+    case 'legend-dialga': return moveIndex === 2 ? 'cosmic05' : 'cosmic02';
+    case 'legend-palkia': return moveIndex === 1 ? 'slash04' : 'cosmic05';
+    default: return BOSS_STYLE[fam]?.material;
+    }
+}
+
+function drawMaterial (batch, pal, group, x, y, sx, sy, angle, alpha, wall, progress, slot) {
+    if (group === 'native') return false;
+    if (group === 'hooh') {
+        if (!batch.glyphs?.hoohFire_0 || !batch.glyphs?.hoohFlare_0) return false;
+        const fireFrame = Math.floor(wall * 30 + progress * 18 + slot * 7) % 60;
+        const flareFrame = (fireFrame + 21) % 60;
+        batch.draw(`hoohFire_${fireFrame}`, x, y, sx * 0.72, sy * 1.35,
+            angle, pal.get('#ffffff', alpha), false, null, 'primary-boss-hoohFire');
+        batch.draw(`hoohFlare_${flareFrame}`, x, y, sx * 0.9, sy * 0.75,
+            angle, pal.get('#ffffff', Math.min(255, alpha + 10)), false, null, 'primary-boss-hoohFlare');
+        return true;
+    }
+    const count = MATERIAL_FRAMES[group];
+    if (!count) return false;
+    const frame = Math.min(count, Math.floor((wall * 2.2 + progress * count + slot * 0.37) % count) + 1);
+    const key = `vfx_${group}_${String(frame).padStart(2, '0')}`;
+    if (!batch.glyphs?.[key]) return false;
+    batch.draw(key, x, y, sx, sy, angle, pal.get('#ffffff', alpha),
+        false, null, `primary-boss-${group}-${slot}`);
+    return true;
+}
+/** Source-backed hit accents for the nine primary legendary attacks; all remain cosmetic. */
+export function drawPrimaryLegendaryBossAttack (batch, pal, attack, wall) {
+    const style = BOSS_STYLE[attack?.family];
+    if (!attack?.active || attack.wildBoss || !style
+        || !['warning', 'impact'].includes(attack.phase) || !attack.areas?.length) return false;
+
+    const impact = attack.phase === 'impact';
+    const progress = impact
+        ? clamp(1 - attack.timeLeft / BOSS.legendaryImpact, 0, 1)
+        : clamp(1 - attack.timeLeft / BOSS.legendaryWindup, 0, 1);
+    const material = materialFor(attack.family, attack.moveIndex || 0);
+    const alpha = Math.round(impact ? 230 - 45 * progress : 76 + progress * 90);
+    const draw = (glyph, x, y, sx, sy, angle, tint = style.color, a = alpha) =>
+        batch.draw(glyph, x, y, sx, sy, angle, pal.get(tint, a));
+    const impactFrame = (slot) => slot + progress * 0.18;
+
+    const coverage = attack.areas.reduce((furthest, area) => {
+        const reach = Math.hypot(area.x - attack.x, area.y - attack.y)
+            + (area.shape === 'circle' ? area.radius : area.length * 0.5);
+        return Math.max(furthest, reach);
+    }, 72);
+    const sealScale = clamp(coverage / 150, 0.7, 3.4);
+    draw('legendSeal', attack.x, attack.y, sealScale, sealScale,
+        wall * (impact ? -0.32 : 0.18), style.color, Math.round(alpha * 0.52));
+    if (attack.ultimate) {
+        draw('legendSeal', attack.x, attack.y, sealScale * 0.68, sealScale * 0.68,
+            -wall * 0.26, '#fff8e5', Math.round(alpha * 0.44));
+        draw('aura', attack.x, attack.y, sealScale * 1.35, sealScale * 1.35,
+            0, style.color, Math.round(alpha * 0.24));
+    }
+
+    for (let i = 0; i < attack.areas.length; i++) {
+        const area = attack.areas[i];
+        const isCircle = area.shape === 'circle';
+        const angle = isCircle ? attack.angle || 0 : area.angle;
+        const markerScale = isCircle
+            ? clamp(area.radius / 66, 0.42, 1.55)
+            : clamp(area.width / 62, 0.4, 0.95);
+
+        if (isCircle) {
+            const pulse = 1 + 0.06 * Math.sin(wall * 8 + i);
+            draw('ring', area.x, area.y, area.radius / 23 * pulse,
+                area.radius / 31 * pulse, wall * 0.12 + i * 0.2,
+                style.color, Math.round(alpha * 0.66));
+            const usedMaterial = drawMaterial(batch, pal, material,
+                area.x, area.y, markerScale, markerScale, angle + i * 0.08,
+                alpha, wall, progress, i);
+            if (!usedMaterial || attack.ultimate) {
+                draw(style.glyph, area.x, area.y - 6, markerScale * 0.68,
+                    markerScale * 0.68, angle + i * 0.2,
+                    attack.family === 'legend-arceus' ? '#fff2ae' : style.color,
+                    Math.round(alpha * 0.9));
+            }
+            if (attack.ultimate && i % 2 === 0) {
+                draw('star', area.x, area.y, 0.54, 0.54, -wall * 0.4 - i,
+                    '#fff8e5', Math.round(alpha * 0.88));
+            }
+            continue;
+        }
+
+        const ux = Math.cos(angle), uy = Math.sin(angle);
+        const nx = -uy, ny = ux;
+        const laneTintAlpha = Math.round(alpha * (impact ? 0.62 : 0.35));
+        draw('legendRay', area.x, area.y, area.length / 48,
+            Math.max(0.28, area.width / 34), angle, style.color, laneTintAlpha);
+        const slots = attack.ultimate ? 5 : 3;
+        for (let j = 0; j < slots; j++) {
+            const along = (j / (slots - 1) - 0.5) * area.length * 0.68;
+            const x = area.x + ux * along + nx * Math.sin(wall * 2 + i + j) * 7;
+            const y = area.y + uy * along + ny * Math.sin(wall * 2 + i + j) * 7;
+            const usedMaterial = drawMaterial(batch, pal, material,
+                x, y, markerScale, markerScale, angle, Math.round(alpha * 0.92),
+                wall, impactFrame(i + j), i * slots + j);
+            if (!usedMaterial && (j === Math.floor(slots / 2) || attack.family === 'legend-rayquaza')) {
+                draw(style.glyph, x, y, attack.family === 'legend-rayquaza' ? 1.22 : 0.64,
+                    attack.family === 'legend-rayquaza' ? 1.22 : 0.64, angle,
+                    style.color, Math.round(alpha * 0.95));
+                if (attack.family === 'legend-rayquaza') {
+                    draw('diamond', x - ux * 28, y - uy * 28, 0.48, 0.75,
+                        angle + nx * 0.3, '#d7ffeb', Math.round(alpha * 0.78));
+                }
+            }
+        }
+        if (attack.ultimate) {
+            draw('legendRay', area.x, area.y, area.length / 48,
+                Math.max(0.16, area.width / 100), angle, '#fff8e5', Math.round(alpha * 0.72));
+        }
+    }
+
+    for (let i = 0; i < (attack.markers || []).length; i++) {
+        const marker = attack.markers[i];
+        const scale = clamp(marker.radius / 26, 0.48, 1.2);
+        draw('ring', marker.x, marker.y, scale * 1.2, scale * 1.2,
+            wall * 0.25 + i, style.color, Math.round(alpha * 0.8));
+        drawMaterial(batch, pal, material, marker.x, marker.y, scale, scale,
+            wall * 0.2 + i, Math.round(alpha * 0.9), wall, progress, 20 + i);
+    }
+    if (attack.family === 'legend-rayquaza' && attack.phase === 'impact') {
+        // Rayquaza has no matching sourced dragon animation; retain the inspected native dragon glyph.
+        draw('dragon', attack.x, attack.y, 2.2, 1.45, attack.angle || 0,
+            '#d7ffeb', Math.round(alpha * 0.8));
+    }
+    return true;
+}

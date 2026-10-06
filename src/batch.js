@@ -63,14 +63,15 @@ export class SpriteBatch {
         for (const pool of this.pools.values()) pool.n = 0;
     }
 
-    draw (name, x, y, sx, sy, rot, color, flipX, effectStyle) {
+    draw (name, x, y, sx, sy, rot, color, flipX, effectStyle, animationPool) {
         // Glyph pools are made up front for the greybox, but the icon atlas arrives after boot, so
         // a name can legitimately be pool-less on the frame it first appears.
-        let pool = this.pools.get(name);
+        const poolKey = animationPool || name;
+        let pool = this.pools.get(poolKey);
         if (pool === undefined) {
             if (this.glyphs[name] === undefined) throw new Error(`unknown glyph ${name}`);
             pool = { n: 0, items: [] };
-            this.pools.set(name, pool);
+            this.pools.set(poolKey, pool);
         }
         const i = pool.n++;
         this.drawn++;
@@ -80,6 +81,11 @@ export class SpriteBatch {
             pool.items.push(e);
         } else if (!e.node.active) {
             e.node.active = true;
+        }
+        // Sequence frames share a pool, so 60 frames reuse the peak live sprites instead
+        // of retaining 60 separate peaks. All cells in an animation have the same size/pivot.
+        if (animationPool && e.spr.spriteFrame !== this.glyphs[name].frame) {
+            e.spr.spriteFrame = this.glyphs[name].frame;
         }
         e.node.setPosition(x, y, 0);
         e.node.angle = rot * RAD;

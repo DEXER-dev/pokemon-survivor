@@ -62,6 +62,7 @@ import {
 import { VIVILLON_PARTICLE_PRESETS } from './particles/vivillon.js';
 import { CUTIEFLY_PARTICLE_PRESETS } from './particles/cutiefly.js';
 import { LEGENDARY_PARTICLE_PRESETS } from './particles/legendary.js';
+import { SUB_LEGENDARY_PARTICLE_PRESETS } from './particles/sublegendary.js';
 
 // Turn each moving projectile's native trail profile into a matching hit burst. Keeping the glyph
 // and tint makes the impact read as the same attack, while the radial motion makes it visibly
@@ -72,6 +73,7 @@ const projectileTrailPresets = Object.freeze({
     ...VIVILLON_PARTICLE_PRESETS,
     ...CUTIEFLY_PARTICLE_PRESETS,
     ...LEGENDARY_PARTICLE_PRESETS,
+    ...SUB_LEGENDARY_PARTICLE_PRESETS,
 });
 const projectileImpactPresets = Object.freeze(Object.fromEntries(
     Object.entries(projectileTrailPresets)
@@ -103,6 +105,9 @@ import {
     beamEffectForFamily, fieldEffectForFamily, orbitCoreGlyphForFamily, slashEffectForFamily,
 } from './fields/family-effects.js';
 import * as hoOh from './active/legendary/ho-oh.js';
+import {
+    legendaryActiveSkillForForm, legendaryActiveModuleForForm,
+} from './active/legendary/other-legendaries.js';
 import { rosterActiveFormForSegment, rosterActiveSkillForForm,
     rosterActiveModuleForForm } from './active/roster/index.js';
 import { drawCakes } from './active/roster/alcremie.js';
@@ -181,6 +186,7 @@ const skillParticlePresets = Object.freeze({
     ...VIVILLON_PARTICLE_PRESETS,
     ...CUTIEFLY_PARTICLE_PRESETS,
     ...LEGENDARY_PARTICLE_PRESETS,
+    ...SUB_LEGENDARY_PARTICLE_PRESETS,
     ...projectileImpactPresets,
 });
 
@@ -188,6 +194,7 @@ const skillParticlePresets = Object.freeze({
 export function activeSkillForForm (form) {
     return megaSkillForForm(form) || gigantamaxSkillForForm(form)
         || (form && form.id === hoOh.FORM.id ? hoOh.SKILL : null)
+        || legendaryActiveSkillForForm(form)
         || rosterActiveSkillForForm(form);
 }
 
@@ -200,6 +207,8 @@ export function activeSkillModuleForForm (form) {
     if (GIGANTAMAX_MODULES[form.id]) return GIGANTAMAX_MODULES[form.id];
     if (form.id === 'blaziken') return blaziken;
     if (form.id === hoOh.FORM.id) return hoOh;
+    const legendaryModule = legendaryActiveModuleForForm(form);
+    if (legendaryModule) return legendaryModule;
     return rosterActiveModuleForForm(form);
 }
 

@@ -258,16 +258,24 @@ const BULLET_STYLE_BODIES = {
         `,
         'dynamax-pokemon': `
             // This material is for full-color Pokémon art, unlike the monochrome projectile shader.
-            // The art stays the star: a faint red ambient rides the whole sprite, a slightly
-            // stronger shimmer rides the rim, and travelling veins + the aura particles outside
-            // carry the dynamax energy instead of one flat wash.
+            // The art stays the star: a restrained ruby wash and travelling veins sit inside a
+            // silhouette-aware magenta edge, with a soft crimson fringe outside the alpha mask.
             float pulse = 0.5 + 0.5 * sin(cc_time.x * 12.0);
-            float rim = smoothstep(0.55, 1.05, length(p));
             float veins = smoothstep(0.8, 0.98, abs(sin((p.x * 1.8 - p.y * 1.1) * 9.0 - cc_time.x * 5.0)));
             vec3 source = texel.rgb * color.rgb;
-            ink = mix(source, vec3(1.0, 0.12, 0.2), 0.06 + rim * (0.16 + pulse * 0.12));
+            ink = mix(source, vec3(1.0, 0.12, 0.2), 0.055 + insideRim * (0.18 + pulse * 0.1));
             ink = mix(ink, vec3(1.0, 0.55, 0.45), veins * (0.16 + 0.18 * pulse));
-            ink += vec3(1.0, 0.3, 0.2) * rim * pulse * 0.22;
+            ink += vec3(1.0, 0.3, 0.2) * insideRim * pulse * 0.22;
+        `,
+        'gigantamax-pokemon': `
+            // The upgraded form gets a wider, brighter purple-red contour, but retains the icon's
+            // original palette so the Pokémon remains readable under the effect.
+            float pulse = 0.5 + 0.5 * sin(cc_time.x * 9.0);
+            float veins = smoothstep(0.84, 0.99, abs(sin((p.x * 1.7 - p.y * 1.2) * 8.0 - cc_time.x * 4.2)));
+            vec3 source = texel.rgb * color.rgb;
+            ink = mix(source, vec3(0.84, 0.18, 0.96), insideRim * 0.4);
+            ink = mix(ink, vec3(1.0, 0.38, 0.62), veins * (0.12 + pulse * 0.12));
+            ink += vec3(1.0, 0.1, 0.28) * insideRim * pulse * 0.3;
         `,
         'mega-venusaur': `
             float petals = smoothstep(0.58, 0.98, sin(a * 6.0 + sin(r * 17.0) - cc_time.x * 3.0));
@@ -393,13 +401,47 @@ function makeBulletFragment (style) {
     // UVs address the entire glyph atlas, so the vertex shader supplies the sprite-local position.
     // Every effect clips to the original monochrome atlas glyph; these patterns cannot bleed into
     // neighbouring atlas cells and preserve the distinct projectile silhouettes.
-    // The one art style rides on full-colour Pokémon icons instead of glyphs, so it opts out of the
-    // glyph-cell coordinate space and the edge white-out that assumes it.
-    const artStyle = style === 'dynamax-pokemon';
+    // The two art styles ride on full-colour Pokémon icons instead of glyphs, so they opt out of the
+    // glyph-edge white-out and use the sprite quad's local coordinates for their animated bands.
+    const artStyle = style === 'dynamax-pokemon' || style === 'gigantamax-pokemon';
     const styleBody = BULLET_STYLE_BODIES[style] || '';
     const polarCoords = /^mega(?:-|$)/.test(style)
         ? 'float r = length(p);\n    float a = atan(p.y, p.x);'
         : '';
+
+    const artPrelude = artStyle ? `
+    // Sample the icon alpha around this pixel. The atlas reserves a transparent margin around
+    // each fitted 48 px sprite in its 56 px cell, so the halo cannot read a neighbouring icon.
+    vec2 texelStep = 1.0 / vec2(textureSize(cc_spriteTexture, 0));
+    float aLeft = texture(cc_spriteTexture, uv0 + vec2(-texelStep.x, 0.0)).a;
+    float aRight = texture(cc_spriteTexture, uv0 + vec2(texelStep.x, 0.0)).a;
+    float aUp = texture(cc_spriteTexture, uv0 + vec2(0.0, texelStep.y)).a;
+    float aDown = texture(cc_spriteTexture, uv0 + vec2(0.0, -texelStep.y)).a;
+    float aDiag = max(max(texture(cc_spriteTexture, uv0 + texelStep).a,
+        texture(cc_spriteTexture, uv0 - texelStep).a),
+        max(texture(cc_spriteTexture, uv0 + vec2(texelStep.x, -texelStep.y)).a,
+            texture(cc_spriteTexture, uv0 + vec2(-texelStep.x, texelStep.y)).a));
+    float aFar = max(max(texture(cc_spriteTexture, uv0 + vec2(-texelStep.x * ${style === 'gigantamax-pokemon' ? '3.0' : '2.0'}, 0.0)).a,
+        texture(cc_spriteTexture, uv0 + vec2(texelStep.x * ${style === 'gigantamax-pokemon' ? '3.0' : '2.0'}, 0.0)).a),
+        max(texture(cc_spriteTexture, uv0 + vec2(0.0, texelStep.y * ${style === 'gigantamax-pokemon' ? '3.0' : '2.0'})).a,
+            texture(cc_spriteTexture, uv0 + vec2(0.0, -texelStep.y * ${style === 'gigantamax-pokemon' ? '3.0' : '2.0'})).a));
+    float nearestAlpha = min(min(aLeft, aRight), min(min(aUp, aDown), aDiag));
+    float insideRim = smoothstep(0.02, 0.55, texel.a) * (1.0 - nearestAlpha);
+    float outerHalo = max(max(aLeft, aRight), max(max(aUp, aDown), aDiag)) * 0.62 + aFar * 0.42;
+    outerHalo *= 1.0 - smoothstep(0.04, 0.92, texel.a);
+    if (texel.a <= 0.01 && outerHalo <= 0.01) discard;
+    vec3 edgeColor = mix(vec3(0.78, 0.12, 1.0), vec3(1.0, 0.08, 0.3), 0.5 + 0.5 * sin(cc_time.x * 5.0));
+    ` : `
+    if (texel.a <= 0.01) discard;
+    `;
+    const artPost = artStyle ? `
+    float haloStrength = ${style === 'gigantamax-pokemon' ? '0.68' : '0.25'};
+    float outputAlpha = max(texel.a, outerHalo * haloStrength) * color.a;
+    vec3 outputRgb = mix(edgeColor, ink, texel.a);
+    cc_FragColor = vec4(outputRgb, outputAlpha);
+    ` : `
+    cc_FragColor = vec4(clamp(ink, 0.0, 1.0), texel.a * color.a);
+    `;
 
     return `
 precision highp float;
@@ -411,18 +453,18 @@ layout(location = 0) out vec4 cc_FragColor;
 uniform highp sampler2D cc_spriteTexture;
 void main () {
     vec4 texel = texture(cc_spriteTexture, uv0);
-    if (texel.a <= 0.01) discard;
-    // Projectile patterns address the ±28 px glyph cell (vertex localPos). The full-colour
-    // Pokémon art style addresses the sprite itself through uv0, so its bands stay put at any
-    // icon size, and the glyph-edge white-out must never eat the art it sits on.
-    vec2 p = ${artStyle ? 'uv0 * 2.0 - 1.0' : 'localPos'};
+    ${artPrelude}
+    // Both projectile and Pokémon-art patterns use normalized sprite-local coordinates here; the
+    // art shaders separately sample uv0 only for the alpha-mask silhouette edge.
+    vec2 p = localPos;
     float edge = smoothstep(0.53, 0.98, length(p));
     float core = 1.0 - smoothstep(0.08, 0.8, length(p));
     vec3 ink = color.rgb * mix(0.72, 1.0, core);
     ${polarCoords}
     ${styleBody}
+    ${artStyle ? 'ink = mix(ink, edgeColor, insideRim * 0.42);' : ''}
     ${artStyle ? '' : 'ink = mix(ink, min(vec3(1.0), color.rgb * 1.65 + vec3(0.12)), edge * 0.82);'}
-    cc_FragColor = vec4(clamp(ink, 0.0, 1.0), texel.a * color.a);
+    ${artPost}
 }
 `;
 }
@@ -442,7 +484,7 @@ export function bulletStyleNames () {
     return [
         'nature', 'wind', 'fire', 'water', 'electric', 'crystal', 'psychic', 'shadow',
         'normal', 'bug', 'dark', 'dragon', 'fairy', 'ground', 'ice', 'poison', 'rock', 'steel',
-        'mega', 'dynamax', 'dynamax-pokemon',
+        'mega', 'dynamax', 'dynamax-pokemon', 'gigantamax-pokemon',
         ...MEGA_FORMS.map((form) => `mega-${form.id}`),
     ];
 }

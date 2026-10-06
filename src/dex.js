@@ -14,7 +14,8 @@ import { MEGA_FORMS } from './mega.js';
 import { GIGANTAMAX_FORMS } from './gigantamax.js';
 import { activeSkillForForm } from './skills/registry.js';
 import { FORM as HO_OH_FORM } from './skills/active/legendary/ho-oh.js';
-import { tandemausFollowerMotion, tandemausFollowerOffset } from './companion-formation.js';
+import { LEGENDARY_ACTIVE_FORMS } from './skills/active/legendary/other-legendaries.js';
+import { hasCompanionSignature } from './skills/active/legendary/companion-bombardment.js';
 
 const W = 640, H = 360;
 const at = (v, tier) => Array.isArray(v) ? v[Math.min(tier - 1, v.length - 1)] : v;
@@ -138,6 +139,7 @@ export function installDex (cc, isTitleVisible) {
         }
     }
     function updateDetails () {
+        $('dexLegendaryCast').hidden = !hasCompanionSignature({ fam: fam.id });
         $('dexNumber').textContent = dexText(fam.id, tier);
         $('dexName').textContent = displayName(fam.id, tier);
         $('dexType').textContent = `${typeText(fam.id, tier)} · ${fam.kind}`;
@@ -165,7 +167,7 @@ export function installDex (cc, isTitleVisible) {
             ...ROSTER_ACTIVE_FORMS.filter((f) => f.fam === fam.id && f.tier === tier),
             ...MEGA_FORMS.filter((f) => f.fam === fam.id && tier === SPECIES[fam.id].zh.length),
             ...GIGANTAMAX_FORMS.filter((f) => f.fam === fam.id && tier === f.tier),
-            ...(fam.id === 'legend-hooh' ? [HO_OH_FORM] : []),
+            ...(fam.id === 'legend-hooh' ? [HO_OH_FORM] : LEGENDARY_ACTIVE_FORMS.filter((f) => f.fam === fam.id)),
         ];
         activeSelect.replaceChildren();
         for (const form of formOptions) {
@@ -265,10 +267,13 @@ export function installDex (cc, isTitleVisible) {
         cancelAnimationFrame(raf); window.__game?.input?._blur?.();
         returnFocus?.focus?.();
     }
-    $('dexOpen').addEventListener('click', (e) => open(e.currentTarget));
     $('dexFromTitle').addEventListener('click', (e) => open(e.currentTarget));
     $('dexClose').addEventListener('click', close);
     $('dexReset').addEventListener('click', resetArena);
+    $('dexLegendaryCast').addEventListener('click', () => {
+        if (!arena || !hasCompanionSignature(arena.seg)) return;
+        arena.seg.legendaryBombardment = { phase: 'cooldown', timer: 0, x: 0, y: 0, radius: 0 };
+    });
     $('dexCast').addEventListener('click', () => {
         const entry = selectedActive();
         if (!entry || arena.seg.megaSkillCd > 0 || pendingCast) return;

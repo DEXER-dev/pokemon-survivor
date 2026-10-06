@@ -1,3 +1,5 @@
+import { isTestAudioMuted } from './audio-settings.js';
+
 /** One looping BGM source. A single player makes overlapping music tracks impossible. */
 export const MUSIC_TRACKS = Object.freeze({
     title: 'bgm-title.ogg',
@@ -12,6 +14,7 @@ const FADE_MS = 900;
 export class MusicManager {
     constructor (cc, parent) {
         this.cc = cc;
+        this.muted = isTestAudioMuted();
         const node = new cc.Node('Bgm');
         node.layer = parent.layer;
         parent.addChild(node);
@@ -26,6 +29,8 @@ export class MusicManager {
         this.fade = null;
         this.raf = 0;
         this.destroyed = false;
+
+        if (this.muted) return;
 
         for (const [mode, file] of Object.entries(MUSIC_TRACKS)) {
             const ext = file.slice(file.lastIndexOf('.'));
@@ -42,6 +47,7 @@ export class MusicManager {
     }
 
     setMode (mode) {
+        if (this.muted) return;
         if (mode !== null && !Object.hasOwn(MUSIC_TRACKS, mode)) return;
         if (mode === this.mode) {
             if (this.fade) return;

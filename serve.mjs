@@ -13,6 +13,8 @@ const TYPES = {
     '.css': 'text/css; charset=utf-8',
     '.json': 'application/json; charset=utf-8',
     '.wasm': 'application/wasm',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
     '.mp3': 'audio/mpeg',
     '.ogg': 'audio/ogg',
     '.png': 'image/png',

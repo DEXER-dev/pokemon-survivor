@@ -1,9 +1,12 @@
+import { isTestAudioMuted } from './audio-settings.js';
+
 /** Small Cocos AudioSource wrapper for the three capture-verb sounds. */
 export class CaptureSfx {
     constructor (cc, node) {
         this.cc = cc;
+        this.muted = isTestAudioMuted();
         this.source = node.addComponent(cc.AudioSource);
-        this.source.volume = 0.62;
+        this.source.volume = this.muted ? 0 : 0.62;
         this.clips = Object.create(null);
         this.lastPlayed = Object.create(null);
         this.lastCryPlayed = Object.create(null);
@@ -12,6 +15,8 @@ export class CaptureSfx {
         this.cryLoading = Object.create(null);
         this.cryToken = 0;
         this.destroyed = false;
+
+        if (this.muted) return;
 
         const sounds = {
             throw: 'ball-throw.ogg',
@@ -30,7 +35,7 @@ export class CaptureSfx {
     }
 
     play (key, volume = 1, cooldown = 0) {
-        if (this.destroyed) return;
+        if (this.destroyed || this.muted) return;
         const clip = this.clips[key];
         if (!clip) return; // Audio is optional: keep the game playable while files load or fail.
         const now = Date.now();
@@ -41,7 +46,7 @@ export class CaptureSfx {
 
     /** Play the captured species' cry on the reveal beat, lazy-loading each species only once. */
     playCry (speciesKey) {
-        if (this.destroyed || !speciesKey) return false;
+        if (this.destroyed || this.muted || !speciesKey) return false;
         const now = Date.now();
         if (now - this.lastCryAt < 180 || now - (this.lastCryPlayed[speciesKey] || -Infinity) < 850) return false;
         this.lastCryAt = now;

@@ -203,7 +203,8 @@ export class NativeParticleBursts {
             || rosterAreaPreset
             || signatureAreaPreset
             || megaTrailPreset
-            || (famId.startsWith('legend-') ? legendaryParticlePresetForEvent(legendaryKind, famId) : null);
+            || (famId.startsWith('legend-') || famId.startsWith('wildboss-')
+                ? legendaryParticlePresetForEvent(legendaryKind, famId) : null);
         // A normal impact inherits the species' own moving-particle silhouette. Families without
         // a signature trail still get a type-specific elemental burst, so no ordinary hit falls
         // back to the old generic circle puff.

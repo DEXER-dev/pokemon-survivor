@@ -1,4 +1,5 @@
 import { FAMILIES } from './config.js';
+import { isTestAudioMuted } from './audio-settings.js';
 
 const FAMILY_ELEMENT = new Map(FAMILIES.map((family) => [family.id, family.element]));
 
@@ -86,8 +87,9 @@ const resolveSound = (event) => {
 /** Small, bounded combat voice: collapse each frame's bursts, rotate element cues, and cap overlap. */
 export class CombatSfx {
     constructor (cc, node) {
+        this.muted = isTestAudioMuted();
         this.source = node.addComponent(cc.AudioSource);
-        this.source.volume = 0.62;
+        this.source.volume = this.muted ? 0 : 0.62;
         this.clips = Object.create(null);
         this.destroyed = false;
         this.lastPlayed = Object.create(null);
@@ -95,6 +97,8 @@ export class CombatSfx {
         this.roundRobin = 0;
         this.pending = new Array(12);
         this.nPending = 0;
+
+        if (this.muted) return;
 
         const sounds = new Set(Object.values(ELEMENT_SOUNDS));
         sounds.add('combat-impact.ogg');
@@ -111,7 +115,7 @@ export class CombatSfx {
     }
 
     enqueue (event) {
-        if (this.destroyed) return;
+        if (this.destroyed || this.muted) return;
         const sound = resolveSound(event);
         if (!sound) return;
         const queued = { ...sound, enqueuedAt: Date.now() };
@@ -126,7 +130,7 @@ export class CombatSfx {
     }
 
     flush (now = Date.now()) {
-        if (this.destroyed || !this.nPending) return false;
+        if (this.destroyed || this.muted || !this.nPending) return false;
         let best = -1;
         let bestPriority = -1;
         const unloaded = [];

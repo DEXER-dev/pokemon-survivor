@@ -1,3 +1,5 @@
+import { isTestAudioMuted } from './audio-settings.js';
+
 /** Short, original UI cues for the level-up choice flow. */
 const SOUNDS = Object.freeze({
     appear: Object.freeze({ file: 'ui-upgrade-appear.ogg', volume: 0.34, cooldown: 180 }),
@@ -13,11 +15,14 @@ export function resolveUpgradeSound (event) {
 export class UpgradeSfx {
     constructor (cc, node) {
         this.cc = cc;
+        this.muted = isTestAudioMuted();
         this.source = node.addComponent(cc.AudioSource);
-        this.source.volume = 0.62;
+        this.source.volume = this.muted ? 0 : 0.62;
         this.clips = Object.create(null);
         this.lastPlayed = Object.create(null);
         this.destroyed = false;
+
+        if (this.muted) return;
 
         for (const [key, sound] of Object.entries(SOUNDS)) {
             cc.assetManager.loadRemote(`assets/audio/${sound.file}`, { ext: '.ogg' }, (err, clip) => {
@@ -31,7 +36,7 @@ export class UpgradeSfx {
     }
 
     play (event, now = Date.now()) {
-        if (this.destroyed) return false;
+        if (this.destroyed || this.muted) return false;
         const sound = resolveUpgradeSound(event);
         const clip = sound && this.clips[event];
         if (!sound || !clip || now - (this.lastPlayed[event] ?? -Infinity) < sound.cooldown) return false;

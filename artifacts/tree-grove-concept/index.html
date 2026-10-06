@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>树族组合预览 · 素材图块</title>
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #dfe8cc; color: #394437; }
+    main { width: min(1240px, 100%); margin: 0 auto; padding: 22px; border: 3px solid #768766; border-radius: 14px; background: #f3f0da; box-shadow: 0 8px 0 #b5bd9d, 0 18px 40px #66745044; }
+    header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin: 0 2px 18px; }
+    h1 { margin: 0; font-size: 24px; letter-spacing: .03em; }
+    header p { max-width: 790px; margin: 7px 0 0; color: #707865; font-size: 13px; line-height: 1.65; }
+    .actions { display: flex; flex: 0 0 auto; gap: 9px; align-items: center; }
+    button, .back { padding: 10px 14px; border: 2px solid #c5a96d; border-radius: 99px; background: #fff8da; color: #755d36; font: inherit; font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; cursor: pointer; }
+    button:hover, .back:hover { background: #ffefbc; }
+    .seed { margin: 0 2px 12px; color: #777b6d; font-size: 12px; }
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    article { min-width: 0; overflow: hidden; border: 2px solid #b8bd9f; border-radius: 10px; background: #fff9df; }
+    article h2 { margin: 13px 14px 2px; color: #505b46; font-size: 16px; }
+    article p { min-height: 38px; margin: 0 14px 10px; color: #777b6d; font-size: 12px; line-height: 1.5; }
+    canvas { display: block; width: 100%; height: auto; border-block: 2px solid #9ca887; background: #e4edcf; image-rendering: pixelated; }
+    .meta { padding: 10px 14px 13px; color: #666f5b; font-size: 12px; line-height: 1.6; }
+    .meta strong { color: #4f6049; }
+    footer { margin: 16px 2px 0; color: #777b6d; font-size: 12px; line-height: 1.7; }
+    @media (max-width: 900px) { body { padding: 12px; } main { padding: 14px; } header { flex-direction: column; } .cards { grid-template-columns: 1fr; } article p { min-height: 0; } .actions { flex-wrap: wrap; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>不同树簇 · 生成方案</h1>
+        <p>树簇按不规则群落采样，不排成苗圃直线。树形直接使用素材集里的五种完整原图；树林网格缩到 600 世界单位，开局周围生成 4 片错位树簇。96 个地图种子的开局渲染范围中位数约 58 棵树，四个方向都有林簇，角色中心和池塘边仍留有净空。</p>
+      </div>
+      <div class="actions">
+        <a class="back" href="../lake-concept/index.html">湖泊预览</a>
+        <button id="reroll" type="button">换一批树簇</button>
+      </div>
+    </header>
+    <div class="seed" id="seedLabel">地图种子：20261004</div>
+    <section class="cards" aria-label="四种树簇方案">
+      <article>
+        <h2>疏林边缘</h2>
+        <p>阔叶与针叶错列成弯曲林缘，局部断开，像树林向草地自然过渡。</p>
+        <canvas id="edge" width="800" height="420" aria-label="疏林边缘树簇预览"></canvas>
+        <div class="meta" id="edgeMeta"></div>
+      </article>
+      <article>
+        <h2>疏密林岛</h2>
+        <p>以圆冠阔叶树为主，少量针叶树点缀；树干错列留出呼吸感，不围成空心环。</p>
+        <canvas id="round" width="800" height="420" aria-label="疏密林岛预览"></canvas>
+        <div class="meta" id="roundMeta"></div>
+      </article>
+      <article>
+        <h2>双团过渡林</h2>
+        <p>两团粉花树错开形成浅凹口，留出视线与步行空隙，草花点缀林缘。</p>
+        <canvas id="split" width="800" height="420" aria-label="双团过渡林预览"></canvas>
+        <div class="meta" id="splitMeta"></div>
+      </article>
+      <article>
+        <h2>密林阻挡块</h2>
+        <p>两种针叶树交错密植成林块，少量阔叶树过渡；轮廓不规则，内部不留空心圈。</p>
+        <canvas id="dense" width="800" height="420" aria-label="密林阻挡块预览"></canvas>
+        <div class="meta" id="denseMeta"></div>
+      </article>
+    </section>
+      <footer>树形来自素材集中的两种粉花树、圆冠阔叶树和两种针叶树。不同树林按固定地图种子生成花林、阔叶林、针叶林或混交林，树种组成与群落轮廓共同变化。树干脚点仍是碰撞落点。本页展示的树族与更高群落频率已接入地图。</footer>
+  </main>
+  <script type="module">
+    import { makeRng } from '../../src/rng.js';
+
+    const W = 800;
+    const H = 420;
+    const assets = {};
+    const loadImage = (src) => new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`素材读取失败：${src}`));
+      img.src = src;
+    });
+
+    const assetPromise = Promise.all([
+      loadImage('../../assets/tilesets/KANTO50S_TREE_FAMILIES.png').then((img) => { assets.trees = img; }),
+      loadImage('../../assets/tilesets/KANTO50S_FLORA_ADDON.png').then((img) => { assets.flora = img; }),
+    ]);
+
+    const families = [
+      {
+        id: 'edge', count: '16棵 · 阔叶针叶混合林缘', pattern: 'edge', trees: 16, spreadX: 340, spreadY: 112, spacing: 58, speciesStyle: 3,
+        grasses: [[-202, 29], [-139, 46], [38, 51], [174, 35]],
+      },
+      {
+        id: 'round', count: '23棵 · 阔叶林岛', pattern: 'island', trees: 23, spreadX: 215, spreadY: 152, spacing: 58, speciesStyle: 1,
+        grasses: [[-143, 52], [139, 56], [7, 66]],
+      },
+      {
+        id: 'split', count: '31棵 · 粉花过渡林', pattern: 'split', trees: 31, spreadX: 290, spreadY: 184, spacing: 58, flowers: true, speciesStyle: 0,
+        grasses: [[-125, 48], [111, 52], [4, 66]],
+      },
+      {
+        id: 'dense', count: '40棵 · 针叶混交密林', pattern: 'island', trees: 40, spreadX: 310, spreadY: 196, spacing: 58, speciesStyle: 2,
+        grasses: [[-175, 70], [164, 52]],
+      },
+    ];
+
+    const treePalettes = [
+      [0, 0, 0, 1, 1, 2],
+      [2, 2, 2, 2, 3, 4],
+      [3, 3, 3, 4, 4, 2],
+      [0, 1, 2, 2, 3, 4],
+    ];
+
+    function drawGround (ctx, seed) {
+      ctx.fillStyle = '#e4edcf';
+      ctx.fillRect(0, 0, W, H);
+      const rng = makeRng((seed ^ 0x6d2b79f5) >>> 0);
+      ctx.strokeStyle = 'rgba(181, 204, 154, 0.52)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 32; i++) {
+        const x = rng.int(24, W - 24), y = rng.int(22, H - 22);
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y); ctx.lineTo(x - 8, y - 5);
+        ctx.moveTo(x, y); ctx.lineTo(x - 1, y - 7);
+        ctx.moveTo(x + 5, y); ctx.lineTo(x + 8, y - 4);
+        ctx.stroke();
+      }
+    }
+
+    function drawGrass (ctx, family, rng) {
+      for (const [dx, dy] of family.grasses) {
+        const x = W / 2 + dx + rng.int(-8, 8);
+        const y = 286 + dy + rng.int(-7, 7);
+        const cell = family.flowers ? rng.int(4, 11) : rng.int(0, 3);
+        const size = 38 + rng.int(0, 8);
+        ctx.drawImage(assets.flora, (cell % 4) * 64, Math.floor(cell / 4) * 64, 64, 64,
+          Math.round(x - size / 2), Math.round(y - size / 2), size, size);
+      }
+    }
+
+    function generatePoints (family, rng) {
+      if (family.pattern === 'edge') {
+        return Array.from({ length: family.trees }, (_, index) => {
+          const t = (index + 0.5) / family.trees * 2 - 1;
+          const bend = Math.sin(t * 2.1 + 0.7) * family.spreadY * 0.34
+            + Math.sin(t * 4.8 - 0.7) * family.spreadY * 0.11;
+          return [t * family.spreadX + rng.int(-13, 13),
+            bend + rng.range(-family.spreadY * 0.12, family.spreadY * 0.12)];
+        });
+      }
+
+      const points = [];
+      let attempts = 0;
+      while (points.length < family.trees && attempts++ < family.trees * 80) {
+        const angle = rng.range(0, Math.PI * 2);
+        const roughEdge = 0.82 + Math.sin(angle * 3 + 0.7) * 0.1 + Math.sin(angle * 5 - 1.2) * 0.08;
+        const radius = Math.sqrt(rng.range(0, 1)) * roughEdge;
+        const splitCenter = family.pattern === 'split' ? rng.sign() * family.spreadX * 0.28 : 0;
+        const spreadX = family.pattern === 'split' ? family.spreadX * 0.64 : family.spreadX;
+        const spreadY = family.pattern === 'split' ? family.spreadY * 0.78 : family.spreadY;
+        const point = [
+          splitCenter + Math.cos(angle) * spreadX * radius,
+          Math.sin(angle) * spreadY * radius,
+        ];
+        if (points.every(([x, y]) => Math.hypot(point[0] - x, point[1] - y) >= family.spacing)) points.push(point);
+      }
+      return points;
+    }
+
+    function renderFamily (family, seed, familyIndex) {
+      const canvas = document.getElementById(family.id);
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      const rng = makeRng((seed ^ ((familyIndex + 1) * 0x45d9f3b)) >>> 0);
+      drawGround(ctx, seed + familyIndex * 71);
+
+      const points = generatePoints(family, rng);
+      const flip = rng.int(0, 1) ? -1 : 1;
+      const layoutX = rng.range(0.92, 1.08);
+      const layoutY = rng.range(0.92, 1.08);
+      const entries = points.map(([x, y], index) => {
+        const scale = rng.range(1.28, 1.52) + Math.max(0, y) / 900;
+        return {
+          x: W / 2 + flip * x * layoutX + rng.int(-15, 15),
+          rootY: 286 + y * layoutY + rng.int(-12, 12),
+          width: Math.round(32 * scale),
+          height: Math.round(64 * scale),
+          species: treePalettes[family.speciesStyle][rng.int(0, treePalettes[family.speciesStyle].length - 1)],
+          index,
+        };
+      }).sort((a, b) => a.rootY - b.rootY);
+
+      for (const tree of entries) {
+        ctx.drawImage(assets.trees, tree.species * 32, 0, 32, 64,
+          Math.round(tree.x - tree.width / 2), Math.round(tree.rootY - tree.height),
+          tree.width, tree.height);
+      }
+      drawGrass(ctx, family, rng);
+
+      document.getElementById(`${family.id}Meta`).innerHTML =
+        `<strong>${family.count}</strong> · 素材集树种搭配 · 随机轮廓，树干落点留距`;
+    }
+
+    let seed = 20261004;
+    function renderAll () {
+      document.getElementById('seedLabel').textContent = `生成种子：${seed}`;
+      families.forEach((family, index) => renderFamily(family, seed, index));
+    }
+
+    document.getElementById('reroll').addEventListener('click', () => {
+      seed = (seed + 0x9e3779b9) >>> 0;
+      renderAll();
+    });
+
+    await assetPromise;
+    renderAll();
+  </script>
+</body>
+</html>

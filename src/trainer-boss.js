@@ -9,11 +9,6 @@ import { MEGA_BY_ID, MEGA_FORMS } from './mega.js';
 const TAU = Math.PI * 2;
 const CAP = 96;
 const MAX_PARTY = Math.max(BOSS.party.length, ...BOSS.encounters.map((e) => e.party.length));
-const OFFSETS = [
-    { x: 0.45, y: 0.32 },
-    { x: 0.58, y: 0 },
-    { x: 0.45, y: -0.32 },
-];
 
 export class TrainerBossSystem {
     constructor () {
@@ -22,6 +17,7 @@ export class TrainerBossSystem {
         this.vx = new Float32Array(CAP);
         this.vy = new Float32Array(CAP);
         this.r = new Float32Array(CAP);
+        this.damage = new Float32Array(CAP);
         this.life = new Float32Array(CAP);
         this.slot = new Uint8Array(CAP);
         this.n = 0;
@@ -43,6 +39,8 @@ export class TrainerBossSystem {
         this.megaActive = false;
         this.megaSpec = null;
         this.damageMul = 1;
+        this.phaseTwo = false;
+        this.commandCooldown = BOSS.commandPeriod;
     }
 
     reset (enemies) {
@@ -56,6 +54,8 @@ export class TrainerBossSystem {
         this.megaActive = false;
         this.megaSpec = null;
         this.damageMul = 1;
+        this.phaseTwo = false;
+        this.commandCooldown = BOSS.commandPeriod;
         this.cooldown.fill(0);
         this.warning.fill(0);
         this.aim.fill(0);
@@ -74,6 +74,8 @@ export class TrainerBossSystem {
         const periodScale = 1.12 + Math.min(0.48, rank * 0.055);
         const speedScale = 1 + Math.min(0.36, rank * 0.04);
         this.damageMul = 1 + Math.min(0.55, rank * 0.06);
+        this.phaseTwo = false;
+        this.commandCooldown = BOSS.commandPeriod;
         this.party = this.encounter.party.map((member) => ({
             ...member,
             period: member.period / periodScale,
@@ -133,9 +135,9 @@ export class TrainerBossSystem {
             const member = this.party[i];
             const fam = FAMILIES.findIndex((f) => f.id === member.fam);
             if (fam < 0) continue;
-            const o = OFFSETS[i % OFFSETS.length];
-            const x = this.cx + this.arenaR * o.x;
-            const y = this.cy + this.arenaR * o.y;
+            const angle = -Math.PI / 2 + TAU * i / this.party.length;
+            const x = this.cx + Math.cos(angle) * this.arenaR * 0.67;
+            const y = this.cy + Math.sin(angle) * this.arenaR * 0.67;
             const memberHpScale = i === this.megaSlot ? 1.42 : 1;
             const row = enemies.spawn(x, y, fam, member.tier, false, minute, 0, i,
                 this.party.length, (this.encounter.hpMul || BOSS.hpMul) * hpScale * memberHpScale);
@@ -149,11 +151,73 @@ export class TrainerBossSystem {
         for (let i = 0; i < enemies.n; i++) {
             if (!enemies.trainer[i]) continue;
             const slot = enemies.trainerSlot[i];
-            const o = OFFSETS[slot % OFFSETS.length];
-            enemies.x[i] = this.cx + this.arenaR * o.x;
-            enemies.y[i] = this.cy + this.arenaR * o.y + Math.sin(this.clock * 2.8 + slot) * 4;
+            const members = Math.max(1, this.party.length);
+            const orbitSpeed = this.phaseTwo ? BOSS.phaseTwoOrbitSpeed : BOSS.formationOrbitSpeed;
+            const angle = -Math.PI / 2 + TAU * slot / members + this.clock * orbitSpeed;
+            const radius = this.arenaR * (this.phaseTwo ? 0.7 : 0.67);
+            enemies.x[i] = this.cx + Math.cos(angle) * radius;
+            enemies.y[i] = this.cy + Math.sin(angle) * radius + Math.sin(this.clock * 2.1 + slot) * 3;
             enemies.vx[i] = enemies.vy[i] = 0;
         }
+    }
+
+    _shotAngle (spec, base, index, count, clock = this.clock) {
+        if (spec.pattern === 'ring-gap') {
+            const spacing = TAU / (count + 1);
+            return base + Math.PI + (index - (count - 1) / 2) * spacing;
+        }
+        if (spec.pattern === 'cross') return base + index * Math.PI / 2;
+        if (spec.pattern === 'spiral') return base + clock * 1.1 + index * TAU / count;
+        const spread = spec.pattern === 'focus' ? spec.spread * 0.45 : spec.spread;
+        return base + (index - (count - 1) / 2) * spread / Math.max(1, count - 1);
+    }
+
+    _liveRow (slot, enemies) {
+        for (let i = 0; i < enemies.n; i++) {
+            if (enemies.trainer[i] && enemies.trainerSlot[i] === slot && !enemies.dead[i]) return i;
+        }
+        return -1;
+    }
+
+    _leadAim (slot, sx, sy, player) {
+        const spec = this.party[slot];
+        const speed = Math.max(1, spec.speed * (this.phaseTwo ? BOSS.phaseTwoSpeedMul : 1));
+        const dx = player.x - sx;
+        const dy = player.y - sy;
+        const lead = Math.min(0.32, Math.hypot(dx, dy) / speed * 0.35);
+        const vx = Number.isFinite(player.vx) ? player.vx : 0;
+        const vy = Number.isFinite(player.vy) ? player.vy : 0;
+        return Math.atan2(dy + vy * lead, dx + vx * lead);
+    }
+
+    _startCommand (enemies, player) {
+        const rows = [];
+        for (let slot = 0; slot < this.party.length; slot++) {
+            const row = this._liveRow(slot, enemies);
+            if (row < 0) continue;
+            if (this.warning[slot] > 0) return false;
+            rows.push([slot, row]);
+        }
+        if (!rows.length) return false;
+        for (const [slot, row] of rows) {
+            const spec = this.party[slot];
+            this.aim[slot] = this._leadAim(slot, enemies.x[row], enemies.y[row], player);
+            this.warning[slot] = BOSS.commandWarning;
+            this.cooldown[slot] = spec.period * (this.phaseTwo ? BOSS.phaseTwoPeriodMul : 1);
+        }
+        return true;
+    }
+
+    _updatePhase (enemies) {
+        if (this.phaseTwo || this.maxHp <= 0) return false;
+        if (this.vitals(enemies).hp > this.maxHp * BOSS.phaseTwoAt) return false;
+        this.phaseTwo = true;
+        this.commandCooldown = Math.min(this.commandCooldown, 1.35);
+        for (let slot = 0; slot < this.party.length; slot++) {
+            const period = this.party[slot].period * BOSS.phaseTwoPeriodMul;
+            this.cooldown[slot] = Math.min(this.cooldown[slot], period * 0.55);
+        }
+        return true;
     }
 
     step (dt, enemies, player, iFrame = PLAYER.iFrame, tryShield = null) {
@@ -166,15 +230,16 @@ export class TrainerBossSystem {
             return 0;
         }
         this._tryMega(enemies, player);
+        this._updatePhase(enemies);
+        this.commandCooldown = Math.max(0, this.commandCooldown - dt);
+        if (this.commandCooldown <= 0) {
+            if (this._startCommand(enemies, player)) {
+                this.commandCooldown = this.phaseTwo ? BOSS.phaseTwoCommandPeriod : BOSS.commandPeriod;
+            } else this.commandCooldown = 0.15;
+        }
 
         for (let slot = 0; slot < this.party.length; slot++) {
-            let source = -1;
-            for (let i = 0; i < enemies.n; i++) {
-                if (enemies.trainer[i] && enemies.trainerSlot[i] === slot && !enemies.dead[i]) {
-                    source = i;
-                    break;
-                }
-            }
+            const source = this._liveRow(slot, enemies);
             if (source < 0) continue;
             if (this.warning[slot] > 0) {
                 this.warning[slot] -= dt;
@@ -182,9 +247,10 @@ export class TrainerBossSystem {
             } else {
                 this.cooldown[slot] -= dt;
                 if (this.cooldown[slot] <= 0) {
-                    this.cooldown[slot] = this.party[slot].period;
+                    this.cooldown[slot] = this.party[slot].period
+                        * (this.phaseTwo ? BOSS.phaseTwoPeriodMul : 1);
                     this.warning[slot] = BOSS.projectileWarning;
-                    this.aim[slot] = Math.atan2(player.y - enemies.y[source], player.x - enemies.x[source]);
+                    this.aim[slot] = this._leadAim(slot, enemies.x[source], enemies.y[source], player);
                 }
             }
         }
@@ -199,9 +265,7 @@ export class TrainerBossSystem {
             const rr = PLAYER.radius + this.r[i];
             if (dx * dx + dy * dy <= rr * rr) {
                 const blocked = tryShield && tryShield();
-                const mega = this.megaActive && this.slot[i] === this.megaSlot;
-                const damage = BOSS.projectileDamage * this.damageMul * (mega ? 1.28 : 1);
-                if (blocked || player.hurt(damage, iFrame)) hit++;
+                if (blocked || player.hurt(this.damage[i], iFrame)) hit++;
                 this._remove(i--);
                 continue;
             }
@@ -219,27 +283,17 @@ export class TrainerBossSystem {
         const count = spec.shots;
         const speed = spec.speed;
         for (let i = 0; i < count && this.n < CAP; i++) {
-            let angle;
-            if (spec.pattern === 'ring-gap') {
-                // A near-ring of sparks leaves one readable escape lane aimed toward the player.
-                const spacing = TAU / (count + 1);
-                angle = base + Math.PI + (i - (count - 1) / 2) * spacing;
-            } else if (spec.pattern === 'cross') {
-                angle = base + i * Math.PI / 2;
-            } else if (spec.pattern === 'spiral') {
-                // The radial burst rotates between volleys, making a moving fan instead of a static wall.
-                angle = base + this.clock * 1.1 + i * TAU / count;
-            } else {
-                const spread = spec.pattern === 'focus' ? spec.spread * 0.45 : spec.spread;
-                angle = base + (i - (count - 1) / 2) * spread / Math.max(1, count - 1);
-            }
+            const angle = this._shotAngle(spec, base, i, count);
             const n = this.n++;
             this.x[n] = sx;
             this.y[n] = sy;
             const megaSpeed = mega ? 1.12 : 1;
-            this.vx[n] = Math.cos(angle) * speed * megaSpeed;
-            this.vy[n] = Math.sin(angle) * speed * megaSpeed;
-            this.r[n] = BOSS.projectileRadius * (mega ? 1.24 : 1);
+            const phaseSpeed = this.phaseTwo ? BOSS.phaseTwoSpeedMul : 1;
+            this.vx[n] = Math.cos(angle) * speed * megaSpeed * phaseSpeed;
+            this.vy[n] = Math.sin(angle) * speed * megaSpeed * phaseSpeed;
+            this.r[n] = BOSS.projectileRadius * (mega ? 1.24 : 1) * (this.phaseTwo ? 1.08 : 1);
+            this.damage[n] = BOSS.projectileDamage * this.damageMul
+                * (mega ? 1.28 : 1) * (this.phaseTwo ? BOSS.phaseTwoDamageMul : 1);
             this.life[n] = 4.5;
             this.slot[n] = slot;
         }
@@ -306,6 +360,7 @@ export class TrainerBossSystem {
         this.vx[i] = this.vx[last];
         this.vy[i] = this.vy[last];
         this.r[i] = this.r[last];
+        this.damage[i] = this.damage[last];
         this.life[i] = this.life[last];
         this.slot[i] = this.slot[last];
     }
@@ -375,8 +430,8 @@ export class TrainerBossSystem {
                 g.stroke();
             }
         }
-        g.strokeColor = pal.get('#746a8e', 110);
-        g.lineWidth = 4;
+        g.strokeColor = pal.get(this.phaseTwo ? '#d84a55' : '#746a8e', this.phaseTwo ? 180 : 110);
+        g.lineWidth = this.phaseTwo ? 5 : 4;
         g.circle(this.cx, this.cy, this.arenaR);
         g.stroke();
         for (let i = 0; i < enemies.n; i++) {
@@ -384,14 +439,24 @@ export class TrainerBossSystem {
             const slot = enemies.trainerSlot[i];
             const warning = this.warning[slot];
             if (warning <= 0 || enemies.dead[i]) continue;
-            const alpha = Math.round(190 * Math.min(1, warning / BOSS.projectileWarning));
-            const length = this.arenaR * 0.88;
-            const angle = this.aim[slot];
-            const color = this.isMegaSlot(slot) ? this.megaForm.color : '#d84a55';
+            const alpha = Math.round(210 * Math.min(1, warning / Math.max(BOSS.projectileWarning, BOSS.commandWarning)));
+            const spec = this.party[slot];
+            const shots = Math.max(1, spec.shots);
+            const color = this.isMegaSlot(slot) ? this.megaForm.color : this.phaseTwo ? '#ff596d' : '#d84a55';
             g.strokeColor = pal.get(color, alpha);
-            g.lineWidth = 3;
-            g.moveTo(enemies.x[i], enemies.y[i]);
-            g.lineTo(enemies.x[i] + Math.cos(angle) * length, enemies.y[i] + Math.sin(angle) * length);
+            g.lineWidth = this.isMegaSlot(slot) ? 3 : 2;
+            const fromX = enemies.x[i];
+            const fromY = enemies.y[i];
+            const relX = fromX - this.cx;
+            const relY = fromY - this.cy;
+            for (let shot = 0; shot < shots; shot++) {
+                const angle = this._shotAngle(spec, this.aim[slot], shot, shots);
+                const dot = relX * Math.cos(angle) + relY * Math.sin(angle);
+                const remain = Math.max(0, dot * dot + this.arenaR * this.arenaR - relX * relX - relY * relY);
+                const length = Math.max(0, -dot + Math.sqrt(remain));
+                g.moveTo(fromX, fromY);
+                g.lineTo(fromX + Math.cos(angle) * length, fromY + Math.sin(angle) * length);
+            }
             g.stroke();
             g.circle(enemies.x[i], enemies.y[i], enemies.r[i] + 12);
             g.stroke();

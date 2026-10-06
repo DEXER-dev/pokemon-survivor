@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>草地底纹 · 场景对比</title>
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; color: #334337; background: #dce6ca; }
+    main { max-width: 1660px; margin: 0 auto; }
+    header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: 0 2px 18px; }
+    h1 { margin: 0; color: #334533; font-size: clamp(22px, 3vw, 32px); letter-spacing: .025em; }
+    header p { max-width: 760px; margin: 7px 0 0; color: #64725d; font-size: 14px; line-height: 1.7; }
+    .badge { flex: none; padding: 8px 12px; border: 1px solid #9cae87; border-radius: 99px; color: #53694c; background: #edf2dd; font-size: 12px; font-weight: 700; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 14px; margin: 0 2px 12px; color: #65715d; font-size: 12px; }
+    .seed { font-variant-numeric: tabular-nums; }
+    button { padding: 9px 14px; border: 2px solid #768d62; border-radius: 999px; color: #f9f5dc; background: #71885b; box-shadow: 0 3px 0 #566d46; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+    button:hover { filter: brightness(1.06); }
+    .toolbar-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+    .strength { display: flex; align-items: center; gap: 6px; }
+    .strength-label { color: #65715d; font-size: 11px; }
+    .segments { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #aeb89a; border-radius: 999px; background: #edf0dd; }
+    .segments button { padding: 6px 10px; border: 0; border-radius: 999px; color: #64715b; background: transparent; box-shadow: none; font-size: 11px; }
+    .segments button[aria-pressed="true"] { color: #fff8df; background: #788f5f; box-shadow: 0 2px 0 #5d744b; }
+    .compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    article { overflow: hidden; border: 2px solid #a8b394; border-radius: 14px; background: #f6f3df; box-shadow: 0 6px 0 #bdc5a8, 0 15px 32px #596b4120; }
+    .caption { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 16px 10px; }
+    h2 { margin: 0; color: #40533f; font-size: 16px; }
+    .tag { padding: 4px 8px; border-radius: 99px; color: #63715b; background: #e8ead5; font-size: 10px; white-space: nowrap; }
+    article p { min-height: 38px; margin: 0; padding: 0 16px 10px; color: #76806d; font-size: 12px; line-height: 1.55; }
+    canvas { display: block; width: 100%; height: auto; border-block: 2px solid #a4b18d; background: #e4edcf; image-rendering: pixelated; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 11px 15px 13px; color: #687260; font-size: 11px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch { width: 14px; height: 10px; border: 1px solid #b5c29f; border-radius: 3px; }
+    .swatch.base { background: #e4edcf; }
+    .swatch.patch { background: #d3e2b2; }
+    .swatch.gradient { background: linear-gradient(100deg, #c8d99a, #e4edcf 48%, #f4f6df); }
+    .swatch.flora { border-color: #75875b; background: radial-gradient(circle at 50% 45%, #fff2ba 0 18%, #e9a8b4 19% 48%, #64864a 49%); }
+    .swatch.grass { width: 17px; height: 2px; border: 0; border-radius: 0; background: #b5cc9a; transform: rotate(-20deg); }
+    footer { margin: 16px 3px 0; color: #6e7864; font-size: 12px; line-height: 1.7; }
+    @media (max-width: 700px) { body { padding: 12px; } header { align-items: flex-start; flex-direction: column; } .compare { grid-template-columns: 1fr; } article p { min-height: 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>草地底纹 · 同场景对比</h1>
+        <p>两边使用同一片场景作对照。右侧的阴影和湿润过渡会呼应树木与湖岸，地表细节改用低对比像素簇纹理。</p>
+      </div>
+      <span class="badge">使用游戏现有树与花草素材</span>
+    </header>
+    <div class="toolbar">
+      <span id="seed" class="seed">底纹种子：41027 · 固定在地图坐标</span>
+      <div class="toolbar-actions">
+        <div class="strength">
+          <span class="strength-label">色块对比</span>
+          <div class="segments" role="group" aria-label="草地色块对比强度">
+            <button type="button" data-strength="soft" aria-pressed="false">柔和</button>
+            <button type="button" data-strength="recommended" aria-pressed="true">推荐</button>
+            <button type="button" data-strength="strong" aria-pressed="false">明显</button>
+          </div>
+        </div>
+        <button id="reroll" type="button">换一版斑块分布</button>
+      </div>
+    </div>
+    <section class="compare" aria-label="草地效果对比">
+      <article>
+        <div class="caption"><h2>现在 · 纯色草地</h2><span class="tag">现有游戏绘制</span></div>
+        <p>统一浅绿底色、少量草痕和现有零散花草；保留作参照。</p>
+        <canvas id="before" width="760" height="620" aria-label="当前纯色草地场景"></canvas>
+        <div class="legend"><span><i class="swatch base"></i>统一底色</span><span><i class="swatch grass"></i>稀疏草痕</span></div>
+      </article>
+      <article>
+        <div class="caption"><h2>提案 · 斑驳草甸</h2><span class="tag">强度可调 · 不规则 · 可穿行</span></div>
+        <p>推荐档渐变底色搭配约 16 片草花群落，草花在片区内更密；中央活动区仍留出跑动和战斗空间。</p>
+        <canvas id="after" width="760" height="620" aria-label="斑驳草甸地面方案"></canvas>
+        <div class="legend"><span><i class="swatch gradient"></i>日照与树荫过渡</span><span><i class="swatch patch"></i>湖岸湿润渐变</span><span><i class="swatch grass"></i>少量像素簇色纹</span><span><i class="swatch flora"></i>16 片草花群落</span></div>
+      </article>
+    </section>
+    <footer>预览默认使用推荐档，柔和与明显两档可供对比。草花簇复用游戏现有的草丛、野花和混生图块；分布按预览种子固定，中央保留跑动空间。本页只做视觉预览，没有改动正式地图。</footer>
+  </main>
+  <script>
+    const W = 760, H = 620;
+    const BASE = '#e4edcf';
+    const flora = new Image(); flora.src = '../../assets/tilesets/KANTO50S_FLORA_ADDON.png';
+    const trees = new Image(); trees.src = '../../assets/tilesets/KANTO50S_TREE_FAMILIES.png';
+    const trainer = new Image(); trainer.src = '../../assets/player/NPC_198_Lucas.png';
+    const canvases = ['before', 'after'].map((id) => ({ canvas: document.getElementById(id), ctx: document.getElementById(id).getContext('2d') }));
+    let seed = 41027;
+    let strength = 'recommended';
+    const meadowPalettes = {
+      soft: ['#e1ebd0', '#e8efd8', '#e0e9ca', '#e6ebd3'],
+      recommended: ['#c9dba0', '#f1e8be', '#c4d89a', '#dbe8b9'],
+      strong: ['#b9d18d', '#f4e2aa', '#b5cf88', '#d0e0a7'],
+    };
+    const hash = (n) => { n = Math.imul(n ^ (n >>> 16), 0x7feb352d); n = Math.imul(n ^ (n >>> 15), 0x846ca68b); return (n ^ (n >>> 16)) >>> 0; };
+    const rand = (n) => hash(n) / 0x100000000;
+    const range = (n, a, b) => a + rand(n) * (b - a);
+
+    function drawMeadow (ctx) {
+      // Soft, broad patches: tightly related shades and irregular stair-stepped edges.
+      const colors = meadowPalettes[strength];
+      const cell = 8;
+      for (let gy = -1; gy < 5; gy++) for (let gx = -1; gx < 6; gx++) {
+        const key = seed + gx * 19349663 + gy * 73856093;
+        if (rand(key) > 0.58) continue;
+        const cx = gx * 132 + range(key + 1, 38, 118);
+        const cy = gy * 134 + range(key + 2, 34, 122);
+        // Leave only a very gentle tone under the immediate combat center.
+        const centerGap = Math.hypot((cx - 380) / 1.18, cy - 308) < 102;
+        if (centerGap) continue;
+        const rx = range(key + 3, 72, 133), ry = range(key + 4, 51, 96);
+        const count = 13 + (hash(key + 5) % 5);
+        const points = [];
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 * i) / count;
+          const wave = 0.83 + rand(key + 20 + i * 37) * 0.31
+            + Math.sin(angle * 3 + key % 6) * 0.06;
+          const x = Math.round((cx + Math.cos(angle) * rx * wave) / cell) * cell;
+          const y = Math.round((cy + Math.sin(angle) * ry * wave) / cell) * cell;
+          points.push({ x, y });
+        }
+        // Midpoint quadratic curves soften each irregular boundary instead of making
+        // hard, isolated polygons that read like terrain tiles.
+        ctx.beginPath();
+        const first = points[0], last = points[points.length - 1];
+        ctx.moveTo((first.x + last.x) / 2, (first.y + last.y) / 2);
+        for (let i = 0; i < points.length; i++) {
+          const point = points[i], next = points[(i + 1) % points.length];
+          ctx.quadraticCurveTo(point.x, point.y, (point.x + next.x) / 2, (point.y + next.y) / 2);
+        }
+        ctx.closePath();
+        ctx.save();
+        ctx.clip();
+        ctx.fillStyle = colors[hash(key + 6) % colors.length];
+        ctx.fillRect(cx - rx - 2, cy - ry - 2, rx * 2 + 4, ry * 2 + 4);
+
+        // Low-contrast light and shade stay inside each meadow patch, breaking up
+        // the flat fill while keeping the overall palette calm.
+        const light = ctx.createLinearGradient(cx - rx * .8, cy - ry, cx + rx * .8, cy + ry);
+        light.addColorStop(0, 'rgba(255, 255, 239, .25)');
+        light.addColorStop(.48, 'rgba(255, 255, 239, .04)');
+        light.addColorStop(1, 'rgba(92, 119, 66, .14)');
+        ctx.fillStyle = light;
+        ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
+
+        // Broad, feathered mottles make each patch feel like living ground rather
+        // than a single colored shape, while the shared clip keeps edges clean.
+        for (let i = 0; i < 4; i++) {
+          const mx = cx + (rand(key + 2401 + i * 13) * 2 - 1) * rx * .43;
+          const my = cy + (rand(key + 2501 + i * 19) * 2 - 1) * ry * .43;
+          const radius = range(key + 2601 + i * 23, 24, 42);
+          const mottled = ctx.createRadialGradient(mx, my, 0, mx, my, radius);
+          mottled.addColorStop(0, i % 2 ? 'rgba(112, 146, 79, .22)' : 'rgba(255, 248, 208, .29)');
+          mottled.addColorStop(.58, i % 2 ? 'rgba(112, 146, 79, .11)' : 'rgba(255, 248, 208, .16)');
+          mottled.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = mottled;
+          ctx.fillRect(mx - radius, my - radius, radius * 2, radius * 2);
+        }
+
+        // Sparse grouped pixels add a little ground texture without making the
+        // open meadow look scratched or dusty.
+        for (let i = 0; i < 10; i++) {
+          const fx = cx + (rand(key + 301 + i * 17) * 2 - 1) * rx * .78;
+          const fy = cy + (rand(key + 701 + i * 23) * 2 - 1) * ry * .76;
+          const fw = range(key + 1101 + i * 11, 12, 23);
+          const fh = range(key + 1301 + i * 13, 5, 10);
+          ctx.fillStyle = i % 3 === 0 ? 'rgba(255, 250, 220, .24)' : 'rgba(91, 126, 72, .12)';
+          ctx.fillRect(fx, fy, fw, fh);
+          if (i % 2 === 0) {
+            ctx.fillRect(fx + range(key + 1401 + i * 7, -5, 4), fy + fh, fw * .48, Math.max(2, fh * .55));
+          }
+          if (i % 3 === 1) {
+            ctx.fillRect(fx + fw * .62, fy - 3, Math.max(2, fw * .28), 3);
+          }
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function drawMeadowGradient (ctx) {
+      // A broad diagonal wash keeps the meadow from reading as one flat fill.
+      const sweep = ctx.createLinearGradient(0, 0, W, H);
+      sweep.addColorStop(0, 'rgba(161, 193, 126, .25)');
+      sweep.addColorStop(.38, 'rgba(226, 237, 207, .02)');
+      sweep.addColorStop(.68, 'rgba(247, 237, 190, .19)');
+      sweep.addColorStop(1, 'rgba(169, 198, 132, .22)');
+      ctx.fillStyle = sweep;
+      ctx.fillRect(0, 0, W, H);
+
+      // Feathered pools of shade and warm light add depth without a tile grid.
+      const washes = [
+        [130, 140, 270, 210, 'rgba(150, 185, 111, .25)', 'rgba(177, 204, 137, .10)'],
+        [590, 155, 275, 195, 'rgba(249, 232, 169, .26)', 'rgba(241, 235, 193, .09)'],
+        [206, 466, 290, 195, 'rgba(158, 190, 117, .22)', 'rgba(183, 207, 145, .08)'],
+        [558, 472, 260, 220, 'rgba(241, 233, 180, .21)', 'rgba(225, 234, 193, .08)'],
+      ];
+      for (const [x, y, rx, ry, core, mid] of washes) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(rx, ry);
+        const radial = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        radial.addColorStop(0, core);
+        radial.addColorStop(.52, mid);
+        radial.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = radial;
+        ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawGrassMarks (ctx, enhanced) {
+      const step = enhanced ? 68 : 80;
+      const chance = enhanced ? 0.42 : 0.25;
+      ctx.strokeStyle = enhanced ? 'rgba(163, 190, 133, .62)' : 'rgba(181, 204, 154, .58)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let x = 15; x < W; x += step) for (let y = 16; y < H; y += step) {
+        const key = seed + Math.floor(x / step) * 73856093 ^ Math.floor(y / step) * 19349663;
+        if (rand(key) > chance) continue;
+        const px = x + Math.round(rand(key + 2) * 30) - 15;
+        const py = y + Math.round(rand(key + 3) * 26) - 13;
+        // The game uses three delicate strokes per tuft; the proposal only adds frequency.
+        ctx.moveTo(px - 3, py); ctx.lineTo(px - 5, py - 4);
+        ctx.moveTo(px, py); ctx.lineTo(px - 1, py - 5);
+        ctx.moveTo(px + 3, py); ctx.lineTo(px + 5, py - 3);
+      }
+      ctx.stroke();
+    }
+
+    function drawPond (ctx) {
+      ctx.save();
+      ctx.translate(790, 626);
+      ctx.rotate(-0.18);
+      ctx.beginPath(); ctx.ellipse(0, 0, 117, 79, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#788b59'; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -8, 108, 71, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#cbb986'; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -17, 97, 62, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#72c5dc'; ctx.fill();
+      ctx.strokeStyle = 'rgba(222, 249, 239, .44)'; ctx.lineWidth = 2;
+      for (let i = -70; i < 75; i += 31) { ctx.beginPath(); ctx.moveTo(i, -24 + (i % 4)); ctx.lineTo(i + 17, -24 + (i % 4)); ctx.stroke(); }
+      ctx.restore();
+    }
+
+    const treeSpots = [
+      [38, 104, 2], [106, 63, 2], [84, 182, 3], [157, 142, 2], [42, 278, 3], [109, 326, 2], [176, 388, 0],
+      [632, 182, 0], [690, 115, 1], [728, 218, 1], [664, 290, 0], [732, 346, 1], [619, 378, 2], [704, 436, 1],
+      [90, 488, 4], [158, 530, 2], [554, 507, 4], [633, 539, 3],
+    ];
+
+    function drawEcologicalGround (ctx) {
+      // Soft canopy shade follows the existing tree placements, so the ground
+      // treatment feels connected to the props instead of randomly stamped on.
+      treeSpots.forEach(([x, rootY], index) => {
+        ctx.save();
+        ctx.translate(x + 25, rootY + 1);
+        ctx.scale(76 + (index % 3) * 8, 46 + (index % 2) * 6);
+        const shade = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        shade.addColorStop(0, 'rgba(73, 101, 61, .27)');
+        shade.addColorStop(.54, 'rgba(82, 116, 66, .14)');
+        shade.addColorStop(1, 'rgba(95, 128, 76, 0)');
+        ctx.fillStyle = shade;
+        ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      });
+
+      // The damp color fades out from the lake edge; the pond and its bank are
+      // drawn over this wash later, leaving only a quiet transition on the grass.
+      ctx.save();
+      ctx.translate(790, 626);
+      ctx.rotate(-.18);
+      ctx.scale(218, 148);
+      const damp = ctx.createRadialGradient(0, 0, .54, 0, 0, 1);
+      damp.addColorStop(0, 'rgba(123, 183, 164, .24)');
+      damp.addColorStop(.67, 'rgba(143, 190, 157, .14)');
+      damp.addColorStop(1, 'rgba(143, 190, 157, 0)');
+      ctx.fillStyle = damp;
+      ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    const plants = [
+      [205, 105, 2, 72], [242, 125, 9, 66], [158, 211, 0, 70], [185, 235, 5, 64], [267, 455, 10, 74],
+      [546, 93, 8, 70], [579, 72, 6, 73], [599, 124, 4, 68], [529, 443, 0, 76], [576, 467, 9, 70],
+      [352, 174, 7, 62], [430, 421, 3, 62], [278, 550, 6, 70], [519, 559, 5, 65]
+    ];
+    const meadowClusters = [
+      { x: 244, y: 138, count: 12, rx: 45, ry: 33, palette: 0, kind: 'mixed' },
+      { x: 510, y: 142, count: 12, rx: 48, ry: 34, palette: 3, kind: 'flowers' },
+      { x: 202, y: 418, count: 11, rx: 44, ry: 39, palette: 1, kind: 'grass' },
+      { x: 266, y: 502, count: 12, rx: 49, ry: 38, palette: 2, kind: 'mixed' },
+      { x: 502, y: 520, count: 12, rx: 48, ry: 37, palette: 1, kind: 'flowers' },
+      { x: 580, y: 393, count: 11, rx: 43, ry: 38, palette: 0, kind: 'grass' },
+      { x: 385, y: 98, count: 12, rx: 46, ry: 32, palette: 1, kind: 'mixed' },
+      { x: 620, y: 255, count: 12, rx: 43, ry: 36, palette: 2, kind: 'flowers' },
+      { x: 130, y: 255, count: 11, rx: 42, ry: 34, palette: 3, kind: 'mixed' },
+      { x: 380, y: 535, count: 12, rx: 49, ry: 35, palette: 2, kind: 'mixed' },
+      { x: 135, y: 500, count: 12, rx: 46, ry: 38, palette: 1, kind: 'flowers' },
+      { x: 635, y: 505, count: 11, rx: 42, ry: 34, palette: 0, kind: 'mixed' },
+      { x: 238, y: 300, count: 7, rx: 39, ry: 32, palette: 2, kind: 'flowers' },
+      { x: 520, y: 304, count: 7, rx: 41, ry: 34, palette: 3, kind: 'mixed' },
+      { x: 378, y: 455, count: 7, rx: 40, ry: 32, palette: 0, kind: 'grass' },
+      { x: 420, y: 167, count: 7, rx: 39, ry: 31, palette: 1, kind: 'flowers' },
+    ];
+
+    function drawTree (ctx, x, rootY, species, index) {
+      if (!trees.complete || !trees.naturalWidth) return;
+      const sw = 32, sh = 64, w = 64 + (index % 3) * 5, h = 104 + (index % 4) * 5;
+      ctx.drawImage(trees, species * sw, 0, sw, sh, Math.round(x - w / 2), Math.round(rootY - h), w, h);
+    }
+
+    function meadowFloraEntries () {
+      const entries = [];
+      meadowClusters.forEach((group, groupIndex) => {
+        const key = seed + groupIndex * 1009;
+        const lobes = [[-.35, .10], [0, -.20], [.36, .14]];
+        for (let i = 0; i < group.count; i++) {
+          const rollKey = key + i * 73;
+          const lobe = lobes[hash(rollKey) % lobes.length];
+          const angle = rand(rollKey + 11) * Math.PI * 2;
+          const radius = Math.sqrt(.12 + rand(rollKey + 19) * .88);
+          const x = group.x + lobe[0] * group.rx + Math.cos(angle) * group.rx * .34 * radius
+            + range(rollKey + 31, -8, 8);
+          const y = group.y + lobe[1] * group.ry + Math.sin(angle) * group.ry * .34 * radius
+            + range(rollKey + 41, -7, 7);
+          const choice = rand(rollKey + 53);
+          let cell;
+          if (group.kind === 'grass') cell = choice < .62 ? hash(rollKey + 61) % 4 : choice < .86 ? 8 + group.palette : 4 + group.palette;
+          else if (group.kind === 'flowers') cell = choice < .53 ? 4 + group.palette : choice < .87 ? 8 + group.palette : hash(rollKey + 61) % 4;
+          else cell = choice < .35 ? hash(rollKey + 61) % 4 : choice < .68 ? 4 + group.palette : 8 + group.palette;
+          const size = 68 + (hash(rollKey + 71) % 19);
+          entries.push({ x, y, cell, size });
+        }
+      });
+      return entries;
+    }
+
+    function drawFlora (ctx, item) {
+      if (!flora.complete || !flora.naturalWidth) return;
+      const sx = (item.cell % 4) * 64, sy = Math.floor(item.cell / 4) * 64;
+      ctx.drawImage(flora, sx, sy, 64, 64,
+        Math.round(item.x - item.size / 2), Math.round(item.y - item.size * .72), item.size, item.size);
+    }
+
+    function drawSceneProps (ctx, enriched = false) {
+      drawPond(ctx);
+      // Sort every prop by its ground contact point, so foreground canopies
+      // naturally cover flowers and grass behind them instead of being painted under a top layer.
+      const props = treeSpots.map(([x, y, species], index) => ({ type: 'tree', x, y, species, index, depth: y }));
+      const floraEntries = plants.map(([x, y, cell, size]) => ({ x, y, cell, size }));
+      if (enriched) floraEntries.push(...meadowFloraEntries());
+
+      // When a plant's sprite overlaps a tree crown, keep it behind that tree.
+      // Plants beside the trunk still sort normally and may appear in the foreground.
+      for (const item of floraEntries) {
+        item.depth = item.y;
+        const left = item.x - item.size / 2, right = item.x + item.size / 2;
+        const top = item.y - item.size * .72, bottom = item.y + item.size * .28;
+        for (let i = 0; i < treeSpots.length; i++) {
+          const [treeX, rootY] = treeSpots[i];
+          const treeW = 64 + (i % 3) * 5, treeH = 104 + (i % 4) * 5;
+          const crown = { left: treeX - treeW / 2 + 5, right: treeX + treeW / 2 - 5, top: rootY - treeH + 5, bottom: rootY - 16 };
+          const overlapsCrown = right > crown.left && left < crown.right && bottom > crown.top && top < crown.bottom;
+          if (overlapsCrown) item.depth = Math.min(item.depth, rootY - 0.5);
+        }
+        props.push({ type: 'flora', ...item });
+      }
+      props.sort((a, b) => a.depth - b.depth || Number(a.type !== 'tree') - Number(b.type !== 'tree'));
+      for (const prop of props) {
+        if (prop.type === 'tree') drawTree(ctx, prop.x, prop.y, prop.species, prop.index);
+        else drawFlora(ctx, prop);
+      }
+      // Central trainer marker keeps the combat clearing's scale easy to judge.
+      ctx.fillStyle = 'rgba(255, 249, 226, .82)'; ctx.beginPath(); ctx.arc(378, 307, 34, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 244, .94)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(378, 307, 32, 0, Math.PI * 2); ctx.stroke();
+      if (trainer.complete && trainer.naturalWidth) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(trainer, 0, 0, 64, 64, 358, 269, 40, 52);
+      }
+      // Small companions are restrained; ground texture should remain the subject.
+      ctx.fillStyle = '#588dd2'; ctx.beginPath(); ctx.ellipse(331, 330, 12, 8, -.25, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#e5b75c'; ctx.beginPath(); ctx.ellipse(421, 333, 9, 7, .35, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(327, 326, 4, 2, -.25, 0, Math.PI * 2); ctx.fill();
+      // Tiny HUD hints maintain the game-screen context without dominating the ground.
+      ctx.fillStyle = '#f8f2d9'; ctx.strokeStyle = '#99a982'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(18, 14, 189, 45, 9); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#4b5b47'; ctx.font = '12px Microsoft YaHei, sans-serif'; ctx.fillText('队伍 2/12 · 2只  ✦0', 32, 41);
+      ctx.beginPath(); ctx.roundRect(278, 14, 204, 38, 15); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#6bb8d8'; ctx.fillRect(296, 36, 165, 4);
+    }
+
+    function render () {
+      for (const { ctx } of canvases) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.fillStyle = BASE; ctx.fillRect(0, 0, W, H);
+      }
+      drawGrassMarks(canvases[0].ctx, false);
+      drawMeadowGradient(canvases[1].ctx);
+      drawMeadow(canvases[1].ctx);
+      drawEcologicalGround(canvases[1].ctx);
+      drawSceneProps(canvases[0].ctx, false);
+      drawSceneProps(canvases[1].ctx, true);
+      document.getElementById('seed').textContent = `底纹种子：${seed} · 固定在地图坐标`;
+    }
+
+    for (const img of [flora, trees, trainer]) img.addEventListener('load', render);
+    document.querySelectorAll('[data-strength]').forEach((button) => button.addEventListener('click', () => {
+      strength = button.dataset.strength;
+      document.querySelectorAll('[data-strength]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+      render();
+    }));
+    document.getElementById('reroll').addEventListener('click', () => { seed = (seed + 7919) >>> 0; render(); });
+    render();
+  </script>
+</body>
+</html>

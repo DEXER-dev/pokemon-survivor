@@ -1,8 +1,8 @@
 import { VIEW, MAX_BODY_R } from '../../../config.js';
 import { segDps } from '../../../combat.js';
 
-const WARNING_SECONDS = 0.82;
-const IMPACT_SECONDS = 0.22;
+export const WARNING_SECONDS = 0.82;
+export const IMPACT_SECONDS = 2.2;
 const BASE_DAMAGE = 1.35;
 
 /** Signature move layouts are deliberately different in both footprint and damage geometry. */
@@ -17,6 +17,29 @@ export const LEGENDARY_COMPANION_SIGNATURES = Object.freeze({
     'legend-palkia': { move: '亚空裂斩', pattern: 'spacial-rend', color: '#f28fda' },
     'legend-arceus': { move: '制裁光砾', pattern: 'judgment', color: '#fff0a2' },
 });
+
+/** Sub-legendaries use compact, source-backed patterns with a lower visual footprint. */
+export const SUB_LEGENDARY_COMPANION_SIGNATURES = Object.freeze({
+    'wildboss-articuno': { move: '冰翼贯羽', pattern: 'sub-ice-lance', color: '#9beaff' },
+    'wildboss-zapdos': { move: '折枝雷击', pattern: 'sub-branching-bolt', color: '#ffe47a' },
+    'wildboss-moltres': { move: '三羽坠焰', pattern: 'sub-falling-feathers', color: '#ff9b55' },
+    'wildboss-raikou': { move: '雷纹双爪', pattern: 'sub-crossing-claws', color: '#ffd05c' },
+    'wildboss-entei': { move: '炎鬃踏震', pattern: 'sub-mane-stomp', color: '#ff8755' },
+    'wildboss-suicune': { move: '回澜水幕', pattern: 'sub-rising-tide', color: '#78d9ed' },
+});
+
+export function companionSignatureForFamily (fam) {
+    return LEGENDARY_COMPANION_SIGNATURES[fam] || SUB_LEGENDARY_COMPANION_SIGNATURES[fam] || null;
+}
+
+export function isSubLegendaryCompanion (segment) {
+    return !!segment && typeof segment.fam === 'string'
+        && !!SUB_LEGENDARY_COMPANION_SIGNATURES[segment.fam];
+}
+
+export function hasCompanionSignature (segment) {
+    return !!segment && !!companionSignatureForFamily(segment.fam);
+}
 
 export function isLegendaryCompanion (segment) {
     return !!segment && typeof segment.fam === 'string' && segment.fam.startsWith('legend-');
@@ -52,7 +75,10 @@ function chooseTarget (segment, enemies, player, camera, trainerBattle, rng) {
         } else if (rank === priority && rng.int(1, ++seen) === 1) target = i;
     }
     if (target < 0) return null;
-    const radius = Math.min(158, 118 + Math.log2(Math.max(1, segment.count || 1)) * 9);
+    const sub = isSubLegendaryCompanion(segment);
+    const radius = sub
+        ? Math.min(94, 70 + Math.log2(Math.max(1, segment.count || 1)) * 6)
+        : Math.min(158, 118 + Math.log2(Math.max(1, segment.count || 1)) * 9);
     const scatter = radius * 0.32;
     return {
         x: enemies.x[target] + rng.range(-scatter, scatter),
@@ -65,7 +91,7 @@ const circle = (x, y, radius) => ({ x, y, radius, damageMul: BASE_DAMAGE });
 const corridor = (x, y, length, width, angle) => ({ x, y, length, width, angle, damageMul: BASE_DAMAGE });
 
 function layoutFor (fam, player, target) {
-    const signature = LEGENDARY_COMPANION_SIGNATURES[fam];
+    const signature = companionSignatureForFamily(fam);
     const dx = target.x - player.x;
     const dy = target.y - player.y;
     const angle = Math.atan2(dy, dx);
@@ -78,6 +104,40 @@ function layoutFor (fam, player, target) {
     const addArea = (x, y, radius) => areas.push(circle(x, y, radius));
 
     switch (signature.pattern) {
+    case 'sub-ice-lance':
+        corridors.push(corridor(target.x - towardX * 118, target.y - towardY * 118, 236, 30, angle));
+        break;
+    case 'sub-branching-bolt':
+        // Two short, aimed branches cross at the marked target instead of becoming a screen-spanning chain.
+        corridors.push(corridor(target.x - towardX * 58, target.y - towardY * 58, 116, 23, angle));
+        corridors.push(corridor(target.x - perpX * 52 - towardX * 40,
+            target.y - perpY * 52 - towardY * 40, 104, 23, Math.atan2(perpY + towardY * 0.8, perpX + towardX * 0.8)));
+        addArea(target.x, target.y, 25);
+        break;
+    case 'sub-falling-feathers':
+        for (const offset of [-38, 0, 38]) {
+            addArea(target.x + perpX * offset, target.y + perpY * offset, 27);
+        }
+        break;
+    case 'sub-crossing-claws':
+        for (const offset of [-0.57, 0.57]) {
+            const strikeAngle = angle + offset;
+            corridors.push(corridor(target.x - Math.cos(strikeAngle) * 86,
+                target.y - Math.sin(strikeAngle) * 86, 172, 28, strikeAngle));
+        }
+        break;
+    case 'sub-mane-stomp':
+        addArea(target.x, target.y, 54);
+        break;
+    case 'sub-rising-tide':
+        for (const side of [-1, 1]) {
+            const startX = target.x + perpX * side * 74 - towardX * 82;
+            const startY = target.y + perpY * side * 74 - towardY * 82;
+            const endAngle = Math.atan2(target.y - startY, target.x - startX);
+            corridors.push(corridor(startX, startY, 110, 26, endAngle));
+        }
+        addArea(target.x, target.y, 30);
+        break;
     case 'psychic-burst':
         // A heavy psychic core with four displaced pressure blooms, rather than a plain circle.
         addArea(target.x, target.y, 104);
@@ -218,7 +278,7 @@ export function stepLegendaryCompanionAttacks ({
     let impacts = 0;
     let ordinal = 0;
     for (const segment of segments) {
-        if (!isLegendaryCompanion(segment)) continue;
+        if (!hasCompanionSignature(segment)) continue;
         let attack = segment.legendaryBombardment;
         if (!attack) {
             attack = segment.legendaryBombardment = {
@@ -258,7 +318,8 @@ export function stepLegendaryCompanionAttacks ({
         }
         if (attack.phase === 'impact' && attack.timer <= 0) {
             attack.phase = 'cooldown';
-            attack.timer = rng.range(4.6, 5.8);
+            // The extra visual aftermath occupies cooldown time, preserving the attack cadence.
+            attack.timer = rng.range(2.62, 3.82);
             delete attack.areas;
             delete attack.corridors;
         }

@@ -286,12 +286,12 @@ export const BOSS = {
     // Ten one-minute chapters. The two added patterns are readable silhouettes: a four-way cross
     // and a slowly rotating radial burst; every partner keeps its own wind-up and cooldown.
     encounters: [
-        { name: '菜种', hpMul: 250, party: [
+        { name: '菜种', hpMul: 400, party: [
             { fam: 'badger', tier: 2, pattern: 'fan', period: 3.2, shots: 3, spread: 0.72, speed: 4.2 * PPM },
             { fam: 'shell', tier: 2, pattern: 'cross', period: 3.8, shots: 4, spread: 0, speed: 3.8 * PPM },
             { fam: 'toad', tier: 2, pattern: 'ring-gap', period: 3.5, shots: 6, spread: 0, speed: 4.4 * PPM },
         ] },
-        { name: '电次', hpMul: 450, party: [
+        { name: '电次', hpMul: 700, party: [
             { fam: 'bean', tier: 3, pattern: 'ring-gap', period: 3.0, shots: 8, spread: 0, speed: 5.2 * PPM },
             { fam: 'beetle', tier: 2, pattern: 'focus', period: 3.4, shots: 3, spread: 0.12, speed: 4.8 * PPM },
             { fam: 'turtle', tier: 2, pattern: 'cross', period: 4.0, shots: 4, spread: 0, speed: 3.9 * PPM },
@@ -339,9 +339,19 @@ export const BOSS = {
     ],
     arenaRatio: 0.42,
     formationSec: 2.8,
-    projectileDamage: 11,
+    projectileDamage: 14,
     projectileRadius: 10,
-    projectileWarning: 0.62,
+    projectileWarning: 0.72,
+    // The three partners orbit the arena and periodically answer the trainer's command together.
+    formationOrbitSpeed: 0.14,
+    phaseTwoOrbitSpeed: 0.28,
+    commandPeriod: 10,
+    phaseTwoCommandPeriod: 7,
+    commandWarning: 1.05,
+    phaseTwoAt: 0.5,
+    phaseTwoPeriodMul: 0.82,
+    phaseTwoSpeedMul: 1.16,
+    phaseTwoDamageMul: 1.15,
     // Two close perimeter bands; enough wilds to make the trainer arena feel encircled without
     // placing them inside the clear fighting floor. Keep about one sprite-width of breathing room:
     // the rest of a large horde stays in the distant backdrop instead of stacking over the audience.
@@ -365,6 +375,7 @@ export const BOSS = {
     windup: 0.55,
     // Random legendary arena attacks need a readable dodge window even behind a full party.
     legendaryWindup: 1.35,
+    legendaryImpact: 0.32,
     dashSec: 0.45,
     rest: 1.7,
     // The BOSS gives a large reserve of 融核 for evolution gates.
@@ -982,6 +993,13 @@ export const SKILLS = {
     'legend-dialga': { fire: 'beam', cd: 0.82, beams: [1, 2, 3], len: [8, 9, 10].map((v) => v * PPM), wide: [16, 19, 22], turn: 1.9 },
     'legend-palkia': { fire: 'bullet', cd: 1.0, shots: [2, 3, 4], spread: 0.52, r: [12, 14, 16], speed: [16, 17, 18].map((v) => v * PPM), reach: [9, 10, 11].map((v) => v * PPM), homingTurn: 2.4, seek: 8 * PPM },
     'legend-arceus': { fire: 'field', cd: 0.72, ring: [3.4, 3.8, 4.2], max: [10, 12, 14] },
+    // Sub-legendary partners gain distinct, intentionally lighter basic shots when captured.
+    'wildboss-articuno': { fire: 'bullet', cd: 1.14, shots: [1], spread: 0.08, r: [9], speed: [17 * PPM], reach: [8 * PPM] },
+    'wildboss-zapdos': { fire: 'bullet', cd: 0.94, shots: [1], spread: 0.04, r: [8], speed: [20 * PPM], reach: [8 * PPM] },
+    'wildboss-moltres': { fire: 'bullet', cd: 1.1, shots: [1], spread: 0.06, r: [10], speed: [16 * PPM], reach: [8 * PPM] },
+    'wildboss-raikou': { fire: 'bullet', cd: 1.02, shots: [1], spread: 0.05, r: [9], speed: [18 * PPM], reach: [8 * PPM] },
+    'wildboss-entei': { fire: 'bullet', cd: 1.28, shots: [1], spread: 0.05, r: [11], speed: [14 * PPM], reach: [8 * PPM] },
+    'wildboss-suicune': { fire: 'bullet', cd: 1.08, shots: [1], spread: 0.06, r: [9], speed: [17 * PPM], reach: [8 * PPM] },
 };
 
 export const ELEMENT = {
@@ -1146,8 +1164,8 @@ export const STARTERS = FAMILIES.filter((f) => ['mush', 'lizard', 'turtle', 'chi
     'fuecoco', 'quaxly'].includes(f.id));
 
 export const COL = {
-    ground: '#efe3c8',
-    grid: '#e2d2ae',
+    ground: '#e4edcf',
+    grid: '#b5cc9a',
     wall: '#4a445c',
     hero: '#4a3f6b',
     heroTrim: '#f7f1e3',

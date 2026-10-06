@@ -1,0 +1,35 @@
+{
+  "atlas": "hooh-fire-atlas.png",
+  "width": 1024,
+  "height": 512,
+  "cellSize": 64,
+  "columns": 16,
+  "filter": "nearest",
+  "pivot": [
+    0.5,
+    0.5
+  ],
+  "animations": [
+    {
+      "name": "hoohFire",
+      "firstCell": 0,
+      "frames": 60,
+      "fps": 30,
+      "sourceFile": "source/fire1_64.png",
+      "sha256": "c3dba736f2866e5abd7008f5aae4f548c0a8ebaf61894f75071fe337d2c5b1bc"
+    },
+    {
+      "name": "hoohFlare",
+      "firstCell": 60,
+      "frames": 60,
+      "fps": 30,
+      "sourceFile": "source/fire3_64.png",
+      "sha256": "8903339fad97f126e906370f062546a2ad24fbaee31bedd18c2d9aff3bf1753f"
+    }
+  ],
+  "author": "BenHickling",
+  "license": "CC0-1.0",
+  "source": "https://opengameart.org/content/animated-fire",
+  "role": "Ho-Oh wing fire, burning feather tails and impact blooms",
+  "modifications": "Unchanged cells repacked into one shared texture; no recoloring baked in."
+}

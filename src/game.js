@@ -8,10 +8,16 @@ import {
     PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, family,
 } from './config.js';
 import { SpriteBatch, Palette } from './batch.js';
-import { buildGreyboxAtlas, loadIconAtlas, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas } from './atlas.js';
+import { buildGreyboxAtlas, loadIconAtlas, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
+import { WorldFlora } from './world-flora.js';
+import { WorldTrees } from './world-trees.js';
+import { WorldPond } from './world-pond.js';
+import { drawWorldGround } from './world-ground.js';
+import { createWorldLayout, inPondClearing } from './world-map-layout.js';
 import { MEGA_FORMS, MEGA_BY_ID, megaFormForSegment } from './mega.js';
 import { GIGANTAMAX_BY_ID, gigantamaxFormForSegment, gigantamaxLocksEvolution } from './gigantamax.js';
 import { FORM as HO_OH_SKILL_FORM } from './skills/active/legendary/ho-oh.js';
+import { legendaryActiveFormForSegment } from './skills/active/legendary/other-legendaries.js';
 import { iconKey, iconKeys, shinyKey, BOSS_SPECIES, displayName, dexText, typeText } from './species.js';
 import { Input } from './input.js';
 import { Player } from './player.js';
@@ -37,8 +43,14 @@ import { NativeParticleBursts } from './particles.js';
 import { LegendaryLairs } from './legendary-lairs.js';
 import { LegendaryAttackSystem } from './legendary-attacks.js';
 import { drawLegendaryAttackPattern } from './legendary-attack-renderer.js';
-import { isLegendaryCompanion, legendaryBodyScale,
-    stepLegendaryCompanionAttacks } from './skills/active/legendary/companion-bombardment.js';
+import { drawPrimaryLegendaryBossAttack } from './legendary-boss-renderer.js';
+import { isLegendaryCompanion, isSubLegendaryCompanion, hasCompanionSignature,
+    SUB_LEGENDARY_COMPANION_SIGNATURES, legendaryBodyScale,
+    stepLegendaryCompanionAttacks, WARNING_SECONDS, IMPACT_SECONDS }
+    from './skills/active/legendary/companion-bombardment.js';
+import { drawLegendaryProjectile, drawLegendaryCompanionEffects, drawLegendaryMainEffect,
+    drawSubLegendaryBossAttack }
+    from './skills/active/legendary/companion-renderer.js';
 import { Build, LEVELS, roll, take, available } from './upgrades.js';
 import { Furnace, refund } from './forge.js';
 import { Hud } from './hud.js';
@@ -54,9 +66,10 @@ import { drawZMoveEffects } from './skills/active/z-move-renderer.js';
 import { TrainerTransition } from './trainer-transition.js';
 import { PlayLog } from './play-log.js';
 import { makeRng, randomSeed } from './rng.js';
-import { TRAINER_SPRITES } from './trainer-sprites.js';
+import { TRAINER_SPRITES, PLAYER_APPEARANCES } from './trainer-sprites.js';
 import { STARTER_BY_FAMILY, STARTER_POKEMON } from './starter-pokemon.js';
-import { tandemausFollowerMotion, tandemausFollowerOffset } from './companion-formation.js';
+import { tandemausFollowerMotion, tandemausFollowerOffset, tandemausFollowerScale,
+    tandemausVisibleCompanionCount, tandemausVisibleCompanionIndex } from './companion-formation.js';
 import { SHINY_GOLD } from './shiny.js';
 import { AUSTRALIAN_MOUSE_INTERVAL, australianMouseCount, stepAustralianMouse } from './items/australian-mouse.js';
 
@@ -113,6 +126,7 @@ function drawSkillEffects (game, batch) {
     const skills = game.skills;
     for (let i = 0; i < skills.nfx; i++) {
         const fx = skills.fx[i];
+        if (drawLegendaryMainEffect(batch, game.pal, fx, game.wall)) continue;
         const element = family(fx.fam)?.element;
         const color = ELEMENT[element] || '#fff0d1';
         if (fx.kind === 'field') {
@@ -152,6 +166,11 @@ function drawSkillEffects (game, batch) {
     // flying attack unmistakable even when a close target is hit before the next particle sample.
     for (let i = 0; i < skills.n; i++) {
         const famId = skills.pfam[i];
+        if (famId?.startsWith('legend-') || SUB_LEGENDARY_COMPANION_SIGNATURES[famId]) {
+            drawLegendaryProjectile(batch, game.pal, famId, skills.px[i], skills.py[i], skills.pr[i],
+                Math.atan2(skills.pvy[i], skills.pvx[i]), game.wall, i);
+            continue;
+        }
         if (famId !== 'tandemaus') continue;
         const variant = skills.pvariant[i] || 0;
         const baseGlyph = `MAUSHOLD_COMPANION_${variant % 4 + 1}`;
@@ -163,6 +182,7 @@ function drawSkillEffects (game, batch) {
             shotAngle: Math.atan2(skills.pvy[i], skills.pvx[i]), index: i, variant, shiny,
         });
     }
+    drawLegendaryCompanionEffects(batch, game.pal, game.chain.segments, game.wall);
 }
 /** How long a fold's pop lasts, in seconds-of-`fx` per second. ~0.37 s back to rest. */
 const FOLD_DECAY = 2.7;
@@ -214,9 +234,11 @@ export function createGame (cc) {
             this.lucasReady = false;
             this.playerAppearance = 0;
             try {
-                const savedAppearance = Number(window.localStorage.getItem('pokemon-survivor-trainer'));
-                if (Number.isInteger(savedAppearance) && savedAppearance >= 0
-                    && savedAppearance <= TRAINER_SPRITES.length) this.playerAppearance = savedAppearance;
+                const savedAppearance = window.localStorage.getItem('pokemon-survivor-trainer');
+                // Accept stable trainer IDs and old numeric appearance indices; unknown boss portraits reset to Lucas.
+                const savedTrainer = Object.entries(PLAYER_APPEARANCES).find(([id, appearance]) => id !== 'lucas'
+                    && (savedAppearance === id || savedAppearance === String(appearance)));
+                if (savedTrainer) this.playerAppearance = savedTrainer[1];
             } catch (_) { /* A blocked storage API must not prevent a fresh run. */ }
             this.startingPokemon = STARTER_POKEMON[0].family;
             try {
@@ -253,6 +275,22 @@ export function createGame (cc) {
                 if (this.panel) this.panel.setUpgradeItemFrames(assets.frames);
             }).catch((err) => console.warn('[upgrade-icons] item icons unavailable:', err && err.message));
             this.visualAssetsReadyPromise = Promise.all([
+                loadHoohVfxAtlas(cc).then((assets) => {
+                    Object.assign(this.atlas.glyphs, assets.glyphs);
+                    this.hoohVfxAtlas = assets;
+                }).catch((err) => console.warn('[hooh-vfx] using fallback:', err && err.message)),
+                loadLegendaryVfxAtlas(cc).then((assets) => {
+                    Object.assign(this.atlas.glyphs, assets.glyphs);
+                    this.legendaryVfxAtlas = assets;
+                }).catch((err) => console.warn('[legendary-vfx] using glyph fallback:', err && err.message)),
+                loadSubLegendaryVfxAtlas(cc).then((assets) => {
+                    Object.assign(this.atlas.glyphs, assets.glyphs);
+                    this.subLegendaryVfxAtlas = assets;
+                }).catch((err) => console.warn('[sub-legendary-vfx] using procedural fallback:', err && err.message)),
+                loadZMoveVfxAtlas(cc).then((assets) => {
+                    Object.assign(this.atlas.glyphs, assets.glyphs);
+                    this.zMoveVfxAtlas = assets;
+                }).catch((err) => console.warn('[z-move-vfx] using readable glyph fallback:', err && err.message)),
                 this.iconAtlasPromise,
                 this.lucasSpritesPromise,
                 this.trainerSpritesPromise,
@@ -271,10 +309,31 @@ export function createGame (cc) {
             this.world.layer = cc.Layers.Enum.UI_2D;
             this.node.addChild(this.world);
 
+            // The landmark lake uses the supplied, processed Lake.png tile textures.
+            this.pond = new WorldPond(cc, this.world);
+            this.pondArtPromise = loadPondAtlas().then((assets) => {
+                this.pond.setLakeAssets(assets);
+            }).catch((err) => console.warn('[pond] Lake.png textures unavailable:', err && err.message));
+
+            // Field plants sit between the ground and entities, stable within this run's map seed.
+            this.flora = new WorldFlora(cc, this.world);
+            this.floraPromise = loadFloraAtlas(cc).then((assets) => {
+                this.flora.setFrames(assets.glyphs);
+                this.pond.setPlantFrames(assets.glyphs);
+            }).catch((err) => console.warn('[flora] field plants unavailable:', err && err.message));
+            this.trees = new WorldTrees(cc, this.world);
+            this.treeAtlasPromise = loadTreeAtlas(cc).then((assets) => {
+                this.trees.setFrames(assets.glyphs);
+            }).catch((err) => console.warn('[trees] field trees unavailable:', err && err.message));
+
             const entities = new cc.Node('Entities');
             entities.layer = cc.Layers.Enum.UI_2D;
             this.world.addChild(entities);
             this.batch = new SpriteBatch(cc, entities, this.atlas.glyphs);
+            // Foreground trees share the world transform but sit above entities for
+            // Pokémon-style depth: their crowns cover the trainer when the trainer
+            // walks behind them, while trunk collision stays independent.
+            this.trees.setForegroundParent(this.world);
 
             const fxNode = new cc.Node('Fx');
             fxNode.layer = cc.Layers.Enum.UI_2D;
@@ -313,6 +372,7 @@ export function createGame (cc) {
             this.player = new Player(PLAYER, PLAYER_HP);
             this.chain = new ChainSystem(cc, CHAIN);
             this.enemies = new EnemySystem(ENEMY, this.rng);
+            this.pond.setFamilyIndex(FAMILIES.findIndex((entry) => entry.id === 'drop'));
             this.enemies.onShinySpawn = (index, famIdx, tier, x, y) => {
                 const species = FAMILIES[famIdx] && FAMILIES[famIdx].id;
                 this.logEvent('pokemon.shiny-appeared', { species, name: displayName(species, tier),
@@ -456,6 +516,10 @@ export function createGame (cc) {
             // A new run gets a fresh seed; passing one explicitly keeps a run exactly reproducible.
             this.runSeed = seed >>> 0;
             this.rng = makeRng(this.runSeed);
+            this.worldLayout = createWorldLayout(this.runSeed);
+            if (this.flora) this.flora.setWorldLayout(this.worldLayout);
+            if (this.trees) this.trees.setWorldLayout(this.worldLayout);
+            if (this.pond) this.pond.setWorldLayout(this.worldLayout);
             this.enemies.rng = this.rng;
             this.capture.rng = this.rng;
             this.build.reset();
@@ -463,6 +527,7 @@ export function createGame (cc) {
             this.player.reset();
             this.chain.reset(0, 0);
             this.enemies.clear();
+            if (this.pond) this.pond.reset();
             this.trainerBoss.reset(this.enemies);
             this.legendaryLairs.reset();
             this.legendaryAttacks.reset();
@@ -893,6 +958,7 @@ export function createGame (cc) {
         combatFormForSegment (seg) {
             return megaFormForSegment(seg) || gigantamaxFormForSegment(seg)
                 || (seg && seg.fam === HO_OH_SKILL_FORM.fam ? HO_OH_SKILL_FORM : null)
+                || legendaryActiveFormForSegment(seg)
                 || rosterActiveFormForSegment(seg);
         }
 
@@ -1033,10 +1099,13 @@ export function createGame (cc) {
             const damage = segDps(seg) * this.build.dmg * lateDamageMultiplier(this.level) * skill.power;
             const { hits, kills } = hitArea(this.enemies, x, y, skill.radius, damage);
             seg.megaSkillCd = skill.cooldown;
-            const kind = form.gigantamax ? 'gigantamax' : 'mega';
+            const kind = form.kind === 'legendary' ? 'legendary'
+                : form.gigantamax ? 'gigantamax' : 'mega';
             this.logEvent(`${kind}.skill-used`, { form: form.id, species: seg.fam, skill: skill.name,
                 x: Math.round(x), y: Math.round(y), radius: skill.radius, damage: Math.round(damage), hits, kills });
-            this.megaSkillFx(form, x, y, skill.radius);
+            this.megaSkillFx(form, x, y, skill.radius, module?.drawEffect
+                ? { shape: skill.shape, duration: skill.duration }
+                : {});
             this.particleBursts.burst(seg.fam, x, y, Math.atan2(y - this.player.y, x - this.player.x),
                 'mega-skill', form.id);
             this.playCombatSkillSound(seg, form);
@@ -2069,7 +2138,12 @@ export function createGame (cc) {
                 this._axis.x = playerDrive.x;
                 this._axis.y = playerDrive.y;
             }
+            const previousPosition = { x: p.x, y: p.y };
             p.update(dt, this._axis, playerDrive);
+            this.trees.resolvePlayer(p, PLAYER.radius,
+                !this.legendaryMap.active && !this.trainerBoss.active, previousPosition);
+            this.pond.resolvePlayer(p, PLAYER.radius,
+                !this.legendaryMap.active && !this.trainerBoss.active, previousPosition);
             if (b.stacks.alcremieSweet) {
                 if (this.alcremieRotation.pending) this.grantAlcremieFromRotation();
                 else if (!playerDrive && stepRotationTracker(this.alcremieRotation, spinX, spinY, dt)) {
@@ -2109,8 +2183,20 @@ export function createGame (cc) {
             this.enemies.shinyMul = [1, 4, 16, 64][Math.min(3, this.build.stacks.shinyCharm || 0)];
             const ring = Math.max(VIEW.W, VIEW.H) / 2 / this.cam.z + ENEMY.spawnRingPad;
             if (!this.legendaryMap.active) this.spawnWave(dt, minute, ring);
+            this.pond.updateEncounters(dt, p.x, p.y, this.enemies, minute,
+                !this.legendaryMap.active && !this.trainerBoss.active);
+            const trainerPhaseTwoBefore = this.trainerBoss.phaseTwo;
             const projectileHits = this.legendaryMap.active ? 0
                 : this.trainerBoss.step(dt, this.enemies, p, PLAYER.iFrame);
+            if (!trainerPhaseTwoBefore && this.trainerBoss.phaseTwo) {
+                this.say(`${this.trainerBoss.encounter.name}的队伍全力进攻！联合招式频率提升`, 3.8);
+                this.wave(this.trainerBoss.cx, this.trainerBoss.cy, 15, 205, 0.52, WAVE_ACCENT);
+                this.kick(0.32);
+                this.logEvent('boss.trainer-phase-two', {
+                    name: this.trainerBoss.encounter.name,
+                    hpRatio: this.trainerBoss.vitals(this.enemies).hp / this.trainerBoss.maxHp,
+                });
+            }
             if (this.trainerBoss.megaActive && !this._trainerMegaAnnounced) {
                 this._trainerMegaAnnounced = true;
                 const form = this.trainerBoss.megaForm;
@@ -2229,19 +2315,23 @@ export function createGame (cc) {
                         move: attack.move, pattern: attack.pattern,
                         x: Math.round(attack.x), y: Math.round(attack.y), radius: Math.round(attack.radius),
                         damage: Math.round(damage), hits: result.hits, kills: result.kills });
-                    this.wave(attack.x, attack.y, 18, attack.radius * 1.65, 0.56, attack.color || WAVE_GOLD);
+                    const subLegendary = isSubLegendaryCompanion(seg);
+                    this.wave(attack.x, attack.y, subLegendary ? 10 : 18,
+                        attack.radius * (subLegendary ? 1.08 : 1.65), subLegendary ? 0.24 : 0.56,
+                        attack.color || WAVE_GOLD);
+                    const maxEffectPoints = subLegendary ? 1 : 3;
                     const effectPoints = [{ x: attack.x, y: attack.y }];
                     const addEffectPoint = (point) => {
-                        if (effectPoints.length >= 3 || effectPoints.some((existing) =>
+                        if (effectPoints.length >= maxEffectPoints || effectPoints.some((existing) =>
                             Math.hypot(existing.x - point.x, existing.y - point.y) < 26)) return;
                         effectPoints.push(point);
                     };
                     for (const area of attack.areas || []) {
-                        if (effectPoints.length >= 3) break;
+                        if (effectPoints.length >= maxEffectPoints) break;
                         addEffectPoint({ x: area.x, y: area.y });
                     }
                     for (const beam of attack.corridors || []) {
-                        if (effectPoints.length >= 3) break;
+                        if (effectPoints.length >= maxEffectPoints) break;
                         addEffectPoint({
                             x: beam.x + Math.cos(beam.angle) * beam.length,
                             y: beam.y + Math.sin(beam.angle) * beam.length,
@@ -2251,7 +2341,7 @@ export function createGame (cc) {
                         this.particleBursts.burst(seg.fam, point.x, point.y, attack.angle,
                             'legendary-companion-impact');
                     }
-                    this.kick(0.16);
+                    this.kick(subLegendary ? 0.065 : 0.16);
                 },
             });
             this.stepMegaChannels(dt);
@@ -2337,12 +2427,15 @@ export function createGame (cc) {
         drawGround () {
             const g = this.ground;
             const z = this.cam.z;
-            const halfW = VIEW.W / 2;
-            const halfH = VIEW.H / 2;
+            // FIXED_HEIGHT exposes extra world width on ultrawide browser windows. Cover the
+            // actual visible area so the camera's COL.wall clear color cannot show as side bars.
+            const visible = cc.view.getVisibleSize();
+            const halfW = Math.max(VIEW.W, visible.width) / 2;
+            const halfH = Math.max(VIEW.H, visible.height) / 2;
             g.clear();
             if (this.legendaryMap.active) {
                 g.fillColor = this.pal.get('#17192b');
-                g.rect(-halfW, -halfH, VIEW.W, VIEW.H);
+                g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
                 g.fill();
                 g.strokeColor = this.pal.get('#384263', 220);
                 g.lineWidth = 5;
@@ -2371,25 +2464,39 @@ export function createGame (cc) {
                 return;
             }
             g.fillColor = this.pal.get(COL.ground);
-            g.rect(-halfW, -halfH, VIEW.W, VIEW.H);
+            g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
             g.fill();
+            // The pond shares the exact screen-space ground pass, so it stays beneath flora,
+            // trees, and Pokémon as the camera follows the trainer.
+            this.pond.drawGround(g, this.cam);
 
             const T = 80;
             const x0 = this.cam.x - halfW / z;
             const x1 = this.cam.x + halfW / z;
             const y0 = this.cam.y - halfH / z;
             const y1 = this.cam.y + halfH / z;
-            g.strokeColor = this.pal.get(COL.grid);
+            if (!this.trainerBoss.active) {
+                drawWorldGround(g, this.cam, z,
+                    { left: x0, right: x1, bottom: y0, top: y1 },
+                    this.worldLayout, this.pal, this.trees.getVisibleRoots(),
+                    this.pond.geometry, this.pond.enabled);
+            }
+            // World-anchored sparse grass: scrolling never makes the decoration swim or flicker.
+            g.strokeColor = this.pal.get(COL.grid, 150);
             g.lineWidth = 2;
             for (let wx = Math.floor(x0 / T) * T; wx <= x1; wx += T) {
-                const vx = (wx - this.cam.x) * z;
-                g.moveTo(vx, -halfH);
-                g.lineTo(vx, halfH);
-            }
-            for (let wy = Math.floor(y0 / T) * T; wy <= y1; wy += T) {
-                const vy = (wy - this.cam.y) * z;
-                g.moveTo(-halfW, vy);
-                g.lineTo(halfW, vy);
+                for (let wy = Math.floor(y0 / T) * T; wy <= y1; wy += T) {
+                    if (inPondClearing(wx, wy, 0, this.worldLayout.pond)) continue;
+                    const seed = Math.abs(Math.imul(Math.floor(wx / T), 73856093)
+                        ^ Math.imul(Math.floor(wy / T), 19349663)
+                        ^ Math.imul(this.worldLayout.seed | 0, 0x27d4eb2d));
+                    if (seed % 4 !== 0) continue;
+                    const vx = (wx + seed % 31 - this.cam.x) * z;
+                    const vy = (wy + seed % 23 - this.cam.y) * z;
+                    g.moveTo(vx - 5 * z, vy); g.lineTo(vx - 7 * z, vy + 5 * z);
+                    g.moveTo(vx, vy); g.lineTo(vx, vy + 7 * z);
+                    g.moveTo(vx + 4 * z, vy); g.lineTo(vx + 7 * z, vy + 4 * z);
+                }
             }
             g.stroke();
         }
@@ -2512,6 +2619,15 @@ export function createGame (cc) {
                 arena.chain.nspd[0] = this.player.speed;
 
                 preview.step(dt);
+                stepLegendaryCompanionAttacks({
+                    segments: arena.chain.segments, enemies: arena.enemies, player: arena.player,
+                    camera: { z: DEX_PREVIEW_ZOOM }, trainerBattle: false, dt, rng: arena.rng,
+                    onImpact: (segment, attack) => {
+                        this.particleBursts.burst(segment.fam, attack.x, attack.y, attack.angle,
+                            'legendary-companion-impact');
+                        this.kick(isSubLegendaryCompanion(segment) ? 0.055 : 0.12);
+                    },
+                });
                 this.time = arena.time;
                 this.stepMegaChannels(dt);
                 this.stepWaves(dt);
@@ -2593,11 +2709,16 @@ export function createGame (cc) {
                     scale * (1 - 0.08 * Math.sin(arena.time * 8)), scale, 0, this.pal.get(ICON_TINT));
                 if (seg.fam === 'tandemaus') {
                     const companions = arena.chain.companionCountOf(seg);
-                    for (let i = 0; i < companions; i++) {
-                        const offset = tandemausFollowerOffset(arena.chain.na[0], scale, i, companions);
-                        const motion = tandemausFollowerMotion(arena.chain.na[0], scale, i, arena.time);
-                        const key = `MAUSHOLD_COMPANION_${(i % 4) + 1}`;
-                        const companionScale = Math.max(0.22, Math.min(0.32, scale * 0.56));
+                    const partySize = arena.chain.segments.length;
+                    const visibleCompanions = tandemausVisibleCompanionCount(companions);
+                    const companionScale = tandemausFollowerScale(scale, companions, partySize);
+                    for (let i = 0; i < visibleCompanions; i++) {
+                        const mouseIndex = tandemausVisibleCompanionIndex(i, companions, visibleCompanions);
+                        const offset = tandemausFollowerOffset(
+                            arena.chain.na[0], scale, mouseIndex, companions, partySize);
+                        const motion = tandemausFollowerMotion(
+                            arena.chain.na[0], scale, i, arena.time, companions, partySize);
+                        const key = `MAUSHOLD_COMPANION_${(mouseIndex % 4) + 1}`;
                         batch.draw(this.atlas.glyphs[key] ? key : icon,
                             petX + offset.x + motion.x, petY + offset.y + motion.y,
                             companionScale * (1 + motion.stride * 0.07),
@@ -2860,8 +2981,8 @@ export function createGame (cc) {
             const ready = this.repeat <= 0;
             const R = on ? 19 : 27;
             g.strokeColor = this.pal.get(on ? COL.accent : GREY, ready ? (on ? 240 : 165) : 85);
-            g.lineWidth = 6;
-            const arm = R * 0.62;
+            g.lineWidth = 4;
+            const arm = R * 0.48;
             for (let q = 0; q < 4; q++) {
                 const ux = q & 1 ? 1 : -1;
                 const uy = q & 2 ? 1 : -1;
@@ -2911,15 +3032,18 @@ export function createGame (cc) {
         drawLegendaryCompanionWarnings (g) {
             for (const segment of this.chain.segments) {
                 const attack = segment.legendaryBombardment;
-                if (!isLegendaryCompanion(segment) || !attack
+                if (!hasCompanionSignature(segment) || !attack
                     || (attack.phase !== 'warning' && attack.phase !== 'impact')) continue;
                 const impact = attack.phase === 'impact';
-                const progress = impact ? 1 : Math.max(0, Math.min(1, 1 - attack.timer / 0.82));
+                const progress = impact ? 1 : Math.max(0, Math.min(1, 1 - attack.timer / WARNING_SECONDS));
+                const fade = impact ? Math.max(0, Math.min(1, attack.timer / IMPACT_SECONDS)) : 1;
                 const seed = ((attack.x * 0.0017 + attack.y * 0.0009) % TAU + TAU) % TAU;
                 const pulse = 0.78 + 0.22 * Math.sin(this.wall * 4.6 + seed);
+                const subLegendary = isSubLegendaryCompanion(segment);
+                const tierAlpha = subLegendary ? 0.78 : 1;
                 const color = attack.color || ELEMENT[family(segment.fam)?.element] || COL.gold;
-                const fillAlpha = impact ? 112 : Math.round(22 + progress * 24 + pulse * 4);
-                const edgeAlpha = impact ? 252 : Math.round(124 + progress * 92 + pulse * 12);
+                const fillAlpha = Math.round((impact ? 65 * fade : 22 + progress * 24 + pulse * 4) * tierAlpha);
+                const edgeAlpha = Math.round((impact ? 210 * fade : 124 + progress * 92 + pulse * 12) * tierAlpha);
 
                 // Corridors are broad filled lanes, so beams read as attacks with direction rather
                 // than a generic locked circle. The boundary is computed from the actual hit shape.
@@ -2938,7 +3062,8 @@ export function createGame (cc) {
                     g.fillColor = this.pal.get(color, fillAlpha);
                     g.fill();
                     g.strokeColor = this.pal.get(impact ? '#fff0c2' : color, edgeAlpha);
-                    g.lineWidth = impact ? 4 : 2.2;
+                    g.lineWidth = impact ? (isSubLegendaryCompanion(segment) ? 2.8 : 4)
+                        : (isSubLegendaryCompanion(segment) ? 1.5 : 2.2);
                     g.stroke();
 
                     // A travelling highlight makes long signature lanes feel charged before impact.
@@ -2946,7 +3071,7 @@ export function createGame (cc) {
                     const hx = beam.x + ux * travel;
                     const hy = beam.y + uy * travel;
                     g.strokeColor = this.pal.get('#fff8d7', impact ? 230 : Math.round(76 + progress * 100));
-                    g.lineWidth = impact ? 3.2 : 1.8;
+                    g.lineWidth = impact ? (subLegendary ? 2.4 : 3.2) : (subLegendary ? 1.3 : 1.8);
                     g.moveTo(hx - px * 0.58, hy - py * 0.58);
                     g.lineTo(hx + px * 0.58, hy + py * 0.58);
                     g.stroke();
@@ -2960,7 +3085,8 @@ export function createGame (cc) {
                     g.circle(area.x, area.y, area.radius * breathe);
                     g.fill();
                     g.strokeColor = this.pal.get(impact ? '#fff0c2' : color, edgeAlpha);
-                    g.lineWidth = impact ? 3.6 : 1.8;
+                    g.lineWidth = impact ? (isSubLegendaryCompanion(segment) ? 2.5 : 3.6)
+                        : (isSubLegendaryCompanion(segment) ? 1.35 : 1.8);
                     g.circle(area.x, area.y, area.radius * breathe);
                     g.stroke();
                 }
@@ -3178,8 +3304,8 @@ export function createGame (cc) {
             }
 
             const tail = this._tail;
-            // Moving shots are represented exclusively by NativeParticleBursts samples; avoid
-            // drawing a solid sprite nucleus over those particles (especially visible for tiny shots).
+            // Keep Z projectile silhouettes in the shared draw batch; their outlined core stays
+            // identifiable above the shortened, reduced-density particle trail.
             const sk = this.skills;
             drawZMoveEffects(b, this.pal, this.zMoves, this.wall);
             drawMegaEffects(this, b, {
@@ -3209,6 +3335,10 @@ export function createGame (cc) {
 
             // Use the same native geometry in combat and the Pokédex preview.
             drawSkillEffects(this, b);
+            // Boss-only source accents stay in the live world pass: they decorate the locked
+            // telegraph without leaking into the Pokédex preview or becoming a second hitbox.
+            drawPrimaryLegendaryBossAttack(b, this.pal, this.legendaryAttacks, this.wall);
+            drawSubLegendaryBossAttack(b, this.pal, this.legendaryAttacks, this.wall);
 
             const lastNode = ch.nCount - 1;
             // 遮挡淡出：有野生怪压在队伍节点上时，该节点的精灵画成半透明，
@@ -3266,6 +3396,7 @@ export function createGame (cc) {
                 const impactAge = gigaEntry ? gigaEntry.elapsed - 0.82 : 1;
                 const impactPulse = gigaEntry && impactAge >= 0
                     ? Math.exp(-impactAge * 13) * Math.cos(impactAge * 24) : 0;
+                const impactFlash = gigaEntry && impactAge >= 0 ? Math.exp(-impactAge * 9) : 0;
                 const entrySqueezeX = gigaEntry && gigaEntry.impactDone ? 1 + impactPulse * 0.32 : 1;
                 const entrySqueezeY = gigaEntry && gigaEntry.impactDone ? 1 - impactPulse * 0.26 : 1;
                 const dynamax = this.dynamax.segment === s && this.dynamax.remaining > 0;
@@ -3316,6 +3447,19 @@ export function createGame (cc) {
                         const shadowScale = scale * (1.45 + liftRatio * 0.48);
                         b.draw('aura', px, groundY, shadowScale * 1.35, shadowScale * 0.42,
                             0, this.pal.get('#60452f', Math.round(46 + liftRatio * 34)));
+                    }
+                    if (gigantamax && gigaEntry && impactFlash > 0.015 && k === 0) {
+                        const expansion = 1 + (1 - impactFlash) * 1.45;
+                        const ringAlpha = Math.round(235 * impactFlash);
+                        b.draw('aura', px, groundY, scale * 3.25 * expansion,
+                            scale * 1.35 * expansion, 0,
+                            this.pal.get('#d52bff', Math.round(105 * impactFlash)));
+                        b.draw('ring', px, groundY, scale * 2.15 * expansion,
+                            scale * 1.38 * expansion, this.wall * 0.2,
+                            this.pal.get('#ff4c9a', ringAlpha));
+                        b.draw('ring', px, groundY, scale * 3.05 * expansion,
+                            scale * 1.72 * expansion, -this.wall * 0.13,
+                            this.pal.get('#bc69ff', Math.round(ringAlpha * 0.82)));
                     }
                     if (selectedMegaHead && k === 0) {
                         const pulse = 1 + 0.1 * Math.sin(this.wall * 7);
@@ -3373,7 +3517,8 @@ export function createGame (cc) {
                         px, py,
                         scale * (1 - 0.08 * bob) * (1 + 0.34 * pop) * (1 - 0.72 * swing) * entrySqueezeX,
                         scale * (1 + 0.08 * bob) * (1 - 0.24 * pop) * (1 + swing) * entrySqueezeY,
-                        0, col, flip, dynamax ? DYNAMAX_BAND.shader : null);
+                        0, col, flip,
+                        dynamax ? DYNAMAX_BAND.shader : gigantamax ? 'gigantamax-pokemon' : null);
                     if (mega && k === 0) {
                         const ring = scale * (1.62 + 0.12 * Math.sin(this.wall * 6 + i));
                         b.draw('ring', px, py, ring, ring, -this.wall * 0.55,
@@ -3386,12 +3531,22 @@ export function createGame (cc) {
                         }
                     }
                 }
-                // 家主鼠本体不随重复捕捉膨胀；同族小鼠按四列错步跟随，捕捉数仍不增加碰撞体或攻击段数。
-                for (let m = 0; m < companionCount; m++) {
-                    const offset = tandemausFollowerOffset(ch.na[i], scale, m, companionCount);
-                    const motion = tandemausFollowerMotion(ch.na[i], scale, m, this.time);
-                    const companionScale = Math.max(0.22, Math.min(0.32, scale * 0.56));
-                    const companionGlyph = `MAUSHOLD_COMPANION_${(m % 4) + 1}`;
+                // 家主鼠本体不随重复捕捉膨胀；同族小鼠在本体侧后方收拢，数量不会增加碰撞体或攻击段数。
+                const partySize = ch.segments.length;
+                let previousMouseHosts = 0;
+                for (let previousSegment = 0; previousSegment < si; previousSegment++) {
+                    if (ch.segments[previousSegment].fam === 'tandemaus') previousMouseHosts++;
+                }
+                const companionSide = previousMouseHosts % 2 === 0 ? 1 : -1;
+                const visibleCompanions = tandemausVisibleCompanionCount(companionCount);
+                const companionScale = tandemausFollowerScale(scale, companionCount, partySize);
+                for (let m = 0; m < visibleCompanions; m++) {
+                    const mouseIndex = tandemausVisibleCompanionIndex(m, companionCount, visibleCompanions);
+                    const offset = tandemausFollowerOffset(
+                        ch.na[i], scale, mouseIndex, companionCount, partySize, companionSide);
+                    const motion = tandemausFollowerMotion(
+                        ch.na[i], scale, m, this.time, companionCount, partySize);
+                    const companionGlyph = `MAUSHOLD_COMPANION_${(mouseIndex % 4) + 1}`;
                     b.draw(companionGlyph,
                         ch.nx[i] + offset.x + motion.x,
                         ch.ny[i] + offset.y + motion.y,
@@ -3567,6 +3722,10 @@ export function createGame (cc) {
             } else if (modalAtFrameStart) {
                 // An animated choice just completed above. Keep this final transition frame modal
                 // so its last click/key cannot leak into a throw or open the next reward screen.
+            } else if (w.tap && this.hud.hitPartyButton(ptr.x, ptr.y)) {
+                w.tap = false;
+                w.hold = false;
+                this.input.blockFireUntilRelease();
             } else if (w.tap && this.hud.hitCombatSkillButton(ptr.x, ptr.y)) {
                 // Mouse fallback for IME/browser environments that swallow X. Do not let the HUD
                 // click throw a ball, and aim forward rather than at the skill panel itself.
@@ -3640,6 +3799,12 @@ export function createGame (cc) {
             // drifts by (zoom - 1) * position whenever the chain zoom is not exactly 1.
             this.world.setPosition(-this.cam.x * z + sx / z, -this.cam.y * z + sy / z, 0);
             this.world.setScale(z, z, 1);
+            const floraView = cc.view.getVisibleSize();
+            this.pond.setActive(!this.legendaryMap.active && !this.trainerBoss.active);
+            this.flora.update(this.cam, floraView.width, floraView.height,
+                !this.legendaryMap.active && !this.trainerBoss.active);
+            this.trees.update(this.cam, floraView.width, floraView.height,
+                !this.legendaryMap.active && !this.trainerBoss.active, this.player.y);
             // Before the draw pass, and on the frame clock on purpose - see `stepFrameFx`.
             this.stepFrameFx(dt);
             this.trainerTransition.step(dt);
@@ -3702,6 +3867,8 @@ export function createGame (cc) {
             this.hud.setInfo('', this.toast.t > 0 ? this.toast.text : itemStatus.join(' · '));
             this.hud.setAmmo(this.build.balls);
             this.hud.setHealth(this.player.hp, this.player.maxhp);
+            this.hud.setTrainer(this.playerAppearance > 0 ? TRAINER_SPRITES[this.playerAppearance - 1].name : 'Lucas',
+                this.atlas.glyphs[this.playerAppearance > 0 ? `trainer_${this.playerAppearance - 1}_0_0` : 'lucas_0_0']?.frame);
             this.hud.setDynamaxStatus(this.build.stacks.dynamaxBand > 0,
                 this.dynamax.remaining, this.dynamax.cooldown);
             const selectedZ = Z_CRYSTALS.find((entry) => entry.id === this.zMoves.selected);

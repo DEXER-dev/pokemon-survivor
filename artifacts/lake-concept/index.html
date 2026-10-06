@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>湖泊尺寸预览 · 素材拼接</title>
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #dfe8cc; color: #394437; }
+    main { width: min(1240px, 100%); margin: 0 auto; padding: 22px; border: 3px solid #768766; border-radius: 14px; background: #f3f0da; box-shadow: 0 8px 0 #b5bd9d, 0 18px 40px #66745044; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 2px 18px; }
+    h1 { margin: 0; font-size: 24px; letter-spacing: .03em; }
+    header p { max-width: 760px; margin: 6px 0 0; color: #707865; font-size: 13px; line-height: 1.6; }
+    button { flex: 0 0 auto; padding: 10px 14px; border: 2px solid #c5a96d; border-radius: 99px; background: #fff8da; color: #755d36; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    button:hover { background: #ffefbc; }
+    .seed { margin: 0 2px 12px; color: #777b6d; font-size: 12px; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+    article { min-width: 0; overflow: hidden; border: 2px solid #b8bd9f; border-radius: 10px; background: #fff9df; }
+    article h2 { margin: 13px 14px 2px; color: #505b46; font-size: 16px; }
+    article p { min-height: 39px; margin: 0 14px 10px; color: #777b6d; font-size: 12px; line-height: 1.5; }
+    canvas { display: block; width: 100%; height: auto; border-block: 2px solid #9ca887; background: #e4edcf; image-rendering: pixelated; }
+    .meta { padding: 10px 14px 13px; color: #666f5b; font-size: 12px; line-height: 1.55; }
+    .meta strong { color: #4f6049; }
+    footer { margin: 16px 2px 0; color: #777b6d; font-size: 12px; line-height: 1.6; }
+    @media (max-width: 960px) { body { padding: 12px; } main { padding: 14px; } header { align-items: flex-start; flex-direction: column; } .cards { grid-template-columns: 1fr; } article p { min-height: 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>随机湖泊 · 尺寸与素材拼接</h1>
+        <p>只做更大的湖，不放超长河。湖岸外用项目现有的不同树形组成疏密各异的小树林，再以草花点缀；湖边保留通路空隙。</p>
+      </div>
+      <button id="reroll" type="button">换一组湖岸轮廓</button>
+    </header>
+    <div class="seed" id="seedLabel">地图种子：3701</div>
+    <section class="cards" aria-label="三种大湖尺寸">
+      <article>
+        <h2>宽湖</h2>
+        <p>长形湖岸带有轻微弯曲和不对称起伏。</p>
+        <canvas id="wide" width="800" height="480" aria-label="横向宽湖素材预览"></canvas>
+        <div class="meta" id="wideMeta"></div>
+      </article>
+      <article>
+        <h2>大湖</h2>
+        <p>更宽阔的湖面，湖岸有浅湾与凸岸变化。</p>
+        <canvas id="large" width="800" height="480" aria-label="大湖素材预览"></canvas>
+        <div class="meta" id="largeMeta"></div>
+      </article>
+      <article>
+        <h2>广阔湖区</h2>
+        <p>作为地图地标，外轮廓不规则，岸边留出通路。</p>
+        <canvas id="vast" width="800" height="480" aria-label="广阔湖区素材预览"></canvas>
+        <div class="meta" id="vastMeta"></div>
+      </article>
+    </section>
+    <footer>湖心水纹按 3×2、4×3、5×4 个原尺寸图块重复铺贴；泥岸主色和暗边取自 Lake.png 边条。湖岸与岸边装饰随种子变化；不同树形错落成簇，树林布局和疏密不完全相同，草花疏落点缀。本页预览素材组合，尚未接入地图碰撞。</footer>
+  </main>
+  <script type="module">
+    import { makeRng } from '../../src/rng.js';
+
+    const WIDTH = 800;
+    const HEIGHT = 480;
+    const TILE = 64;
+    const BORDER = 16;
+    const root = '../../assets/tilesets/lake-processed/';
+    const names = [
+      'Lake_WATER_CORE_64x64.png',
+      'Lake_EDGE_TOP_64x16_GAME_GROUND.png',
+    ];
+    const assets = {};
+    const loadImage = (src) => new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error(`素材读取失败：${src}`));
+      image.src = src;
+    });
+    const assetPromise = Promise.all([
+      ...names.map(async (name) => { assets[name] = await loadImage(root + name); }),
+      loadImage('../../assets/tilesets/KANTO50S_FLORA_ADDON.png').then((img) => { assets.flora = img; }),
+      loadImage('../../assets/tilesets/KANTO50S_TREES.png').then((img) => { assets.tree = img; }),
+      loadImage('../../assets/tilesets/KANTO50S_OUT.png').then((img) => { assets.treeSource = img; }),
+      loadImage('../../assets/icons/POLIWAG.png').then((img) => { assets.fish = img; }),
+    ]);
+
+    const lakes = [
+      { id: 'wide', columns: 3, rows: 2 },
+      { id: 'large', columns: 4, rows: 3 },
+      { id: 'vast', columns: 5, rows: 4 },
+    ];
+
+    function drawGround (ctx, seed) {
+      ctx.fillStyle = '#e4edcf';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      const rng = makeRng((seed ^ 0x72a34135) >>> 0);
+      ctx.strokeStyle = 'rgba(181, 204, 154, 0.588)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'square';
+      for (let x = 18; x < WIDTH; x += 80) {
+        for (let y = 18; y < HEIGHT; y += 80) {
+          if (!rng.chance(0.24)) continue;
+          const gx = x + rng.int(-12, 12), gy = y + rng.int(-10, 10);
+          ctx.beginPath();
+          ctx.moveTo(gx - 5, gy); ctx.lineTo(gx - 8, gy - 5);
+          ctx.moveTo(gx, gy); ctx.lineTo(gx - 1, gy - 7);
+          ctx.moveTo(gx + 5, gy); ctx.lineTo(gx + 8, gy - 4);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function traceClosedSpline (ctx, points) {
+      const count = points.length;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 0; i < count; i++) {
+        const p0 = points[(i - 1 + count) % count];
+        const p1 = points[i];
+        const p2 = points[(i + 1) % count];
+        const p3 = points[(i + 2) % count];
+        ctx.bezierCurveTo(
+          p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6,
+          p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6,
+          p2.x, p2.y,
+        );
+      }
+      ctx.closePath();
+    }
+
+    function sampleColor (image, x, y) {
+      const pixel = document.createElement('canvas');
+      pixel.width = 1; pixel.height = 1;
+      const sample = pixel.getContext('2d');
+      sample.drawImage(image, x, y, 1, 1, 0, 0, 1, 1);
+      const [r, g, b] = sample.getImageData(0, 0, 1, 1).data;
+      return `rgb(${r} ${g} ${b})`;
+    }
+
+    function keyedTreeCrop (image, x, y) {
+      const crop = document.createElement('canvas');
+      crop.width = 32;
+      crop.height = 64;
+      const ctx = crop.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(image, x, y, 32, 64, 0, 0, 32, 64);
+      const pixels = ctx.getImageData(0, 0, 32, 64);
+      for (let i = 0; i < pixels.data.length; i += 4) {
+        if (pixels.data[i] > 245 && pixels.data[i + 1] < 18 && pixels.data[i + 2] > 245) {
+          pixels.data[i + 3] = 0;
+        }
+      }
+      ctx.putImageData(pixels, 0, 0);
+      return crop;
+    }
+
+    function makeLakeContours (cx, cy, columns, rows, rng) {
+      const outerRx = columns * TILE / 2 + BORDER;
+      const outerRy = rows * TILE / 2 + BORDER;
+      const waterRx = columns * TILE / 2;
+      const waterRy = rows * TILE / 2;
+      const count = 14;
+      const phase = rng.range(-0.22, 0.22);
+      const phase2 = rng.range(-0.4, 0.4);
+      const profile = Array.from({ length: count }, () => rng.range(-0.025, 0.025));
+      const build = (rx, ry) => Array.from({ length: count }, (_, i) => {
+        const angle = phase + i * Math.PI * 2 / count;
+        const irregular = 1 + 0.075 * Math.sin(2 * angle + phase2)
+          + 0.042 * Math.sin(3 * angle - phase) + profile[i];
+        return { x: cx + Math.cos(angle) * rx * irregular,
+          y: cy + Math.sin(angle) * ry * irregular };
+      });
+      return {
+        outer: build(outerRx, outerRy),
+        water: build(waterRx, waterRy),
+        bounds: { x: cx - outerRx, y: cy - outerRy, width: outerRx * 2, height: outerRy * 2,
+          centerX: cx, centerY: cy, outerRx, outerRy,
+          coreX: cx - waterRx, coreY: cy - waterRy, coreWidth: waterRx * 2, coreHeight: waterRy * 2 },
+      };
+    }
+
+    function treeBoundsClearLake (x, rootY, width, height, lake) {
+      // Test the full sprite box against a slightly expanded ellipse so the canopy
+      // and trunk stay on grass instead of painting over the bank or water.
+      const dx = Math.max(0, Math.abs(x - lake.centerX) - width / 2);
+      const dy = Math.max(0, Math.abs(rootY - height / 2 - lake.centerY) - height / 2);
+      const rx = lake.outerRx * 1.14;
+      const ry = lake.outerRy * 1.14;
+      return (dx / rx) ** 2 + (dy / ry) ** 2 >= 1;
+    }
+
+    function drawShoreTrees (ctx, lake, rng) {
+      // Two compact groves frame the lake; the lower shore remains open for a path.
+      const spots = [-2.68, -0.12];
+      const groves = [];
+      for (const baseAngle of spots) {
+        const angle = baseAngle + rng.range(-0.08, 0.08);
+        const groupWidth = groves.length === 0 ? 120 : 140;
+        const groupHeight = groves.length === 0 ? 92 : 104;
+        let grove = null;
+        for (let factor = 1.08; factor <= 2.3; factor += 0.04) {
+          const x = lake.centerX + Math.cos(angle) * lake.outerRx * factor;
+          const frontRootY = lake.centerY + Math.sin(angle) * lake.outerRy * factor;
+          const groupBottom = frontRootY + 12;
+          if (x < groupWidth / 2 + 14 || x > WIDTH - groupWidth / 2 - 14) continue;
+          if (groupBottom < groupHeight + 12 || groupBottom > HEIGHT - 12) continue;
+          if (!treeBoundsClearLake(x, groupBottom, groupWidth, groupHeight, lake)) continue;
+          grove = { x, y: frontRootY, width: groupWidth, height: groupHeight };
+          break;
+        }
+        if (!grove) continue;
+
+        const variants = [assets.tree, assets.treeRound, assets.treeBlossom];
+        for (let i = variants.length - 1; i > 0; i--) {
+          const j = rng.int(0, i);
+          [variants[i], variants[j]] = [variants[j], variants[i]];
+        }
+        const layouts = [
+          [
+            { dx: -27, dy: -5, width: 44, height: 63, variant: 0 },
+            { dx: 26, dy: -9, width: 45, height: 65, variant: 1 },
+            { dx: 1, dy: 12, width: 54, height: 78, variant: 2 },
+          ],
+          [
+            { dx: -35, dy: -9, width: 45, height: 64, variant: 1 },
+            { dx: -2, dy: -14, width: 48, height: 70, variant: 2 },
+            { dx: 34, dy: 13, width: 59, height: 83, variant: 0 },
+          ],
+        ];
+        const trees = layouts[groves.length % layouts.length].map((tree) => ({
+          ...tree,
+          dx: tree.dx + rng.int(-4, 4),
+          dy: tree.dy + rng.int(-2, 2),
+          width: tree.width + rng.int(0, 5),
+          height: tree.height + rng.int(0, 5),
+          sprite: variants[tree.variant],
+        })).sort((a, b) => a.dy - b.dy);
+        for (const tree of trees) {
+          const width = tree.width;
+          const height = tree.height;
+          const x = Math.round(grove.x + tree.dx);
+          const rootY = Math.round(grove.y + tree.dy);
+          const left = Math.round(x - width / 2);
+          const top = Math.round(rootY - height);
+          ctx.drawImage(tree.sprite, 0, 0, 32, 64, left, top, width, height);
+        }
+        groves.push(grove);
+      }
+      return groves;
+    }
+
+    function drawShoreFlora (ctx, lake, rng, trees) {
+      const points = [];
+      const phase = rng.range(-0.15, 0.15);
+      for (let i = 0; i < 16; i++) {
+        const angle = phase + i * Math.PI * 2 / 16;
+        const gap = 32 + rng.int(0, 15);
+        const x = lake.centerX + Math.cos(angle) * (lake.outerRx + gap);
+        const y = lake.centerY + Math.sin(angle) * (lake.outerRy + gap);
+        if (x < 34 || x > WIDTH - 34 || y < 34 || y > HEIGHT - 34) continue;
+        if (points.some(([px, py]) => Math.hypot(px - x, py - y) < 58)) continue;
+        if (trees.some((grove) => Math.abs(grove.x - x) < grove.width / 2 + 28
+          && y >= grove.y - grove.height - 28 && y <= grove.y + 32)) continue;
+        points.push([x, y]);
+      }
+      const count = 5 + rng.int(0, 2);
+      for (let i = 0; i < Math.min(count, points.length); i++) {
+        const [x, y] = points[i];
+        const tile = rng.chance(0.18) ? 4 + rng.int(0, 3) : rng.int(0, 3);
+        const cellX = tile % 4;
+        const cellY = Math.floor(tile / 4);
+        const size = 44 + rng.int(0, 9);
+        ctx.drawImage(assets.flora, cellX * 64, cellY * 64, 64, 64,
+          Math.round(x - size / 2), Math.round(y - size / 2), size, size);
+      }
+    }
+
+    function drawFish (ctx, lake, rng, count) {
+      const safeX = Math.max(24, lake.coreWidth * 0.3);
+      const safeY = Math.max(24, lake.coreHeight * 0.3);
+      for (let i = 0; i < count; i++) {
+        const x = lake.coreX + safeX + rng.range(0, Math.max(1, lake.coreWidth - safeX * 2));
+        const y = lake.coreY + safeY + rng.range(0, Math.max(1, lake.coreHeight - safeY * 2));
+        const size = 38 + rng.int(0, 5);
+        ctx.drawImage(assets.fish, 0, 0, 64, 64, x - size / 2, y - size / 2, size, size);
+      }
+    }
+
+    function renderLake (entry, seed) {
+      const canvas = document.querySelector(`#${entry.id}`);
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      const rng = makeRng((seed ^ (entry.columns * 0x45d9f3b) ^ (entry.rows * 0x27d4eb2d)) >>> 0);
+      drawGround(ctx, seed);
+      const width = entry.columns * TILE + BORDER * 2;
+      const height = entry.rows * TILE + BORDER * 2;
+      const x = Math.round((WIDTH - width) / 2 + rng.int(-10, 10));
+      const y = Math.round((HEIGHT - height) / 2 + rng.int(-10, 10));
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      const shapes = makeLakeContours(cx, cy, entry.columns, entry.rows, rng);
+      const shore = assets['Lake_EDGE_TOP_64x16_GAME_GROUND.png'];
+      ctx.save();
+      traceClosedSpline(ctx, shapes.outer);
+      // Source soil and outline colors keep the bank coherent without repeating
+      // the mixed edge strip into visible horizontal bands.
+      ctx.fillStyle = sampleColor(shore, 32, 10);
+      ctx.fill();
+      ctx.strokeStyle = sampleColor(shore, 32, 7);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      traceClosedSpline(ctx, shapes.water);
+      ctx.strokeStyle = sampleColor(shore, 32, 10);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = ctx.createPattern(assets['Lake_WATER_CORE_64x64.png'], 'repeat');
+      ctx.fill();
+      ctx.restore();
+      const lake = shapes.bounds;
+      const trees = drawShoreTrees(ctx, lake, rng);
+      drawFish(ctx, lake, rng, entry.columns * entry.rows >= 16 ? 3 : entry.columns * entry.rows >= 9 ? 2 : 1);
+      drawShoreFlora(ctx, lake, rng, trees);
+
+      document.querySelector(`#${entry.id}Meta`).innerHTML =
+        `<strong>湖心水纹：</strong>${entry.columns}×${entry.rows} 格原图纹理，无缩放；` +
+        `湖岸轮廓由地图种子决定。`;
+    }
+
+    let seed = 3701;
+    function renderAll () {
+      document.querySelector('#seedLabel').textContent = `装饰种子：${seed}`;
+      for (const entry of lakes) renderLake(entry, seed);
+    }
+
+    document.querySelector('#reroll').addEventListener('click', () => {
+      seed = (seed + 0x9e3779b9) >>> 0;
+      renderAll();
+    });
+
+    await assetPromise;
+    assets.treeRound = keyedTreeCrop(assets.treeSource, 0, 384);
+    assets.treeBlossom = keyedTreeCrop(assets.treeSource, 32, 2048);
+    renderAll();
+  </script>
+</body>
+</html>

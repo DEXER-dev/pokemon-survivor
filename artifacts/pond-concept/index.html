@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>湖面素材处理 · 拼接样例</title>
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      background: #dfe8cc;
+      color: #394437;
+    }
+    main {
+      width: min(1180px, 100%);
+      padding: 22px;
+      border: 3px solid #768766;
+      border-radius: 14px;
+      background: #f3f0da;
+      box-shadow: 0 8px 0 #b5bd9d, 0 18px 40px #66745044;
+    }
+    header { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin: 0 2px 16px; }
+    h1 { margin: 0; font-size: 23px; letter-spacing: .04em; }
+    header p { margin: 5px 0 0; color: #707865; font-size: 13px; }
+    .tag { white-space: nowrap; padding: 7px 11px; border: 2px solid #c5a96d; border-radius: 99px; color: #755d36; background: #fff8da; font-size: 12px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 18px; align-items: stretch; }
+    .scene { overflow: hidden; border: 3px solid #879373; border-radius: 8px; background: #e4edcf; }
+    canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+    aside { display: flex; flex-direction: column; gap: 10px; }
+    .note { padding: 12px 13px; border: 2px solid #d5c69e; border-radius: 8px; background: #fff9df; line-height: 1.5; font-size: 13px; }
+    .note strong { display: block; margin-bottom: 3px; color: #55624a; }
+    .note.missing { background: #f8e8d7; border-color: #ddb78d; }
+    footer { margin: 13px 2px 0; color: #777b6d; font-size: 12px; }
+    @media (max-width: 780px) {
+      body { padding: 12px; }
+      main { padding: 14px; }
+      header { align-items: start; flex-direction: column; }
+      .layout { grid-template-columns: 1fr; }
+      aside { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>湖面素材处理 · 中型拼接样例</h1>
+        <p>保留 Lake.png 的水面与泥岸；把岸外草层透出游戏地面，检查接缝和比例。</p>
+      </div>
+      <span class="tag">图块处理预览 · 尚未接入地图</span>
+    </header>
+    <div class="layout">
+      <div class="scene"><canvas id="pond" width="960" height="600" aria-label="Lake.png 处理后的中型池塘拼接样例"></canvas></div>
+      <aside>
+        <div class="note"><strong>地面衔接</strong>外圈青绿色草像素改为透明，透出游戏真实底色和地面草纹；泥岸与水面原像素保留。</div>
+        <div class="note"><strong>中型池塘</strong>示例用 3×2 个水面核心拼连续水域，岸边仍取原图边缘；合成图为 224×160 像素，没有缩放。</div>
+        <div class="note"><strong>鱼系宝可梦</strong>现有蚊香蝌蚪图标放在水面内作比例参照；实际鱼系遭遇生成尚未接入。</div>
+        <div class="note"><strong>随机尺寸</strong>核心格数 N×M 可由地图种子决定，图块不拉伸；尺寸公式为 (64N+32)×(64M+32)。自然曲线边缘还需组合更小的边角模块。</div>
+      </aside>
+    </div>
+    <footer>游戏地面取自 COL.ground #e4edcf，稀疏草纹取自 COL.grid #b5cc9a；原图 Lake.png 未修改。池塘样例仍是静态素材预览，尚未接入地图生成与碰撞。</footer>
+  </main>
+  <script>
+    const canvas = document.querySelector('#pond');
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    const rect = (x, y, w, h, color) => { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    const lake = new Image();
+    lake.src = '../../assets/tilesets/lake-processed/Lake_MEDIUM_3x2_GAME_GROUND.png';
+    const flora = new Image();
+    flora.src = '../../assets/tilesets/KANTO50S_FLORA_ADDON.png';
+    const poliwag = new Image();
+    poliwag.src = '../../assets/icons/POLIWAG.png';
+    function drawGameGrass () {
+      ctx.strokeStyle = 'rgba(181, 204, 154, 0.588)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'square';
+      const tufts = [[52,76],[182,208],[824,74],[896,200],[164,382],[750,384],
+        [836,472],[112,532],[784,554],[226,126],[744,126],[920,388]];
+      for (const [x, y] of tufts) {
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y); ctx.lineTo(x - 8, y - 5);
+        ctx.moveTo(x, y); ctx.lineTo(x - 1, y - 7);
+        ctx.moveTo(x + 5, y); ctx.lineTo(x + 8, y - 4);
+        ctx.stroke();
+      }
+    }
+    function drawScene () {
+      if (!lake.complete || !lake.naturalWidth || !flora.complete || !flora.naturalWidth) return;
+      rect(0, 0, canvas.width, canvas.height, '#e4edcf');
+      drawGameGrass();
+      [[108,118,0],[760,126,2],[240,466,1],[692,492,3]].forEach(([x,y,index]) => {
+        ctx.drawImage(flora, index * 64, 0, 64, 64, x, y, 36, 36);
+      });
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(lake, 256, 144, lake.naturalWidth * 2, lake.naturalHeight * 2);
+      if (poliwag.complete && poliwag.naturalWidth) {
+        [[352,250,0.85],[540,360,0.72]].forEach(([x,y,scale]) => {
+          const size = 64 * scale;
+          ctx.drawImage(poliwag, 0, 0, 64, 64, x, y, size, size);
+        });
+      }
+    }
+    [lake, flora, poliwag].forEach((image) => image.addEventListener('load', drawScene));
+    drawScene();
+  </script>
+</body>
+</html>

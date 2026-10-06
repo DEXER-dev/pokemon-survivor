@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>河道生成概念 · 素材拼接预览</title>
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #dfe8cc; color: #394437; }
+    main { width: min(1240px, 100%); margin: 0 auto; padding: 22px; border: 3px solid #768766; border-radius: 14px; background: #f3f0da; box-shadow: 0 8px 0 #b5bd9d, 0 18px 40px #66745044; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 2px 18px; }
+    h1 { margin: 0; font-size: 24px; letter-spacing: .03em; }
+    header p { max-width: 760px; margin: 6px 0 0; color: #707865; font-size: 13px; line-height: 1.6; }
+    button { flex: 0 0 auto; padding: 10px 14px; border: 2px solid #c5a96d; border-radius: 99px; background: #fff8da; color: #755d36; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    button:hover { background: #ffefbc; }
+    .seed { margin: 0 2px 12px; color: #777b6d; font-size: 12px; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+    article { min-width: 0; overflow: hidden; border: 2px solid #b8bd9f; border-radius: 10px; background: #fff9df; }
+    article h2 { margin: 13px 14px 2px; color: #505b46; font-size: 16px; }
+    article p { min-height: 39px; margin: 0 14px 10px; color: #777b6d; font-size: 12px; line-height: 1.5; }
+    canvas { display: block; width: 100%; height: auto; border-block: 2px solid #9ca887; background: #e4edcf; image-rendering: pixelated; }
+    .meta { padding: 10px 14px 13px; color: #666f5b; font-size: 12px; line-height: 1.55; }
+    .meta strong { color: #4f6049; }
+    footer { margin: 16px 2px 0; color: #777b6d; font-size: 12px; line-height: 1.6; }
+    @media (max-width: 960px) { body { padding: 12px; } main { padding: 14px; } header { align-items: flex-start; flex-direction: column; } .cards { grid-template-columns: 1fr; } article p { min-height: 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>随机河道 · 素材拼接预览</h1>
+        <p>第一例展示现有水潭的下游出口，另两例展示河道弯曲和支流汇合。水面与泥岸都取自 Lake.png，不补画素材里没有的泉眼或瀑布。</p>
+      </div>
+      <button id="reroll" type="button">换一组河道走向</button>
+    </header>
+    <div class="seed" id="seedLabel">地图种子：3701</div>
+    <section class="cards" aria-label="三种河流生成样式">
+      <article>
+        <h2>上游湖泊出流</h2>
+        <p>湖面明显宽于河道，出口由宽渐窄，溪流离开湖岸后继续延伸到视野外。</p>
+        <canvas id="creek" width="800" height="480" aria-label="上游湖泊出流的河道素材预览"></canvas>
+        <div class="meta"><strong>源头处理：</strong>使用素材集 3×2 水潭，河口渐收；未添加素材中没有的瀑布或泉眼。</div>
+      </article>
+      <article>
+        <h2>S 形宽窄河湾</h2>
+        <p>河道连续转向，在弯心局部拓宽，形成容易辨认的水湾。</p>
+        <canvas id="bend" width="800" height="480" aria-label="S形宽窄河湾素材预览"></canvas>
+        <div class="meta"><strong>水面宽度：</strong>常规河段与拓宽河湾交替，水纹仍取自原素材。</div>
+      </article>
+      <article>
+        <h2>支流汇入口</h2>
+        <p>窄支流并入主河，在汇流处自然放宽；河岸草花按种子稀疏点缀。</p>
+        <canvas id="merge" width="800" height="480" aria-label="支流汇入主河素材预览"></canvas>
+        <div class="meta"><strong>水面宽度：</strong>主河较宽、支流较窄；汇流处不做尖角接缝。</div>
+      </article>
+    </section>
+    <footer>可复现预览：同一种子会生成同一组河道，点按钮换种子可检查形状变化。此页只验证素材拼接和岸线观感，尚未接入正式地图与碰撞。实际地图生成仍需按玩家出生点留出通路，并让角色沿岸滑动而非被水面向外弹开。</footer>
+  </main>
+  <script type="module">
+    import { makeRng } from '../../src/rng.js';
+
+    const CELL = 16;
+    const WIDTH = 800;
+    const HEIGHT = 480;
+    const root = '../../assets/tilesets/lake-processed/';
+    const imageNames = [
+      'Lake_WATER_CORE_64x64.png',
+      'Lake_MEDIUM_3x2_GAME_GROUND.png',
+      'Lake_EDGE_TOP_64x16_GAME_GROUND.png',
+      'Lake_EDGE_LEFT_16x64_GAME_GROUND.png',
+    ];
+    const assets = {};
+    const loadImage = (src) => new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error(`素材读取失败：${src}`));
+      image.src = src;
+    });
+    const assetPromise = Promise.all([
+      ...imageNames.map(async (name) => { assets[name] = await loadImage(root + name); }),
+      loadImage('../../assets/tilesets/KANTO50S_FLORA_ADDON.png').then((img) => { assets.flora = img; }),
+      loadImage('../../assets/icons/POLIWAG.png').then((img) => { assets.poliwag = img; }),
+    ]);
+
+    const shapes = {
+      creek: {
+        canvas: document.querySelector('#creek'),
+        paths: [[[17,15,3.0],[21.5,15.0,2.6],[27.0,17.0,2.0],[33.0,15.4,2.2],[40.0,13.3,2.0],[47.0,16.0,2.1],[52,13.0,2.2]]],
+      },
+      bend: {
+        canvas: document.querySelector('#bend'),
+        paths: [[[15.5,-2,2.1],[15.5,4.0,2.1],[19.0,8.5,2.3],[25.0,10.5,2.3],[32.0,13.0,2.8],[37.0,17.5,2.7],[36.0,22.0,2.3],[32.0,26.0,2.1],[31.5,32,2.1]]],
+      },
+      merge: {
+        canvas: document.querySelector('#merge'),
+        paths: [[[-2,17.0,2.5],[7.0,17.0,2.4],[14.0,14.0,2.4],[22.0,15.5,2.4],[30.0,14.5,2.8],[38.0,15.0,2.4],[52,13.0,2.4]],[[29.0,-2,1.8],[29.0,5.0,1.8],[30.0,9.0,1.9],[32.0,12.0,2.0],[34.0,15.0,2.3],[37.0,16.0,2.3]]],
+      },
+    };
+
+    function catmullRom (points, stepsPerSegment = 18) {
+      const out = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[Math.max(0, i - 1)];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[Math.min(points.length - 1, i + 2)];
+        for (let step = 0; step < stepsPerSegment; step++) {
+          const t = step / stepsPerSegment;
+          const t2 = t * t;
+          const t3 = t2 * t;
+          const interpolate = (a, b, c, d) => 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+          out.push({
+            x: interpolate(p0[0], p1[0], p2[0], p3[0]),
+            y: interpolate(p0[1], p1[1], p2[1], p3[1]),
+            radius: p1[2] + (p2[2] - p1[2]) * t,
+          });
+        }
+      }
+      const last = points.at(-1);
+      out.push({ x: last[0], y: last[1], radius: last[2] });
+      return out;
+    }
+
+    function makePatternCanvas (image, direction) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (direction === 'vertical') {
+        canvas.width = image.height;
+        canvas.height = image.width;
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(image, -image.width / 2, -image.height / 2);
+      } else {
+        canvas.width = image.width;
+        canvas.height = image.height;
+        ctx.drawImage(image, 0, 0);
+      }
+      return canvas;
+    }
+
+    function createTexturedPatterns () {
+      const top = assets['Lake_EDGE_TOP_64x16_GAME_GROUND.png'];
+      const left = assets['Lake_EDGE_LEFT_16x64_GAME_GROUND.png'];
+      const horizontalBank = document.createElement('canvas');
+      // Keep only the source's opaque soil rows. The previous 6px crop also
+      // included transparent grass and a water row, which tiled repeatedly
+      // through the entire wide bank stroke and made the shoreline look broken.
+      horizontalBank.width = 64; horizontalBank.height = 2;
+      horizontalBank.getContext('2d').drawImage(top, 0, 10, 64, 2, 0, 0, 64, 2);
+      const verticalBank = document.createElement('canvas');
+      verticalBank.width = 2; verticalBank.height = 64;
+      verticalBank.getContext('2d').drawImage(left, 10, 0, 2, 64, 0, 0, 2, 64);
+      const core = assets['Lake_WATER_CORE_64x64.png'];
+      return {
+        bankHorizontal: horizontalBank,
+        bankVertical: verticalBank,
+        waterHorizontal: core,
+        waterVertical: makePatternCanvas(core, 'vertical'),
+      };
+    }
+
+    function routeDirection (route) {
+      const first = route[0], last = route[route.length - 1];
+      return Math.abs(last.x - first.x) >= Math.abs(last.y - first.y) ? 'horizontal' : 'vertical';
+    }
+
+    function drawRibbonLayer (ctx, route, pattern, extraWidth = 0) {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = pattern;
+      for (let i = 0; i < route.length - 1; i++) {
+        const a = route[i], b = route[i + 1];
+        ctx.lineWidth = Math.max(1, (a.radius + b.radius) * CELL + extraWidth);
+        ctx.beginPath();
+        ctx.moveTo(a.x * CELL, a.y * CELL);
+        ctx.lineTo(b.x * CELL, b.y * CELL);
+        ctx.stroke();
+      }
+    }
+
+    function drawGround (ctx, seed) {
+      ctx.fillStyle = '#e4edcf';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      const rng = makeRng((seed ^ 0x72a34135) >>> 0);
+      ctx.strokeStyle = 'rgba(181, 204, 154, 0.588)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'square';
+      for (let x = 16; x < WIDTH; x += 80) {
+        for (let y = 16; y < HEIGHT; y += 80) {
+          if (!rng.chance(0.25)) continue;
+          const gx = x + rng.int(-12, 12), gy = y + rng.int(-10, 10);
+          ctx.beginPath();
+          ctx.moveTo(gx - 5, gy); ctx.lineTo(gx - 8, gy - 5);
+          ctx.moveTo(gx, gy); ctx.lineTo(gx - 1, gy - 7);
+          ctx.moveTo(gx + 5, gy); ctx.lineTo(gx + 8, gy - 4);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function distanceFromWaterEdge (x, y, routes) {
+      let best = Infinity;
+      for (const route of routes) {
+        for (const point of route) {
+          const d = Math.hypot(point.x * CELL - x, point.y * CELL - y) - point.radius * CELL;
+          if (d < best) best = d;
+        }
+      }
+      return best;
+    }
+
+    function drawPlants (ctx, routes, rng, exclusions = []) {
+      const candidates = [];
+      for (let y = 34; y < HEIGHT - 30; y += 36) {
+        for (let x = 34; x < WIDTH - 30; x += 36) {
+          if (exclusions.some((box) => x >= box.x - 22 && x <= box.x + box.width + 22
+            && y >= box.y - 22 && y <= box.y + box.height + 22)) continue;
+          const d = distanceFromWaterEdge(x, y, routes);
+          if (d >= 13 && d <= 88) candidates.push([x, y]);
+        }
+      }
+      for (let i = candidates.length - 1; i > 0; i--) {
+        const j = rng.int(0, i);
+        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+      }
+      const count = Math.min(4, Math.max(2, Math.floor(candidates.length / 24)));
+      for (let i = 0; i < count; i++) {
+        const [x,y] = candidates[i];
+        const tile = rng.int(0, 3);
+        ctx.drawImage(assets.flora, tile * 64, 0, 64, 64, x - 16, y - 16, 32, 32);
+      }
+    }
+
+    function drawFish (ctx, routes) {
+      const fish = assets.poliwag;
+      if (!fish) return;
+      const source = routes.length > 1 ? [[routes[0], 0.38], [routes[1], 0.58], [routes[0], 0.72]] : [[routes[0], 0.28], [routes[0], 0.68]];
+      source.forEach(([route, t], index) => {
+        const point = route[Math.floor(route.length * t)] || route[Math.floor(route.length / 2)];
+        if (!point) return;
+        const size = index === 0 ? 40 : 34;
+        const x = point.x * CELL, y = point.y * CELL;
+        ctx.drawImage(fish, 0, 0, 64, 64, x - size / 2, y - size / 2, size, size);
+      });
+    }
+
+    function varyPaths (name, sourcePaths, rng) {
+      const paths = sourcePaths.map((path) => path.map((point) => [...point]));
+      const internal = (path) => path.slice(1, -1);
+      if (name === 'creek') {
+        const all = paths[0];
+        const middle = internal(all);
+        const centerY = (Math.min(...middle.map((p) => p[1])) + Math.max(...middle.map((p) => p[1]))) / 2;
+        const amplitude = rng.range(0.68, 1.55);
+        const offset = rng.range(-2.4, 2.4);
+        const mirror = rng.chance(0.5);
+        for (let i = 0; i < all.length; i++) {
+          const p = all[i];
+          if (i === 0) { p[1] = 15; continue; }
+          const y = centerY + (p[1] - centerY) * amplitude;
+          p[1] = centerY + (mirror ? -1 : 1) * (y - centerY) + offset;
+        }
+      } else if (name === 'bend') {
+        const centerX = 25;
+        const amplitude = rng.range(0.72, 1.38);
+        const offset = rng.range(-3.2, 3.2);
+        const mirror = rng.chance(0.5) ? 1 : -1;
+        for (const p of paths[0]) p[0] = centerX + (p[0] - centerX) * amplitude * mirror + offset;
+      } else {
+        const main = paths[0];
+        const centerY = 15;
+        const amplitude = rng.range(0.7, 1.45);
+        const offsetY = rng.range(-2.3, 2.3);
+        const mirror = rng.chance(0.5);
+        for (const p of main) {
+          const y = centerY + (p[1] - centerY) * amplitude;
+          p[1] = centerY + (mirror ? -1 : 1) * (y - centerY) + offsetY;
+        }
+        const branchShift = rng.range(-3.2, 3.2);
+        for (const p of paths[1]) p[0] += branchShift;
+      }
+      return paths.map((path) => path.map((point, i) => {
+        const endpoint = i === 0 || i === path.length - 1;
+        return [
+          point[0] + (endpoint ? 0 : rng.range(-0.55, 0.55)),
+          point[1] + (endpoint ? 0 : rng.range(-0.55, 0.55)),
+          Math.max(1.2, point[2] + rng.range(-0.24, 0.24)),
+        ];
+      }));
+    }
+
+    let patterns = null;
+    function renderShape (name, seed) {
+      const shape = shapes[name];
+      const rng = makeRng((seed ^ (name === 'creek' ? 0x18b32d11 : name === 'bend' ? 0xa7c5f391 : 0x49ac21ef)) >>> 0);
+      const paths = varyPaths(name, shape.paths, rng);
+      const routes = paths.map((path) => catmullRom(path));
+      const ctx = shape.canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      drawGround(ctx, seed);
+      for (const route of routes) {
+        const dir = routeDirection(route);
+        drawRibbonLayer(ctx, route, ctx.createPattern(patterns[`bank${dir[0].toUpperCase()}${dir.slice(1)}`], 'repeat'), 12);
+      }
+      const sourceBounds = name === 'creek' ? { x: 48, y: 160, width: 224, height: 160 } : null;
+      if (sourceBounds) {
+        // The stream is drawn underneath first. The lake tile restores its
+        // original shoreline, then the water-only pass opens a broad outlet.
+        ctx.drawImage(assets['Lake_MEDIUM_3x2_GAME_GROUND.png'],
+          sourceBounds.x, sourceBounds.y, sourceBounds.width, sourceBounds.height);
+      }
+      for (const route of routes) {
+        const dir = routeDirection(route);
+        drawRibbonLayer(ctx, route, ctx.createPattern(patterns[`water${dir[0].toUpperCase()}${dir.slice(1)}`], 'repeat'));
+      }
+      const floraRng = makeRng((seed ^ 0x2f6e2b1) >>> 0);
+      drawPlants(ctx, routes, floraRng, sourceBounds ? [sourceBounds] : []);
+      drawFish(ctx, routes);
+    }
+
+    let seed = 3701;
+    function renderAll () {
+      document.querySelector('#seedLabel').textContent = `地图种子：${seed}`;
+      for (const name of Object.keys(shapes)) renderShape(name, seed);
+    }
+
+    document.querySelector('#reroll').addEventListener('click', () => {
+      seed = (seed + 0x9e3779b9) >>> 0;
+      renderAll();
+    });
+    assetPromise.then(() => { patterns = createTexturedPatterns(); renderAll(); }).catch((error) => {
+      document.querySelector('#seedLabel').textContent = error.message;
+    });
+  </script>
+</body>
+</html>

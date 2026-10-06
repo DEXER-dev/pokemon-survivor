@@ -1,3 +1,5 @@
 Source: user-provided Ultimate Gen 4 Overworlds Pack/All Official Overworlds.
 The copied PNG sheets are used locally as human trainer battle sprites. Original pack licensing and redistribution terms were not independently verified.
 Each selected file is a 256x256 RGBA 4x4 overworld sheet; runtime slicing uses 64x64 frames, nearest-neighbor filtering, and rows down/left/right/up.
+
+Nemona: user-provided `trRival_Nemona_Violet.png`, copied without pixel edits. The source pack and redistribution terms were not independently verified.

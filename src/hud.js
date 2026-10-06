@@ -1,7 +1,5 @@
-/*
- * Dev-facing readout only; the shipped HUD is M1 work. Each label owns a full-width box in view
- * space and aligns inside it, so margins never depend on the measured text width.
- */
+/* Adventure HUD: compact edge panels with cached readouts. */
+import { HUD, color, card, gauge } from './hud-theme.js';
 import { VIEW, COL } from './config.js';
 import { hexToRgb } from './batch.js';
 import { legendaryGuideLayout } from './lair-guide-layout.js';
@@ -10,9 +8,11 @@ import { traceHeart } from './heart-shape.js';
 import { iconKey, shinyKey } from './species.js';
 import { megaFormForSegment } from './mega.js';
 import { gigantamaxFormForSegment } from './gigantamax.js';
+import { GAME_FONT } from './ui-font.js';
 
-const PARTY_ICON_LIMIT = 39;
-const PARTY_ICON_STEP = 26;
+const PARTY_ICON_LIMIT = 16;
+const PARTY_ICON_STEP = 40;
+const PARTY_COLUMNS = 8;
 
 export function makeLabel (cc, parent, name, y, size, hex, align, x = 0, width = VIEW.W - 36) {
     const node = new cc.Node(name);
@@ -20,6 +20,7 @@ export function makeLabel (cc, parent, name, y, size, hex, align, x = 0, width =
     node.setPosition(x, y, 0);
     parent.addChild(node);
     const l = node.addComponent(cc.Label);
+    l.fontFamily = GAME_FONT;
     const A = cc.Label.HorizontalAlign;
     const [r, g, b] = hexToRgb(hex);
     l.fontSize = size;
@@ -49,8 +50,8 @@ export class Hud {
         this.stat = makeLabel(cc, root, 'Stat', VIEW.H / 2 - 30, 20, COL.text, 'left');
         this.info = makeLabel(cc, root, 'Info', VIEW.H / 2 - 56, 18, COL.text, 'left');
         this.info.node.active = false;
-        this.toast = makeLabel(cc, root, 'Toast', VIEW.H / 2 - 82, 17, COL.ink,
-            'left', -VIEW.W / 2 + 230, 430);
+        this.toast = makeLabel(cc, root, 'Toast', VIEW.H / 2 - 132, 14, HUD.ink,
+            'center', 0, 430);
         this.chain = makeLabel(cc, root, 'Chain', VIEW.H / 2 - 30, 20, COL.accent, 'right');
         // The old full-width performance/party strings competed with one another at the top edge.
         // Keep the useful level readout below, and use the top line for the actual party sprites.
@@ -58,22 +59,29 @@ export class Hud {
         this.chain.node.active = false;
         this.partyRoot = new cc.Node('PartyRoster');
         this.partyRoot.layer = cc.Layers.Enum.UI_2D;
-        this.partyRoot.setPosition(0, VIEW.H / 2 - 14, 0);
+        this.partyRoot.setPosition(-VIEW.W / 2 + 186, VIEW.H / 2 - 64, 0);
+        this.partyExpanded = false;
+        this.partyPage = 0;
+        this.partyVisibleRows = 1;
         root.addChild(this.partyRoot);
         this.partyPanel = this.partyRoot.addComponent(cc.Graphics);
-        this.partySummary = makeLabel(cc, this.partyRoot, 'PartySummary', 0, 12,
-            '#fff0cb', 'left', -VIEW.W / 2 + 28 + 77, 154);
+        this.partySummary = makeLabel(cc, this.partyRoot, 'PartySummary', 20, 13,
+            HUD.ink, 'left', 0, 300);
+        this.partySummary.overflow = cc.Label.Overflow.SHRINK;
         this.partyOverflow = makeLabel(cc, this.partyRoot, 'PartyOverflow', 0, 12,
-            '#ffe49b', 'center', 0, 34);
+            HUD.muted, 'right', 108, 90);
         this.partyOverflow.node.active = false;
+        this.partyPager = makeLabel(cc, this.partyRoot, 'PartyPager', -86, 12,
+            HUD.ink, 'center', 0, 290);
+        this.partyPager.node.active = false;
         this.partyCells = [];
         this.partySignature = null;
         this.partySummaryKey = null;
-        const partyStartX = -VIEW.W / 2 + 190;
+        const partyStartX = -140;
         for (let i = 0; i < PARTY_ICON_LIMIT; i++) {
             const cell = new cc.Node(`PartyPokemon${i}`);
             cell.layer = cc.Layers.Enum.UI_2D;
-            cell.setPosition(partyStartX + i * PARTY_ICON_STEP, 0, 0);
+            cell.setPosition(partyStartX + (i % PARTY_COLUMNS) * PARTY_ICON_STEP, -15 - Math.floor(i / PARTY_COLUMNS) * 36, 0);
             this.partyRoot.addChild(cell);
             const frame = cell.addComponent(cc.Graphics);
             const spriteNode = new cc.Node('Icon');
@@ -81,7 +89,7 @@ export class Hud {
             cell.addChild(spriteNode);
             const sprite = spriteNode.addComponent(cc.Sprite);
             sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-            spriteNode.getComponent(cc.UITransform).setContentSize(22, 22);
+            spriteNode.getComponent(cc.UITransform).setContentSize(30, 30);
             const badgeNode = new cc.Node('CountBadge');
             badgeNode.layer = cc.Layers.Enum.UI_2D;
             cell.addChild(badgeNode);
@@ -92,17 +100,17 @@ export class Hud {
         this.partyRoot.active = false;
         this.expRoot = new cc.Node('ExperienceBar');
         this.expRoot.layer = cc.Layers.Enum.UI_2D;
-        this.expRoot.setPosition(0, VIEW.H / 2 - 64, 0);
+        this.expRoot.setPosition(0, VIEW.H / 2 - 44, 0);
         root.addChild(this.expRoot);
         this.expPanel = this.expRoot.addComponent(cc.Graphics);
         this.expLabel = makeLabel(cc, this.expRoot, 'ExperienceLabel', 8, 13,
-            '#fff0cb', 'left', 0, 290);
+            HUD.ink, 'center', 0, 248);
         const expGaugeNode = new cc.Node('ExperienceGauge');
         expGaugeNode.layer = cc.Layers.Enum.UI_2D;
         this.expRoot.addChild(expGaugeNode);
         this.expGauge = expGaugeNode.addComponent(cc.Graphics);
         this.expKey = null;
-        this.hint = makeLabel(cc, root, 'Hint', -VIEW.H / 2 + 28, 17, COL.text, 'center');
+        this.hint = makeLabel(cc, root, 'Hint', -VIEW.H / 2 + 23, 12, HUD.ink, 'center');
         this.dynamaxStatus = makeLabel(cc, root, 'DynamaxBandStatus', -VIEW.H / 2 + 164,
             14, '#ff6978', 'left', -VIEW.W / 2 + 150, 276);
         this.dynamaxStatus.node.active = false;
@@ -113,7 +121,7 @@ export class Hud {
         this.zMoveStatusKey = null;
         this.ammoRoot = new cc.Node('AmmoCounter');
         this.ammoRoot.layer = cc.Layers.Enum.UI_2D;
-        this.ammoRoot.setPosition(VIEW.W / 2 - 136, -VIEW.H / 2 + 108, 0);
+        this.ammoRoot.setPosition(VIEW.W / 2 - 142, -VIEW.H / 2 + 86, 0);
         root.addChild(this.ammoRoot);
         const ammoPanel = new cc.Node('AmmoPanel');
         ammoPanel.layer = cc.Layers.Enum.UI_2D;
@@ -126,38 +134,54 @@ export class Hud {
         this.ballSprite = ballNode.addComponent(cc.Sprite);
         this.ballSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         ballNode.getComponent(cc.UITransform).setContentSize(40, 40);
-        this.ammoCaption = makeLabel(cc, this.ammoRoot, 'AmmoCaption', 17, 13, COL.heroTrim, 'center', 18, 76);
-        this.ammoCount = makeLabel(cc, this.ammoRoot, 'AmmoCount', -13, 32, COL.gold, 'center', 18, 76);
+        this.ammoCaption = makeLabel(cc, this.ammoRoot, 'AmmoCaption', 20, 13, HUD.muted, 'center', 18, 76);
+        this.ammoCount = makeLabel(cc, this.ammoRoot, 'AmmoCount', -5, 28, HUD.ink, 'center', 18, 76);
+        this.ammoKey = makeLabel(cc, this.ammoRoot, 'ThrowKey', -30, 10, HUD.muted, 'center', 0, 160);
+        this.ammoKey.string = 'SPACE / 点击 · 投球';
         this.ammoValue = null;
         this.setAmmo(5);
         this.healthRoot = new cc.Node('PlayerHealth');
         this.healthRoot.layer = cc.Layers.Enum.UI_2D;
-        this.healthRoot.setPosition(-VIEW.W / 2 + 168, -VIEW.H / 2 + 108, 0);
+        this.healthRoot.setPosition(-VIEW.W / 2 + 158, -VIEW.H / 2 + 86, 0);
         root.addChild(this.healthRoot);
         this.healthPanel = this.healthRoot.addComponent(cc.Graphics);
         this.healthValue = null;
         this.healthMaxValue = null;
-        this.healthTag = makeLabel(cc, this.healthRoot, 'HealthTag', 15, 16, '#ffe6a6', 'center', -96, 46);
-        this.healthText = makeLabel(cc, this.healthRoot, 'HealthValue', 15, 16, '#fff9ec', 'center', 24, 176);
+        this.healthTag = makeLabel(cc, this.healthRoot, 'HealthTag', 19, 13, HUD.ink, 'left', -20, 90);
+        this.healthText = makeLabel(cc, this.healthRoot, 'HealthValue', 19, 12, HUD.muted, 'right', 74, 88);
+        this.healthTag.string = '训练师';
+        this.healthTag.overflow = cc.Label.Overflow.SHRINK;
+        const portraitNode = new cc.Node('TrainerPortrait');
+        portraitNode.layer = cc.Layers.Enum.UI_2D;
+        portraitNode.setPosition(-98, 9, 0);
+        this.healthRoot.addChild(portraitNode);
+        this.trainerSprite = portraitNode.addComponent(cc.Sprite);
+        this.trainerSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
+        portraitNode.getComponent(cc.UITransform).setContentSize(48, 48);
+        this.healthCaption = makeLabel(cc, this.healthRoot, 'HealthCaption', -29, 10, HUD.muted, 'left', 0, 228);
+        this.healthCaption.string = 'HP · 冒险进行中';
         const healthGaugeNode = new cc.Node('HealthGauge');
         healthGaugeNode.layer = cc.Layers.Enum.UI_2D;
-        healthGaugeNode.setPosition(0, -19, 0);
+        healthGaugeNode.setPosition(26, -8, 0);
         this.healthRoot.addChild(healthGaugeNode);
         this.healthGauge = healthGaugeNode.addComponent(cc.Graphics);
         this.bossProgressRoot = new cc.Node('BossProgress');
         this.bossProgressRoot.layer = cc.Layers.Enum.UI_2D;
-        this.bossProgressRoot.setPosition(0, -VIEW.H / 2 + 108, 0);
+        this.bossProgressRoot.setPosition(0, -VIEW.H / 2 + 84, 0);
         root.addChild(this.bossProgressRoot);
-        const progressPanel = this.bossProgressRoot.addComponent(cc.Graphics);
-        progressPanel.fillColor = new cc.Color(28, 20, 38, 235);
-        progressPanel.rect(-218, -24, 436, 48);
-        progressPanel.fill();
-        progressPanel.strokeColor = new cc.Color(255, 206, 116, 210);
-        progressPanel.lineWidth = 2;
-        progressPanel.rect(-218, -24, 436, 48);
-        progressPanel.stroke();
-        this.bossProgress = makeLabel(cc, this.bossProgressRoot, 'BossProgressText', 0, 16,
-            '#fff1ce', 'center', 0, 420);
+        this.progressPanel = this.bossProgressRoot.addComponent(cc.Graphics);
+        card(this.progressPanel, cc, -180, -37, 360, 74, '#f5cb65');
+        this.bossProgress = makeLabel(cc, this.bossProgressRoot, 'BossProgressText', 12, 13,
+            HUD.ink, 'left', -48, 228);
+        this.bossBadge = makeLabel(cc, this.bossProgressRoot, 'BossBadge', 12, 11,
+            '#a05037', 'right', 113, 106);
+        const progressGauge = new cc.Node('AdventureGauge');
+        progressGauge.layer = cc.Layers.Enum.UI_2D;
+        this.bossProgressRoot.addChild(progressGauge);
+        this.progressGauge = progressGauge.addComponent(cc.Graphics);
+        this.progressCaption = makeLabel(cc, this.bossProgressRoot, 'AdventureCaption', -26, 9,
+            HUD.muted, 'center', 0, 320);
+        this.progressCaption.string = '收服伙伴 · 向下一场挑战前进';
         this.bossProgressKey = null;
         this.bossProgressBattle = null;
         this.bossProgressRoot.active = false;
@@ -169,15 +193,10 @@ export class Hud {
         bossPanelNode.setPosition(0, 210, 0);
         this.bossRoot.addChild(bossPanelNode);
         const bossPanel = bossPanelNode.addComponent(cc.Graphics);
-        bossPanel.fillColor = new cc.Color(28, 20, 38, 244);
-        bossPanel.rect(-334, -56, 668, 112);
-        bossPanel.fill();
-        bossPanel.strokeColor = new cc.Color(255, 206, 116, 245);
-        bossPanel.lineWidth = 3;
-        bossPanel.rect(-334, -56, 668, 112);
-        bossPanel.stroke();
-        this.bossTitle = makeLabel(cc, this.bossRoot, 'BossTitle', 246, 21, '#ffe6a6', 'center', 0, 640);
-        this.bossHp = makeLabel(cc, this.bossRoot, 'BossHP', 216, 16, '#fff9ec', 'center', 0, 600);
+        card(bossPanel, cc, -260, -56, 520, 112, HUD.red);
+        this.bossTitle = makeLabel(cc, this.bossRoot, 'BossTitle', 246, 17, HUD.ink, 'center', 0, 490);
+        this.bossTitle.overflow = cc.Label.Overflow.SHRINK;
+        this.bossHp = makeLabel(cc, this.bossRoot, 'BossHP', 216, 13, HUD.muted, 'center', 0, 480);
         const gaugeNode = new cc.Node('BossGauge');
         gaugeNode.layer = cc.Layers.Enum.UI_2D;
         gaugeNode.setPosition(0, 176, 0);
@@ -209,11 +228,11 @@ export class Hud {
         this.skillSprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         skillIconNode.getComponent(cc.UITransform).setContentSize(48, 48);
         this.skillForm = makeLabel(cc, this.skillRoot, 'SkillForm', 61, 13,
-            '#9eeaff', 'left', 12, 184);
+            HUD.muted, 'left', 12, 184);
         this.skillName = makeLabel(cc, this.skillRoot, 'SkillName', 36, 19,
-            '#fff5d7', 'left', 12, 184);
+            HUD.ink, 'left', 12, 184);
         this.skillRange = makeLabel(cc, this.skillRoot, 'SkillRange', 8, 14,
-            '#ffdc8a', 'left', 12, 184);
+            HUD.muted, 'left', 12, 184);
         this.skillStatus = makeLabel(cc, this.skillRoot, 'SkillStatus', -20, 14,
             '#72f0b0', 'left', 12, 184);
         const keyNode = new cc.Node('SkillKeyHint');
@@ -222,11 +241,29 @@ export class Hud {
         this.skillRoot.addChild(keyNode);
         this.skillKeys = keyNode.addComponent(cc.Graphics);
         this.skillKeyLabel = makeLabel(cc, keyNode, 'SkillKeyLabel', 0, 12,
-            '#f4edff', 'center', 0, 280);
+            HUD.ink, 'center', 0, 280);
         this.skillSignature = null;
         this.skillCooldownKey = null;
         this.skillRoot.active = false;
         this.root = root;
+        this.setViewport(cc.view?.getVisibleSize?.().width || VIEW.W);
+    }
+
+    setViewport(width) {
+        const scale = Math.min(1, width / VIEW.W);
+        const place = (node, x, y) => { node.setPosition(x, y, 0); node.setScale(scale, scale, 1); };
+        const left = -width / 2 + 20;
+        const right = width / 2 - 20;
+        place(this.partyRoot, left + 166 * scale, VIEW.H / 2 - 20 - 46 * scale);
+        place(this.expRoot, 0, VIEW.H / 2 - 20 - 27 * scale);
+        place(this.healthRoot, left + 130 * scale, -VIEW.H / 2 + 42 + 44 * scale);
+        place(this.ammoRoot, right - 104 * scale, -VIEW.H / 2 + 42 + 44 * scale);
+        place(this.bossProgressRoot, 0, -VIEW.H / 2 + 42 + 37 * scale);
+        place(this.skillRoot, right - 158 * scale, -VIEW.H / 2 + 150 + 78 * scale);
+        this.bossRoot.setScale(scale, scale, 1);
+        this.hint.overflow = this.cc.Label.Overflow.SHRINK;
+        this.hint.node.getComponent(this.cc.UITransform).setContentSize(width - 40, 24);
+        this.hudScale = scale;
     }
 
     setLegendaryGuides (sites, camera, time, visible = true, entrySite = null) {
@@ -324,6 +361,8 @@ export class Hud {
     /** Render the live team as a compact icon roster; unchanged cells keep their nodes and frames. */
     setParty (segments, cap, petTotal, glyphs) {
         this.partyRoot.active = segments.length > 0;
+        this.partyPageCount = Math.max(1, Math.ceil(segments.length / PARTY_ICON_LIMIT));
+        this.partyPage = Math.min(this.partyPage, this.partyPageCount - 1);
         let shinyCount = 0;
         let normalCount = 0;
         let legendaryCount = 0;
@@ -332,7 +371,7 @@ export class Hud {
             if (typeof segment.fam === 'string' && segment.fam.startsWith('legend-')) legendaryCount++;
             else if (!segment.shiny) normalCount++;
         }
-        const summaryKey = `${normalCount}|${legendaryCount}|${cap}|${petTotal}|${shinyCount}`;
+        const summaryKey = `${normalCount}|${legendaryCount}|${cap}|${petTotal}|${shinyCount}|${this.partyExpanded}`;
         if (summaryKey !== this.partySummaryKey) {
             this.partySummaryKey = summaryKey;
             const legendaryLabel = legendaryCount ? ` · 传说 ${legendaryCount}` : '';
@@ -341,24 +380,28 @@ export class Hud {
 
         const signature = segments.map((segment) =>
             `${segment.fam}:${segment.tier}:${segment.count}:${segment.shiny ? 1 : 0}:${segment.mega || ''}:${segment.gigantamax || ''}`
-        ).join('|');
+        ).join('|') + `|${this.partyExpanded}|${cap}|${this.partyPage}`;
         if (signature !== this.partySignature) {
             this.partySignature = signature;
-            const panel = this.partyPanel;
-            panel.clear();
-            panel.fillColor = new this.cc.Color(25, 21, 39, 220);
-            panel.rect(-VIEW.W / 2 + 8, -21, VIEW.W - 16, 42);
-            panel.fill();
-            panel.strokeColor = new this.cc.Color(137, 103, 199, 195);
-            panel.lineWidth = 1.5;
-            panel.rect(-VIEW.W / 2 + 8, -21, VIEW.W - 16, 42);
-            panel.stroke();
+            const rows = this.partyExpanded ? 2 : 1;
+            this.partyVisibleRows = Math.max(1, rows);
+            const extra = (this.partyVisibleRows - 1) * 36;
+            card(this.partyPanel, this.cc, -166, -38 - extra - (this.partyExpanded ? 30 : 0),
+                332, 84 + extra + (this.partyExpanded ? 30 : 0), HUD.green);
+            for (let i = 0; i < PARTY_COLUMNS; i++) {
+                this.partyPanel.fillColor = color(this.cc, '#e6eadb');
+                this.partyPanel.circle(-140 + i * PARTY_ICON_STEP, -15, 13);
+                this.partyPanel.fill();
+            }
         }
 
-        const visible = Math.min(segments.length, PARTY_ICON_LIMIT);
+        const offset = this.partyExpanded ? this.partyPage * PARTY_ICON_LIMIT : 0;
+        const visible = Math.min(segments.length - offset, this.partyExpanded ? PARTY_ICON_LIMIT : PARTY_COLUMNS);
+        this.partyPager.node.active = this.partyExpanded;
+        this.partyPager.string = `‹ 上一页     ${this.partyPage + 1} / ${this.partyPageCount}     下一页 ›`;
         for (let i = 0; i < this.partyCells.length; i++) {
             const cell = this.partyCells[i];
-            const segment = i < visible ? segments[i] : null;
+            const segment = i < visible ? segments[offset + i] : null;
             cell.node.active = !!segment;
             if (!segment) continue;
 
@@ -378,15 +421,15 @@ export class Hud {
                 cell.signature = `${segment.shiny}|${!!mega}|${!!gigantamax}|${segment.count > 1}`;
                 const border = segment.shiny ? new this.cc.Color(255, 213, 105, 255)
                     : mega || gigantamax ? new this.cc.Color(117, 224, 255, 245)
-                        : new this.cc.Color(108, 99, 133, 210);
+                        : color(this.cc, HUD.green);
                 const g = cell.frame;
                 g.clear();
-                g.fillColor = new this.cc.Color(14, 12, 23, 235);
-                g.rect(-12, -12, 24, 24);
+                g.fillColor = color(this.cc, '#edf3df');
+                g.roundRect(-16, -16, 32, 32, 8);
                 g.fill();
                 g.strokeColor = border;
                 g.lineWidth = segment.shiny ? 2 : 1;
-                g.rect(-12, -12, 24, 24);
+                g.roundRect(-16, -16, 32, 32, 8);
                 g.stroke();
                 if (segment.shiny) {
                     g.fillColor = new this.cc.Color(255, 226, 125, 255);
@@ -409,11 +452,11 @@ export class Hud {
                 }
             }
         }
-        const overflow = Math.max(0, segments.length - PARTY_ICON_LIMIT);
-        this.partyOverflow.node.active = overflow > 0;
-        if (overflow > 0) {
-            this.partyOverflow.node.setPosition(-VIEW.W / 2 + 190 + PARTY_ICON_LIMIT * PARTY_ICON_STEP, 0, 0);
-            this.partyOverflow.string = `+${overflow}`;
+        const overflow = Math.max(0, segments.length - PARTY_COLUMNS);
+        this.partyOverflow.node.active = true;
+        if (this.partyOverflow.node.active) {
+            this.partyOverflow.node.setPosition(112, 36, 0);
+            this.partyOverflow.string = this.partyExpanded ? '收起 ▴' : overflow > 0 ? `+${overflow} 展开 ▾` : '展开 ▾';
         }
     }
 
@@ -438,34 +481,8 @@ export class Hud {
         this.expKey = key;
         this.expLabel.string = `Lv ${level}　EXP ${value} / ${goal}`;
 
-        const panel = this.expPanel;
-        panel.clear();
-        panel.fillColor = new this.cc.Color(25, 21, 39, 226);
-        panel.rect(-164, -18, 328, 36);
-        panel.fill();
-        panel.strokeColor = new this.cc.Color(137, 103, 199, 210);
-        panel.lineWidth = 1.25;
-        panel.rect(-164, -18, 328, 36);
-        panel.stroke();
-
-        const gauge = this.expGauge;
-        gauge.clear();
-        gauge.fillColor = new this.cc.Color(12, 11, 22, 255);
-        gauge.rect(-148, -12, 296, 5);
-        gauge.fill();
-        const progress = Math.max(0, Math.min(1, current / goal));
-        if (progress > 0) {
-            gauge.fillColor = new this.cc.Color(73, 218, 151, 255);
-            gauge.rect(-146, -11, 292 * progress, 3);
-            gauge.fill();
-            gauge.fillColor = new this.cc.Color(213, 255, 231, 135);
-            gauge.rect(-146, -10, 292 * progress, 1);
-            gauge.fill();
-        }
-        gauge.strokeColor = new this.cc.Color(255, 240, 215, 235);
-        gauge.lineWidth = 1;
-        gauge.rect(-148, -12, 296, 5);
-        gauge.stroke();
+        card(this.expPanel, this.cc, -138, -27, 276, 54, HUD.blue);
+        gauge(this.expGauge, this.cc, -121, -15, 242, 9, current / goal, HUD.blue);
     }
 
     /** Update the prominent, edge-anchored inventory only when its value changes. */
@@ -474,22 +491,10 @@ export class Hud {
         if (count === this.ammoValue) return;
         this.ammoValue = count;
 
-        const panel = this.ammoPanel;
-        panel.clear();
-        panel.fillColor = new this.cc.Color(43, 37, 64, 225);
-        panel.rect(-92, -38, 184, 76);
-        panel.fill();
-        panel.strokeColor = count > 0
-            ? new this.cc.Color(122, 92, 196, 230)
-            : new this.cc.Color(195, 68, 81, 245);
-        panel.lineWidth = 2;
-        panel.rect(-92, -38, 184, 76);
-        panel.stroke();
-
+        card(this.ammoPanel, this.cc, -104, -44, 208, 88, count > 0 ? HUD.red : '#e39765');
         this.ammoCaption.string = count > 0 ? '精灵球' : '精灵球已耗尽';
-        this.ammoCount.string = String(count);
-        const [r, g, b] = hexToRgb(count > 0 ? COL.gold : '#e85d67');
-        this.ammoCount.color = new this.cc.Color(r, g, b, 255);
+        this.ammoCount.string = `×${count}`;
+        this.ammoCount.color = color(this.cc, count > 0 ? HUD.ink : HUD.red);
     }
 
     setBallFrame (frame) {
@@ -578,20 +583,7 @@ export class Hud {
             const color = hexToRgb(form.color || '#70e8ff');
             const [r, g, b] = color;
             const p = this.skillPanel;
-            p.clear();
-            p.fillColor = new this.cc.Color(25, 22, 43, 242);
-            p.rect(-158, -78, 316, 156);
-            p.fill();
-            p.fillColor = new this.cc.Color(r, g, b, 25);
-            p.rect(-155, 51, 310, 24);
-            p.fill();
-            p.strokeColor = new this.cc.Color(r, g, b, 235);
-            p.lineWidth = 2;
-            p.rect(-158, -78, 316, 156);
-            p.stroke();
-            p.fillColor = new this.cc.Color(r, g, b, 220);
-            p.rect(-157, -77, 4, 154);
-            p.fill();
+            card(p, this.cc, -158, -78, 316, 156, form.color || HUD.blue);
 
             const d = this.skillDiagram;
             d.clear();
@@ -720,31 +712,18 @@ export class Hud {
             this.skillCooldownKey = cooldownKey;
             const ready = remain <= 0;
             this.skillStatus.string = ready ? '就绪 · 可以释放' : `充能中 · ${remain.toFixed(1)} 秒`;
-            const [cr, cg, cb] = hexToRgb(ready ? '#57e6a2' : '#ffbd62');
+            const [cr, cg, cb] = hexToRgb(ready ? '#328361' : '#a56b29');
             this.skillStatus.color = new this.cc.Color(cr, cg, cb, 255);
-            const gauge = this.skillCooldownGauge;
-            gauge.clear();
-            gauge.fillColor = new this.cc.Color(12, 11, 22, 255);
-            // Keep the bar centered inside the card: its old 12..190 span poked past the card's
-            // right edge (-158..158), and sat directly against the Q/X hint strip.
-            gauge.rect(-140, -42, 280, 8);
-            gauge.fill();
             const progress = ready ? 1 : Math.max(0, Math.min(1, 1 - remain / Math.max(0.1, skill.cooldown)));
-            if (progress > 0) {
-                gauge.fillColor = new this.cc.Color(cr, cg, cb, 255);
-                gauge.rect(-138, -40, 276 * progress, 4);
-                gauge.fill();
-            }
+            gauge(this.skillCooldownGauge, this.cc, -140, -42, 280, 8, progress, ready ? HUD.green : '#f5cb65');
         }
     }
 
     /** The skill hint strip is also a real mouse/touch button, as a fallback for IME key capture. */
     hitCombatSkillButton (viewX, viewY) {
         if (!this.skillRoot.active) return false;
-        const centerX = VIEW.W / 2 - 190;
-        const centerY = -VIEW.H / 2 + 270;
-        const localX = viewX - centerX;
-        const localY = viewY - centerY;
+        const localX = (viewX - this.skillRoot.position.x) / this.hudScale;
+        const localY = (viewY - this.skillRoot.position.y) / this.hudScale;
         return localX >= -148 && localX <= 148 && localY >= -73 && localY <= -45;
     }
 
@@ -758,36 +737,33 @@ export class Hud {
         const p = current / maxHp;
         this.healthText.string = `${current} / ${maxHp}`;
 
-        const panel = this.healthPanel;
-        panel.clear();
-        panel.fillColor = new this.cc.Color(28, 20, 38, 244);
-        panel.rect(-130, -38, 260, 76);
-        panel.fill();
-        panel.strokeColor = new this.cc.Color(255, 206, 116, 230);
-        panel.lineWidth = 2;
-        panel.rect(-130, -38, 260, 76);
-        panel.stroke();
+        card(this.healthPanel, this.cc, -130, -44, 260, 88, HUD.green);
+        this.healthPanel.fillColor = color(this.cc, '#e7edda');
+        this.healthPanel.circle(-98, 9, 24); this.healthPanel.fill();
+        gauge(this.healthGauge, this.cc, -86, -6, 174, 12, p,
+            p <= 0.25 ? HUD.red : p <= 0.5 ? '#f5cb65' : HUD.green);
+        this.healthCaption.string = p <= 0.25 ? 'HP · 小心！体力不足' : 'HP · 冒险进行中';
+    }
 
-        const g = this.healthGauge;
-        g.clear();
-        g.fillColor = new this.cc.Color(16, 13, 24, 255);
-        g.rect(-116, -10, 232, 20);
-        g.fill();
-        if (p > 0) {
-            const color = p <= 0.25
-                ? new this.cc.Color(255, 57, 65, 255)
-                : p <= 0.5 ? new this.cc.Color(255, 177, 54, 255) : new this.cc.Color(63, 213, 120, 255);
-            g.fillColor = color;
-            g.rect(-112, -7, 224 * p, 14);
-            g.fill();
-            g.fillColor = new this.cc.Color(255, 255, 255, 135);
-            g.rect(-112, 2, 224 * p, 3);
-            g.fill();
+    setTrainer(name, frame) {
+        this.healthTag.string = name || '训练师';
+        this.trainerSprite.node.active = !!frame;
+        if (frame && this.trainerSprite.spriteFrame !== frame) this.trainerSprite.spriteFrame = frame;
+    }
+
+    hitPartyButton(viewX, viewY) {
+        const x = (viewX - this.partyRoot.position.x) / this.hudScale;
+        const y = (viewY - this.partyRoot.position.y) / this.hudScale;
+        const bottom = this.partyExpanded ? -104 : -38;
+        if (!this.partyRoot.active || x < -166 || x > 166 || y > 46 || y < bottom) return false;
+        if (this.partyExpanded && y < -70) {
+            if (x < -35) this.partyPage = Math.max(0, this.partyPage - 1);
+            else if (x > 35) this.partyPage = Math.min(this.partyPageCount - 1, this.partyPage + 1);
+            return true;
         }
-        g.strokeColor = new this.cc.Color(255, 242, 220, 255);
-        g.lineWidth = 2;
-        g.rect(-116, -10, 232, 20);
-        g.stroke();
+        if (this.partyExpanded && y < 8) return true;
+        this.partyExpanded = !this.partyExpanded;
+        return true;
     }
 
     setBossProgress (kills, threshold, bossNumber, inBattle = false) {
@@ -799,7 +775,9 @@ export class Hud {
         const key = `${kills}|${threshold}|${bossNumber}`;
         if (key === this.bossProgressKey) return;
         this.bossProgressKey = key;
-        this.bossProgress.string = `野生击败 ${kills.toLocaleString('zh-CN')} / ${threshold.toLocaleString('zh-CN')} · 第 ${bossNumber} 场 BOSS`;
+        this.bossProgress.string = `野生击败 ${kills.toLocaleString('zh-CN')} / ${threshold.toLocaleString('zh-CN')}`;
+        this.bossBadge.string = `BOSS · 第 ${bossNumber} 场`;
+        gauge(this.progressGauge, this.cc, -160, -9, 320, 8, kills / Math.max(1, threshold), '#f5cb65');
     }
 
     setBoss (name, hp, maxHp, detail = 'BOSS · 不可捕捉', segments = 1) {
@@ -810,30 +788,14 @@ export class Hud {
         this.bossTitle.string = `${name} · ${detail}`;
         this.bossHp.string = `${Math.ceil(hp).toLocaleString('zh-CN')} / ${Math.ceil(maxHp).toLocaleString('zh-CN')} HP · ${Math.round(p * 100)}%`;
         const g = this.bossGauge;
-        g.clear();
-        g.fillColor = new this.cc.Color(16, 13, 24, 255);
-        g.rect(-302, -15, 604, 30);
-        g.fill();
-        if (p > 0) {
-            const low = p <= 0.25;
-            g.fillColor = low ? new this.cc.Color(255, 52, 60, 255) : new this.cc.Color(245, 67, 74, 255);
-            g.rect(-298, -11, 596 * p, 22);
-            g.fill();
-            g.fillColor = new this.cc.Color(255, 184, 139, 230);
-            g.rect(-298, 4, 596 * p, 5);
-            g.fill();
-        }
-        g.strokeColor = new this.cc.Color(255, 226, 168, 255);
-        g.lineWidth = 3;
-        g.rect(-302, -15, 604, 30);
-        g.stroke();
+        gauge(g, this.cc, -240, -8, 480, 16, p, HUD.red);
         if (segments > 1) {
             g.strokeColor = new this.cc.Color(255, 237, 204, 235);
             g.lineWidth = 3;
             for (let i = 1; i < segments; i++) {
-                const x = -298 + 596 * i / segments;
-                g.moveTo(x, -11);
-                g.lineTo(x, 11);
+                const x = -238 + 476 * i / segments;
+                g.moveTo(x, -6);
+                g.lineTo(x, 6);
             }
             g.stroke();
         }

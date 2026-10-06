@@ -7,17 +7,21 @@ import { VIEW, COL, CHAIN, SIM } from './src/config.js';
 import { hexToRgb } from './src/batch.js';
 import { preloadImages } from './src/atlas.js';
 import { createGame } from './src/game.js';
-import { TRAINER_SPRITES } from './src/trainer-sprites.js';
+import { TRAINER_SPRITES, PLAYER_APPEARANCES } from './src/trainer-sprites.js';
 import { STARTER_POKEMON, STARTER_GENERATIONS } from './src/starter-pokemon.js';
 import { iconKeys } from './src/species.js';
 import { MEGA_FORMS } from './src/mega.js';
 import { LEVELS } from './src/upgrades.js';
 import { installDex } from './src/dex.js';
+import { GAME_FONT } from './src/ui-font.js';
 
 const assetLoading = document.getElementById('assetLoading');
 const assetProgressBar = document.getElementById('assetProgressBar');
 const assetProgressText = document.getElementById('assetProgressText');
 const assetLoadingMessage = document.getElementById('assetLoadingMessage');
+const gameFontReady = document.fonts.load(`16px "${GAME_FONT}"`).then((faces) => {
+    if (!faces.length) console.warn(`[font] ${GAME_FONT} did not load; using system fallback`);
+}).catch((err) => console.warn(`[font] ${GAME_FONT} unavailable; using system fallback`, err));
 const gameReadyPromise = new Promise((resolve) => {
     window.addEventListener('pokemon-survivor-game-ready', () => resolve(window.__game), { once: true });
 });
@@ -39,6 +43,10 @@ const initialImagePaths = [
     'assets/player/NPC_198_Lucas.png',
     ...TRAINER_SPRITES.map((trainer) => `assets/trainers/${trainer.file}`),
     'assets/items/POKEBALL.png',
+    'assets/tilesets/KANTO50S_FLORA_ADDON.png',
+    'assets/tilesets/KANTO50S_TREES.png',
+    'assets/vfx/zmove/projectile-atlas.png',
+    'assets/vfx/zmove/impact-atlas.png',
     ...MEGA_FORMS.map((form) => `assets/items/mega/${form.stone}.png`),
     ...LEVELS.map((entry) => upgradeAssetPath(entry.icon)),
 ];
@@ -115,25 +123,31 @@ function buildScene () {
     return scene;
 }
 
-// Keep the 16:9 game frame as large as the viewport permits, reserving a line for controls.
+// Fill the available viewport and reserve only the line used by gameplay controls.
 function fitFrame () {
     const wrap = document.getElementById('wrap');
     const hint = document.getElementById('hint');
-    const hintH = hint && hint.style.display !== 'none' ? hint.getBoundingClientRect().height : 0;
+    const hintVisible = hint && hint.style.display !== 'none';
+    const hintH = hintVisible ? hint.getBoundingClientRect().height : 0;
+    const wrapStyle = getComputedStyle(wrap);
+    const horizontalInsets = parseFloat(wrapStyle.paddingLeft) + parseFloat(wrapStyle.paddingRight);
+    const verticalInsets = parseFloat(wrapStyle.paddingTop) + parseFloat(wrapStyle.paddingBottom);
     // The wrapper follows 100dvh/100vw, including native fullscreen. visualViewport can remain
     // pinch-zoomed or briefly stale during fullscreen/orientation transitions, so don't let it
     // shrink the game canvas independently of the actual layout viewport.
-    const usableH = Math.max(1, wrap.clientHeight - hintH - 8);
-    const usableW = Math.max(1, wrap.clientWidth - 8);
-    const ratio = VIEW.W / VIEW.H;
-    const cssH = Math.round(Math.min(usableH, usableW / ratio, 1080));
-    const cssW = Math.max(1, Math.round(cssH * ratio));
+    // Fill the available viewport; FIXED_HEIGHT lets wide windows reveal more horizontal world
+    // instead of leaving letterbox bars or stretching the 2D scene.
+    const usableH = Math.max(1, wrap.clientHeight - verticalInsets - hintH - (hintVisible ? 4 : 0));
+    const usableW = Math.max(1, wrap.clientWidth - horizontalInsets);
+    const cssH = Math.round(usableH);
+    const cssW = Math.round(usableW);
     const dpr = Math.min(2, cc.screen.devicePixelRatio || 1);
     cc.screen.windowSize = new cc.Size(cssW * dpr, cssH * dpr);
-    cc.view.setDesignResolutionSize(VIEW.W, VIEW.H, cc.ResolutionPolicy.EXACT_FIT);
+    cc.view.setDesignResolutionSize(VIEW.W, VIEW.H, cc.ResolutionPolicy.FIXED_HEIGHT);
     const frame = document.getElementById('GameDiv');
     frame.style.width = cssW + 'px';
     frame.style.height = cssH + 'px';
+    window.__game?.hud?.setViewport(cc.view.getVisibleSize().width);
 }
 
 try {
@@ -165,6 +179,7 @@ try {
         window.__gameFrameObserver = new ResizeObserver(queueFitFrame);
         window.__gameFrameObserver.observe(document.getElementById('wrap'));
     }
+    await gameFontReady;
     cc.game.run(() => {
       cc.director.runScene(buildScene());
       const titleScreen = document.getElementById('titleScreen');
@@ -174,11 +189,53 @@ try {
       const trainerCurrent = document.getElementById('trainerCurrent');
       const starterOptions = document.getElementById('starterOptions');
       const generationOptions = document.getElementById('generationOptions');
-      const trainers = [{ file: 'NPC_198_Lucas.png', name: 'Lucas' }, ...TRAINER_SPRITES];
+      const titlePokemonField = document.getElementById('titlePokemonField');
+      const titleBackgroundKeys = iconKeys();
+      const titleLaneCount = 7;
+      const buildTitlePokemonFlow = (field, iconsPerRun) => {
+        for (let laneIndex = 0; laneIndex < titleLaneCount; laneIndex++) {
+          const lane = document.createElement('div');
+          lane.className = `title-pokemon-lane${laneIndex % 2 ? ' reverse' : ''}`;
+          lane.style.setProperty('--title-travel', `${61 + laneIndex * 12}s`);
+          const strip = document.createElement('div');
+          strip.className = 'title-pokemon-strip';
+          strip.style.animationDelay = `${laneIndex * -8}s`;
+          for (let repeat = 0; repeat < 2; repeat++) {
+            const run = document.createElement('div');
+            run.className = 'title-pokemon-run';
+            for (let iconIndex = 0; iconIndex < iconsPerRun; iconIndex++) {
+              const rosterOffset = Math.floor(laneIndex * titleBackgroundKeys.length / titleLaneCount);
+              const rosterIndex = (rosterOffset
+                + Math.floor(iconIndex * titleBackgroundKeys.length / iconsPerRun))
+                % titleBackgroundKeys.length;
+              const icon = document.createElement('span');
+              icon.className = 'title-pokemon-drift-icon';
+              icon.style.backgroundImage = `url("./assets/icons/${titleBackgroundKeys[rosterIndex]}.png")`;
+              icon.style.setProperty('--title-icon-scale', [0.78, 1.08, 0.91, 1.16][(iconIndex + laneIndex) % 4]);
+              icon.style.setProperty('--title-icon-tilt', `${((iconIndex * 17 + laneIndex * 11) % 13) - 6}deg`);
+              run.appendChild(icon);
+            }
+            strip.appendChild(run);
+          }
+          lane.appendChild(strip);
+          field.appendChild(lane);
+        }
+      };
+      buildTitlePokemonFlow(titlePokemonField, 22);
+      const qishu = TRAINER_SPRITES[PLAYER_APPEARANCES.qishu - 1];
+      const nemona = TRAINER_SPRITES[PLAYER_APPEARANCES.nemona - 1];
+      const trainers = [
+        { file: 'NPC_198_Lucas.png', name: 'Lucas', id: 'lucas', appearance: PLAYER_APPEARANCES.lucas },
+        { ...qishu, id: 'qishu', appearance: PLAYER_APPEARANCES.qishu },
+        { ...nemona, id: 'nemona', appearance: PLAYER_APPEARANCES.nemona },
+      ];
       let selectedTrainer = 0;
       try {
-        const saved = Number(window.localStorage.getItem('pokemon-survivor-trainer'));
-        if (Number.isInteger(saved) && saved >= 0 && saved < trainers.length) selectedTrainer = saved;
+        const saved = window.localStorage.getItem('pokemon-survivor-trainer');
+        // Keep stable IDs and numeric indices saved by earlier builds; removed boss choices fall back to Lucas.
+        const savedIndex = trainers.findIndex((trainer) => trainer.id === saved
+          || String(trainer.appearance) === saved);
+        if (savedIndex >= 0) selectedTrainer = savedIndex;
       } catch (_) { /* Storage can be disabled; the selection still works for this visit. */ }
       const trainerButtons = trainers.map((trainer, index) => {
         const button = document.createElement('button');
@@ -189,7 +246,7 @@ try {
         const portrait = document.createElement('span');
         portrait.className = 'trainer-portrait';
         portrait.setAttribute('aria-hidden', 'true');
-        portrait.style.backgroundImage = `url("./assets/${index === 0 ? 'player' : 'trainers'}/${trainer.file}")`;
+        portrait.style.backgroundImage = `url("./assets/${trainer.appearance === 0 ? 'player' : 'trainers'}/${trainer.file}")`;
         const label = document.createElement('span');
         label.className = 'trainer-option-name';
         label.textContent = trainer.name;
@@ -229,6 +286,9 @@ try {
           portrait.className = 'starter-portrait';
           portrait.setAttribute('aria-hidden', 'true');
           portrait.style.backgroundImage = `url("./assets/icons/${starter.icon}.png")`;
+          const playStarterCry = () => window.__game?.captureSfx?.playCry(starter.icon);
+          button.addEventListener('pointerenter', playStarterCry);
+          button.addEventListener('focus', playStarterCry);
           const name = document.createElement('span');
           name.className = 'starter-option-name';
           name.textContent = starter.name;
@@ -266,8 +326,10 @@ try {
         selectedTrainer = (index + trainers.length) % trainers.length;
         trainerButtons.forEach((button, i) => button.setAttribute('aria-pressed', String(i === selectedTrainer)));
         trainerCurrent.textContent = `当前形象：${trainers[selectedTrainer].name}`;
-        if (window.__game && window.__game.setPlayerAppearance) window.__game.setPlayerAppearance(selectedTrainer);
-        try { window.localStorage.setItem('pokemon-survivor-trainer', String(selectedTrainer)); } catch (_) { /* optional */ }
+        if (window.__game && window.__game.setPlayerAppearance) {
+          window.__game.setPlayerAppearance(trainers[selectedTrainer].appearance);
+        }
+        try { window.localStorage.setItem('pokemon-survivor-trainer', trainers[selectedTrainer].id); } catch (_) { /* optional */ }
         trainerButtons[selectedTrainer].scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
       };
       renderStarterOptions();
@@ -301,11 +363,11 @@ try {
           } catch (_) { /* Some browsers only allow landscape after the user rotates the device. */ }
         }
         if (game && game.trainerSpritesPromise) await game.trainerSpritesPromise;
-        if (game && game.setPlayerAppearance) game.setPlayerAppearance(selectedTrainer);
+        if (game && game.setPlayerAppearance) game.setPlayerAppearance(trainers[selectedTrainer].appearance);
         if (game && game.setStartingPokemon) game.setStartingPokemon(selectedStarter);
-        try { window.localStorage.setItem('pokemon-survivor-trainer', String(selectedTrainer)); } catch (_) { /* optional */ }
+        try { window.localStorage.setItem('pokemon-survivor-trainer', trainers[selectedTrainer].id); } catch (_) { /* optional */ }
         titleScreen.hidden = true;
-        document.getElementById('hint').style.display = '';
+        document.getElementById('hint').style.display = 'none';
         // A title-screen keypress must not leak through as the first throw of the run.
         if (window.__game && window.__game.input) window.__game.input.blockFireUntilRelease();
         fitFrame();

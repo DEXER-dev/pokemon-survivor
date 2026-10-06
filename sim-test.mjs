@@ -12,7 +12,7 @@ import {
     BALL, BOSS, CATCH, CHAIN, ENEMY, PLAYER, FAMILIES, LEGENDARY_BOSSES, WILD_BOSSES, WILD_BOSS, WILD_FAMILY_COUNT, EXP, FURNACE, PLAYER_HP, PPM, SKILLS,
     SKILL_SHARE, VIEW, SIM, PROJ,
 } from './src/config.js';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { bulletFragmentSource, bulletStyleBodySource, bulletStyleNames } from './builtin-materials.js';
 import { makeRng, randomSeed } from './src/rng.js';
 import { ChainSystem, evolveGate, lineTop } from './src/chain.js';
@@ -36,6 +36,7 @@ import {
     ELEMENT_TYPE, TYPE_ZH, STONE,
 } from './src/species.js';
 import { Player } from './src/player.js';
+import { TRAINER_SPRITES, PLAYER_APPEARANCES } from './src/trainer-sprites.js';
 import { MEGA_FORMS, MEGA_ACTIVE_SKILLS, megaCardsFor, megaFormForSegment } from './src/mega.js';
 import {
     activeSkillForForm, activeSkillModuleForForm, rosterActiveFormForSegment,
@@ -51,7 +52,9 @@ import { GIGANTAMAX_FORMS, GIGANTAMAX_SKILLS, gigantamaxCardsFor, gigantamaxForm
 import { PlayLog } from './src/play-log.js';
 import { SKILL_INFO, PROJECTILE_GLYPH, PROJECTILE_EFFECT } from './src/skill-info.js';
 import { STARTER_GENERATIONS, STARTER_POKEMON } from './src/starter-pokemon.js';
-import { tandemausFollowerMotion, tandemausFollowerOffset } from './src/companion-formation.js';
+import { tandemausFollowerCrowd, tandemausFollowerMotion, tandemausFollowerOffset,
+    tandemausFollowerScale, tandemausVisibleCompanionCount,
+    tandemausVisibleCompanionIndex } from './src/companion-formation.js';
 import { DYNAMAX_BAND, canDynamax, dynamaxProjectileScale } from './src/items/dynamax-band.js';
 import { AUSTRALIAN_MOUSE_INTERVAL, australianMouseCount, stepAustralianMouse } from './src/items/australian-mouse.js';
 import { createRotationTracker, rotationProgress, stepRotationTracker } from './src/items/rotation-sweet.js';
@@ -62,9 +65,16 @@ import { legendaryGuideLayout } from './src/lair-guide-layout.js';
 import { drawLegendaryGuideIcon, legendaryGuideStyle } from './src/legendary-guide-icons.js';
 import { LegendaryAttackSystem } from './src/legendary-attacks.js';
 import { drawLegendaryAttackPattern } from './src/legendary-attack-renderer.js';
+import { drawPrimaryLegendaryBossAttack } from './src/legendary-boss-renderer.js';
+import { drawLegendaryProjectile, drawLegendaryCompanionEffects, drawLegendaryMainEffect,
+    drawSubLegendaryBossAttack }
+    from './src/skills/active/legendary/companion-renderer.js';
+import { drawHoohMaterialStorm, drawHoohMaterialField } from './src/skills/active/legendary/hooh-material-effects.js';
+import { SpriteBatch } from './src/batch.js';
 import { LegendaryLairs } from './src/legendary-lairs.js';
-import { isLegendaryCompanion, legendaryBodyScale,
-    LEGENDARY_COMPANION_SIGNATURES, stepLegendaryCompanionAttacks }
+import { isLegendaryCompanion, isSubLegendaryCompanion, hasCompanionSignature, legendaryBodyScale,
+    LEGENDARY_COMPANION_SIGNATURES, SUB_LEGENDARY_COMPANION_SIGNATURES,
+    stepLegendaryCompanionAttacks, WARNING_SECONDS, IMPACT_SECONDS }
     from './src/skills/active/legendary/companion-bombardment.js';
 import { pointInHeart } from './src/heart-shape.js';
 import { SHINY_ODDS, rollShiny } from './src/shiny.js';
@@ -510,6 +520,11 @@ const TAU = Math.PI * 2;
 {
     const rng = makeRng(314159265);
     const rendererCalls = [];
+    const bossSpriteCalls = [];
+    const bossBatch = {
+        glyphs: new Proxy({}, { get: () => true }),
+        draw: (...args) => bossSpriteCalls.push(args),
+    };
     const graphics = new Proxy({}, {
         set (target, key, value) { target[key] = value; return true; },
         get (target, key) {
@@ -519,6 +534,14 @@ const TAU = Math.PI * 2;
     });
     const palette = { get: (color, alpha) => ({ color, alpha }) };
     const labels = [];
+    const wildBossMoves = {
+        'wildboss-articuno': ['暴雪冰羽', '冰翼贯羽'],
+        'wildboss-zapdos': ['分叉雷链', '雷枝交错'],
+        'wildboss-moltres': ['火焰回旋', '三羽坠焰'],
+        'wildboss-raikou': ['雷牙突进', '雷纹双爪'],
+        'wildboss-entei': ['火山喷涌', '炎鬃踏震'],
+        'wildboss-suicune': ['极光水流', '回澜水幕'],
+    };
     const collisionProbe = new LegendaryAttackSystem();
     const rectangle = { shape: 'rect', x: 0, y: 0, length: 100, width: 100, angle: 0 };
     const diagonal = PLAYER.radius / Math.sqrt(2);
@@ -537,10 +560,27 @@ const TAU = Math.PI * 2;
         }
         const firstName = system.name;
         labels.push(firstName);
+        if (wildBoss && firstName !== wildBossMoves[family.id]?.[0]) {
+            throw new Error(`${family.id} should open with its designed, material-matched signature`);
+        }
         drawLegendaryAttackPattern(graphics, { ...system, color: '#8ecfff' }, palette, 0.8, false);
+        const warningDrawStart = bossSpriteCalls.length;
+        if (wildBoss && !drawSubLegendaryBossAttack(bossBatch, palette, system, 1.1)) {
+            throw new Error(`${family.id} should layer its inspected material over the live warning`);
+        }
+        if (wildBoss && bossSpriteCalls.length - warningDrawStart > 40) {
+            throw new Error(`${family.id} warning material pass should have a bounded sprite budget`);
+        }
         const impact = system.step(1.36, system.areas[0].x, system.areas[0].y, rng, 0, 0, 1);
         if (!impact || !impact.hit || impact.name !== system.name) {
             throw new Error(`${family.id} collision must match its visible warning area`);
+        }
+        if (wildBoss) {
+            const impactDrawStart = bossSpriteCalls.length;
+            if (!drawSubLegendaryBossAttack(bossBatch, palette, system, 1.2)
+                || bossSpriteCalls.length - impactDrawStart > 40) {
+                throw new Error(`${family.id} should resolve its sourced material within a bounded impact budget`);
+            }
         }
         system.phase = 'idle';
         system.cooldown = 0;
@@ -548,16 +588,147 @@ const TAU = Math.PI * 2;
         if (!system.phaseTwo || system.phase !== 'warning') {
             throw new Error(`${family.id} must switch to its intensified pattern below half health`);
         }
-        if ((!wildBoss && system.name === firstName) || (wildBoss && system.name !== firstName)) {
-            throw new Error(`${family.id} must alternate lair attacks and keep a single roaming signature move`);
+        if (system.name === firstName) {
+            throw new Error(`${family.id} must alternate between two distinct signature attacks`);
+        }
+        if (wildBoss && system.name !== wildBossMoves[family.id]?.[1]) {
+            throw new Error(`${family.id} should use its complementary attack pattern below half health`);
+        }
+        if (wildBoss) {
+            const secondMoveDrawStart = bossSpriteCalls.length;
+            if (!drawSubLegendaryBossAttack(bossBatch, palette, system, 1.3)
+                || bossSpriteCalls.length - secondMoveDrawStart > 40) {
+                throw new Error(`${family.id} second attack warning must use its material within budget`);
+            }
+            const secondImpact = system.step(1.36, system.areas[0].x, system.areas[0].y,
+                rng, 0, 0, 0.45);
+            if (!secondImpact?.hit || secondImpact.name !== wildBossMoves[family.id][1]) {
+                throw new Error(`${family.id} second phase attack must damage the exact marked area`);
+            }
+            const secondImpactDrawStart = bossSpriteCalls.length;
+            if (!drawSubLegendaryBossAttack(bossBatch, palette, system, 1.4)
+                || bossSpriteCalls.length - secondImpactDrawStart > 40) {
+                throw new Error(`${family.id} second attack impact must use its material within budget`);
+            }
         }
     }
     if (new Set(labels).size !== LEGENDARY_BOSSES.length + WILD_BOSSES.length
         || !rendererCalls.some(([name]) => name === 'circle')
-        || !rendererCalls.some(([name]) => name === 'moveTo')) {
-        throw new Error('legendary attack motifs should stay species-specific and render in both area styles');
+        || !rendererCalls.some(([name]) => name === 'moveTo')
+        || !['subArticunoOrb_', 'subZapdosArc_', 'subMoltresBomb_', 'subRaikouSlash_',
+            'subEnteiBlast_', 'subSuicuneBolt_'].every((prefix) =>
+            bossSpriteCalls.some(([glyph]) => typeof glyph === 'string' && glyph.startsWith(prefix)))) {
+        throw new Error('legendary attacks need distinct moves, exact rendered geometry and each wild boss material');
     }
-    console.log(`神兽招式：${labels.length} 种专属预警/命中轮廓、半血二阶段与渲染通过 PASS`);
+    console.log(`神兽招式：${labels.length} 种专属攻击、野外二招轮换、素材命中预警/冲击渲染与半血强化 PASS`);
+}
+// Primary legendaries rotate through two signatures and a stronger, material-backed ultimate.
+{
+    const rng = makeRng(161803399);
+    const palette = { get: (color, alpha) => ({ color, alpha }) };
+    const calls = [];
+    const batch = {
+        glyphs: new Proxy({}, { get: () => true }),
+        draw: (...args) => calls.push(args),
+    };
+    const moves = {
+        'legend-mewtwo': ['念力陨石', '精神冲击', '心灵封域'],
+        'legend-lugia': ['海啸推线 · 躲进蓝色窄道', '气旋爆裂', '苍穹风眼'],
+        'legend-hooh': ['凤凰翼焰', '圣焰坠羽', '日轮焚天'],
+        'legend-rayquaza': ['天空俯冲', '龙尾交错扫击', '苍天裂界'],
+        'legend-kyogre': ['根源水柱', '原始海潮', '深渊漩潮'],
+        'legend-groudon': ['分叉地脉', '断崖喷发', '大陆震落'],
+        'legend-dialga': ['时间裂束', '时光咆哮 · 回响', '时序停摆'],
+        'legend-palkia': ['空间裂斩', '亚空交错', '次元坍缩'],
+        'legend-arceus': ['制裁星芒', '制裁光砾 · 四方落阵', '创世审判'],
+    };
+    const materialPrefix = {
+        'legend-mewtwo': ['vfx_arcane_', 'vfx_arcane_', 'vfx_arcane_'],
+        'legend-lugia': ['vfx_water04_', 'vfx_water03_', 'vfx_water04_'],
+        'legend-hooh': ['hoohFire_', 'hoohFire_', 'hoohFire_'],
+        'legend-rayquaza': ['dragon', 'dragon', 'dragon'],
+        'legend-kyogre': ['vfx_water03_', 'vfx_water05_', 'vfx_water05_'],
+        'legend-groudon': ['vfx_earth04_', 'vfx_earth03_', 'vfx_earth03_'],
+        'legend-dialga': ['vfx_cosmic02_', 'vfx_cosmic02_', 'vfx_cosmic05_'],
+        'legend-palkia': ['vfx_cosmic05_', 'vfx_slash04_', 'vfx_cosmic05_'],
+        'legend-arceus': ['vfx_pure05_', 'vfx_pure05_', 'vfx_pure05_'],
+    };
+    const footprint = (areas) => areas.reduce((sum, area) => sum + (area.shape === 'circle'
+        ? Math.PI * area.radius * area.radius : area.length * area.width), 0);
+
+    for (const family of LEGENDARY_BOSSES) {
+        const system = new LegendaryAttackSystem();
+        system.start(0, 0, family.id);
+        let firstPhaseFootprint = 0;
+        const observed = [];
+        for (let i = 0; i < 4; i++) {
+            system.phase = 'idle';
+            system.cooldown = 0;
+            const hpRatio = i < 2 ? 1 : 0.45;
+            system.step(0, 190, 28, rng, 0, 0, hpRatio);
+            observed.push(system.name);
+            if (system.name !== moves[family.id][i % 3] || system.moveIndex !== i % 3
+                || system.ultimate !== (i % 3 === 2) || system.phaseTwo !== (hpRatio <= 0.5)) {
+                throw new Error(`${family.id} must rotate three signature moves and reinforce them at half health`);
+            }
+            if (i === 0) firstPhaseFootprint = footprint(system.areas);
+            if (i === 3 && footprint(system.areas) <= firstPhaseFootprint) {
+                throw new Error(`${family.id} half-health form must widen its actual hit pattern`);
+            }
+
+            calls.length = 0;
+            if (!drawPrimaryLegendaryBossAttack(batch, palette, system, 1.2)
+                || calls.length > 100
+                || !calls.some(([glyph]) => typeof glyph === 'string'
+                    && glyph.startsWith(materialPrefix[family.id][i % 3]))) {
+                throw new Error(`${family.id} boss warning must use its move-matched material or native dragon glyph within budget`);
+            }
+            const impact = system.step(BOSS.legendaryWindup + 0.01,
+                system.areas[0].x, system.areas[0].y, rng, 0, 0, hpRatio);
+            if (!impact?.hit || impact.name !== system.name || impact.ultimate !== system.ultimate) {
+                throw new Error(`${family.id} attack collision must match its telegraphed primary-boss pattern`);
+            }
+            calls.length = 0;
+            if (!drawPrimaryLegendaryBossAttack(batch, palette, system, 1.4)
+                || calls.length > 100) {
+                throw new Error(`${family.id} boss impact must remain visible and within its source sprite budget`);
+            }
+        }
+        if (new Set(observed.slice(0, 3)).size !== 3) {
+            throw new Error(`${family.id} three attacks must have separate gameplay footprints`);
+        }
+    }
+    for (const phaseTwo of [false, true]) {
+        const system = new LegendaryAttackSystem();
+        system.start(0, 0, 'legend-mewtwo');
+        system.phase = 'impact';
+        system.phaseTwo = phaseTwo;
+        system.moveIndex = 2;
+        system.timeLeft = 0.01;
+        system.step(0.02, 0, 0, rng);
+        const range = phaseTwo ? [2, 2.45] : [2.5, 3];
+        if (system.cooldown < range[0] || system.cooldown > range[1]) {
+            throw new Error('primary-boss ultimates should have a deliberate recovery beat after their larger pattern');
+        }
+    }
+    console.log('一级神战斗：九只三招轮换、半血扩大命中图形、素材预警/冲击渲染与终极招式回气 PASS');
+}
+// Roaming bosses tighten their recovery after the half-health escalation while retaining the full tell.
+{
+    const rng = makeRng(2718281);
+    for (const phaseTwo of [false, true]) {
+        const system = new LegendaryAttackSystem();
+        system.start(0, 0, 'wildboss-zapdos', { wildBoss: true });
+        system.phase = 'impact';
+        system.phaseTwo = phaseTwo;
+        system.timeLeft = 0.01;
+        system.step(0.02, 0, 0, rng);
+        const expected = phaseTwo ? [1.55, 1.9] : [2.15, 2.7];
+        if (system.phase !== 'idle' || system.cooldown < expected[0] || system.cooldown > expected[1]) {
+            throw new Error('wild-boss recovery should shorten at half health without shrinking its 1.35 s dodge tell');
+        }
+    }
+    console.log('野外神兽二阶段：第二招式解锁、半血强化与更短攻击间隔 PASS');
 }
 // Secondary legendaries are roaming wild-boss encounters, not the primary legendary lair route.
 {
@@ -649,7 +820,13 @@ const TAU = Math.PI * 2;
         || enemies.hp[2] !== 1e6 || warning.phase !== 'impact') {
         throw new Error('legendary bombardment warning/area damage/impact must resolve once');
     }
+    const hpAfterImpact = Array.from(enemies.hp);
     stepLegendaryCompanionAttacks({ ...common, dt: 0.3 });
+    if (events.length !== 1 || warning.phase !== 'impact'
+        || enemies.hp.some((hp, i) => hp !== hpAfterImpact[i])) {
+        throw new Error('legendary visual aftermath must persist without applying damage again');
+    }
+    stepLegendaryCompanionAttacks({ ...common, dt: 1.95 });
     if (events.length !== 1 || warning.phase !== 'cooldown') {
         throw new Error('legendary bombardment must enter cooldown after its single impact');
     }
@@ -701,7 +878,235 @@ const TAU = Math.PI * 2;
         || enemies.hp[1] >= 1e6) {
         throw new Error('all signature moves must resolve damage through their own warned shapes');
     }
+    const validGlyphs = new Set(['aura', 'ring', 'pill', 'star', 'wave', 'feather',
+        'dragon', 'spear', 'hex', 'crescent', 'diamond', 'shard', 'boulder', 'flame',
+        'legendSeal', 'legendRay', 'legendArc', 'legendRift']);
+    const palette = { get: (color, alpha) => ({ color, alpha }) };
+    let draws = 0;
+    const batch = { draw (glyph, x, y, sx, sy, angle, tint) {
+        draws++;
+        if (!validGlyphs.has(glyph) || ![x, y, sx, sy, angle, tint.alpha].every(Number.isFinite)
+            || sx <= 0 || sy <= 0 || tint.alpha < 0 || tint.alpha > 255) {
+            throw new Error('legendary composition emitted invalid geometry or tint');
+        }
+    } };
+    for (const source of companions) {
+        for (const phase of ['warning', 'impact', 'cooldown']) {
+            for (const timer of [0, 0.1, 0.4, 0.82, 1.4, 2.2]) {
+                draws = 0;
+                const probe = { ...source, legendaryBombardment: { ...source.legendaryBombardment, phase, timer } };
+                drawLegendaryCompanionEffects(batch, palette, [probe], 4.2);
+                if (draws > 180 || phase === 'cooldown' && draws !== 0) {
+                    throw new Error('legendary visuals exceeded per-cast budget or remained during cooldown');
+                }
+            }
+        }
+        draws = 0;
+        drawLegendaryProjectile(batch, palette, source.fam, 20, 40, 18, 0.8, 4.2, 0);
+        if (draws !== 4) throw new Error('legendary projectile exceeded its four-layer budget');
+        for (const kind of ['beam', 'field', 'orbit', 'slash']) {
+            draws = 0;
+            if (!drawLegendaryMainEffect(batch, palette, {
+                fam: source.fam, kind, x: 0, y: 0, a: 160, b: 15, rot: 0.5,
+            }, 4.2) || draws < 2 || draws > 32) {
+                throw new Error('legendary main skill lost its evolved silhouette or exceeded its budget');
+            }
+        }
+    }
+    const subEntries = Object.entries(SUB_LEGENDARY_COMPANION_SIGNATURES);
+    if (subEntries.length !== 6
+        || new Set(subEntries.map(([, signature]) => signature.move)).size !== 6
+        || new Set(subEntries.map(([, signature]) => signature.pattern)).size !== 6
+        || subEntries.some(([fam]) => isLegendaryCompanion({ fam })
+            || !isSubLegendaryCompanion({ fam }) || !hasCompanionSignature({ fam })
+            || SKILLS[fam]?.fire !== 'bullet')) {
+        throw new Error('six sub-legendaries need separate, lighter signature moves and their own basic-shot configs');
+    }
+    const materialManifest = JSON.parse(readFileSync(new URL('./assets/vfx/sublegendary/manifest.json', import.meta.url), 'utf8'));
+    const materialKeys = Object.keys(materialManifest.frames);
+    if (materialManifest.width !== 512 || materialManifest.height !== 512 || materialKeys.length !== 59
+        || !existsSync(new URL('./assets/vfx/sublegendary/source/pixel-art-spells-devwizard.zip', import.meta.url))
+        || !existsSync(new URL('./assets/vfx/sublegendary/source/m484-lightning-master484.png', import.meta.url))
+        || !existsSync(new URL('./assets/vfx/sublegendary/source/pixel-slash-tbbk.png', import.meta.url))
+        || !existsSync(new URL('./assets/vfx/sublegendary/source/explosion-den_yes.png', import.meta.url))) {
+        throw new Error('runtime sub-legendary atlas must be reproducible from its checked source materials');
+    }
+    const subProjectilePrefixes = {
+        'wildboss-articuno': 'subArticunoOrb', 'wildboss-zapdos': 'subZapdosBolt',
+        'wildboss-moltres': 'subMoltresFire', 'wildboss-raikou': 'subRaikouCore',
+        'wildboss-entei': 'subMoltresBomb', 'wildboss-suicune': 'subSuicuneBolt',
+    };
+    const atlasGlyphs = Object.fromEntries(materialKeys.map((key) => [key, { frame: { key }, size: 64 } ]));
+    const visualCalls = [];
+    const subBatch = { glyphs: atlasGlyphs, draw (...args) { visualCalls.push(args); } };
+    for (const [fam, prefix] of Object.entries(subProjectilePrefixes)) {
+        visualCalls.length = 0;
+        drawLegendaryProjectile(subBatch, palette, fam, 20, 40, 9, 0.8, 4.2, 0);
+        if (visualCalls.length !== 1 || !visualCalls[0][0].startsWith(`${prefix}_`)) {
+            throw new Error(`${fam} basic projectile must use its own source-backed silhouette`);
+        }
+    }
+    const normalShotSystem = new SkillSystem(PROJ);
+    const shotChain = { bx: Float32Array.of(0), by: Float32Array.of(0), na: Float32Array.of(0), bulkOf: () => 1 };
+    const shotEnemies = {
+        grid: { query (_x, _y, _r, out) { out.length = 0; out.push(0); } },
+        x: Float32Array.of(100), y: Float32Array.of(0), r: Float32Array.of(9),
+        hp: Float32Array.of(1e6), dead: Uint8Array.of(0),
+    };
+    for (const [fam] of subEntries) {
+        normalShotSystem.reset();
+        normalShotSystem._aim(shotChain, shotEnemies, { fam, tier: 1 }, SKILLS[fam], 0,
+            { cd: 0, bank: 1000 }, 1, 1);
+        if (normalShotSystem.n !== 1 || normalShotSystem.pfam[0] !== fam) {
+            throw new Error(`${fam} must fire its configured one-projectile companion volley`);
+        }
+    }
+    const subEnemies = {
+        n: 2, x: Float32Array.of(16, 100), y: Float32Array.of(0, 0),
+        r: Float32Array.of(8, 12), hp: Float32Array.of(1e6, 1e6), dead: new Uint8Array(2),
+        legendaryReady: new Uint8Array(2), boss: Uint8Array.of(0, 1), elite: new Uint8Array(2),
+        trainer: new Uint8Array(2), _q: [],
+        grid: { query (_x, _y, _r, out) { out.length = 0; out.push(0, 1); return out; } },
+        hurt (i, damage) { this.hp[i] -= damage; return false; },
+    };
+    const subCompanions = subEntries.map(([fam]) => ({ fam, tier: 1, count: 1,
+        legendaryBombardment: { phase: 'cooldown', timer: 0.01, x: 0, y: 0, radius: 0 } }));
+    const subImpacts = [];
+    const subCommon = { enemies: subEnemies, player: { x: 0, y: 0 }, camera: { z: 1 },
+        trainerBattle: false, rng: makeRng(8675309) };
+    stepLegendaryCompanionAttacks({ ...subCommon, segments: subCompanions, dt: 0.02 });
+    if (subCompanions.some((segment) => segment.legendaryBombardment.phase !== 'warning'
+        || segment.legendaryBombardment.radius >= 100
+        || !segment.legendaryBombardment.areas.length && !segment.legendaryBombardment.corridors.length)) {
+        throw new Error('sub-legendary actives must telegraph their unique compact hit geometry');
+    }
+    stepLegendaryCompanionAttacks({ ...subCommon, segments: subCompanions, dt: 0.83,
+        onImpact (segment, attack, result) { subImpacts.push({ segment, attack, result }); } });
+    if (subImpacts.length !== 6 || subImpacts.some(({ result }) => result.hits < 1)
+        || subEnemies.hp[1] >= 1e6) {
+        throw new Error('all six sub-legendary signatures must resolve through their warned damage zones');
+    }
+    const activeAssets = {
+        'wildboss-articuno': 'subArticunoLance', 'wildboss-zapdos': 'subZapdosArc',
+        'wildboss-moltres': 'subMoltresBomb', 'wildboss-raikou': 'subRaikouSlash',
+        'wildboss-entei': 'subEnteiBlast', 'wildboss-suicune': 'subSuicuneSplash',
+    };
+    for (const segment of subCompanions) {
+        const fam = segment.fam;
+        for (const [phase, timer] of [['warning', WARNING_SECONDS * 0.45],
+            ['impact', IMPACT_SECONDS - 0.14], ['cooldown', 0]]) {
+            visualCalls.length = 0;
+            drawLegendaryCompanionEffects(subBatch, palette, [{ ...segment,
+                legendaryBombardment: { ...segment.legendaryBombardment, phase, timer } }], 4.2);
+            if (visualCalls.length > 8 || phase === 'cooldown' && visualCalls.length !== 0
+                || visualCalls.some((call) => ![call[1], call[2], call[3], call[4], call[5], call[6].alpha].every(Number.isFinite))) {
+                throw new Error(`${fam} active rendering must stay finite, brief and within its small draw budget`);
+            }
+            if (phase === 'impact' && !visualCalls.some((call) => call[0].startsWith(`${activeAssets[fam]}_`))) {
+                throw new Error(`${fam} active skill must use its distinct inspected material, not the normal projectile`);
+            }
+        }
+        const trail = skillParticlePresetForEvent(`projectile-trail-${fam}`);
+        const impact = legendaryParticlePresetForEvent('legendary-companion-impact', fam);
+        if (!trail || trail.particleClass !== 'projectile-trail' || trail.totalParticles > 5
+            || !impact || impact.totalParticles > 13 || subProjectilePrefixes[fam] === activeAssets[fam]) {
+            throw new Error(`${fam} projectile trails, active hit burst and sprite silhouettes must stay distinct and bounded`);
+        }
+    }
+    for (const [fam] of subEntries) {
+        visualCalls.length = 0;
+        const fallbackBatch = { glyphs: {}, draw (...args) { visualCalls.push(args); } };
+        drawLegendaryProjectile(fallbackBatch, palette, fam, 0, 0, 9, 0, 0.2, 0);
+        drawLegendaryCompanionEffects(fallbackBatch, palette, [{ fam, legendaryBombardment: {
+            phase: 'impact', timer: IMPACT_SECONDS - 0.1, x: 0, y: 0, radius: 70, angle: 0,
+        } }], 0.2);
+        if (!visualCalls.length || visualCalls.length > 8
+            || visualCalls.some((call) => ![call[1], call[2], call[3], call[4], call[5], call[6].alpha].every(Number.isFinite))) {
+            throw new Error(`${fam} must keep a small procedural fallback when the authored atlas is unavailable`);
+        }
+    }
+    console.log('二级神伙伴攻击：六种真实CC0素材、普通弹与主动技分形、短范围预警/命中/轻量特效 PASS');
+    console.log('神兽视觉：九种招式各阶段坐标有效、单次绘制预算有界、余辉不重复伤害 PASS');
     console.log('神兽入队：专属招式、差异化预警与命中范围、优先BOSS并避开捕捉目标 PASS');
+}
+// Ho-Oh's 120 authored cells must reuse the peak live nodes across animation cycles.
+{
+    const glyphs = { aura: { frame: {}, size: 56 }, feather: { frame: {}, size: 56 } };
+    for (const name of ['hoohFire', 'hoohFlare']) for (let i = 0; i < 60; i++) {
+        glyphs[`${name}_${i}`] = { frame: { name, i }, size: 64 };
+    }
+    const palette = { get: (color, alpha) => ({ color, alpha }) };
+    const batch = new SpriteBatch({}, {}, glyphs);
+    let spawned = 0;
+    batch._spawn = (name) => {
+        spawned++;
+        return { spr: { spriteFrame: glyphs[name].frame }, effectKey: null,
+            node: { active: true, setPosition () {}, setScale () {} } };
+    };
+    const draw = batch.draw.bind(batch);
+    batch.draw = (name, x, y, sx, sy, angle, tint, ...rest) => {
+        if (!glyphs[name] || ![x, y, sx, sy, angle, tint.alpha].every(Number.isFinite)
+            || sx <= 0 || sy <= 0 || tint.alpha < 0 || tint.alpha > 255) {
+            throw new Error('Ho-Oh material choreography produced invalid frame/geometry/tint');
+        }
+        return draw(name, x, y, sx, sy, angle, tint, ...rest);
+    };
+    for (let cycle = 0; cycle < 3; cycle++) for (let i = 0; i < 66; i++) {
+        batch.begin();
+        if (!drawHoohMaterialStorm(batch, palette, { x: 0, y: 0, age: i / 30, radius: 118 })
+            || batch.drawn > 100) throw new Error('Ho-Oh material storm exceeded its live budget');
+        batch.end();
+    }
+    if (spawned > 100 || batch.pools.get('hoohFire')?.items.length > 52) {
+        throw new Error('sequence-frame pools grew with the number of animation cells');
+    }
+    batch.begin();
+    if (!drawHoohMaterialField(batch, palette, { x: 0, y: 0, a: 90 }, 1)
+        || batch.drawn !== 11) throw new Error('Ho-Oh passive field must use the authored fire loop');
+    batch.end();
+    batch.begin();
+    drawLegendaryProjectile(batch, palette, 'legend-hooh', 0, 0, 20, 0.5, 1, 0);
+    if (batch.drawn !== 4) throw new Error('Ho-Oh projectile material must retain the four-layer budget');
+    batch.end();
+    batch.begin();
+    drawHoohMaterialStorm(batch, palette, { x: 0, y: 0, age: 2.2, radius: 118 });
+    if (batch.drawn !== 0) throw new Error('Ho-Oh material storm must disappear after its duration');
+    if (drawHoohMaterialStorm({ glyphs: {} }, palette, { x: 0, y: 0, age: 0.5 })) {
+        throw new Error('missing material atlas must allow the existing renderer fallback');
+    }
+    // Check the actual automatic dispatch, including unloaded assets: it must stay grounded
+    // on the five hit sites, while only the manual ultimate projects wings and falling fire.
+    const areas = [{ x: 0, y: 0, radius: 60 }, ...[0, 1, 2, 3].map(i => ({
+        x: Math.cos(i * Math.PI / 2) * 92, y: Math.sin(i * Math.PI / 2) * 92, radius: 48,
+    }))];
+    for (const loaded of [false, true]) {
+        for (const phase of ['warning', 'impact']) {
+            const calls = [];
+            const probe = { glyphs: loaded ? glyphs : {}, draw: (...args) => calls.push(args) };
+            drawLegendaryCompanionEffects(probe, palette, [{ fam: 'legend-hooh', legendaryBombardment: {
+                phase, timer: (phase === 'impact' ? IMPACT_SECONDS : WARNING_SECONDS) * 0.7,
+                x: 0, y: 0, radius: 118, areas,
+            } }], 1);
+            if (!calls.length || calls.length > 30 || calls.some(([, x, y, sx, sy]) =>
+                sx > 3 || sy > 3 || !areas.some(area => Math.abs(x - area.x) <= 22 && Math.abs(y - area.y) <= 12))) {
+                throw new Error('automatic Sacred Fire leaked the active phoenix/rain choreography');
+            }
+        }
+    }
+    const ultimateCalls = [];
+    drawHoohMaterialStorm({ glyphs, draw: (...args) => ultimateCalls.push(args) }, palette,
+        { x: 0, y: 0, age: 0.7, duration: 2.4, radius: 210 });
+    if (ultimateCalls.length <= 30 || !ultimateCalls.some(([, x]) => Math.abs(x) > 200)
+        || !ultimateCalls.some(([, , y]) => y > 180)) {
+        throw new Error('manual ultimate lost its large wings and airborne fire rain');
+    }
+    console.log('凤王普攻/自动招式/主动技能：局部火焰与巨翼火雨分离、缺素材回退仍分离 PASS');
+    for (const file of ['hooh-fire-atlas.png', 'manifest.json', 'SOURCES.md']) {
+        if (!existsSync(new URL(`./assets/vfx/hooh/${file}`, import.meta.url))) {
+            throw new Error('Ho-Oh material delivery is missing an asset or its provenance');
+        }
+    }
+    console.log('凤王素材特效：120帧动画、共享节点池、透明图集、缺图回退与播放结束清理 PASS');
 }
 // Screen-space lair guidance: visible sites pin to their projection, off-screen sites clamp to the
 // safe frame edge, and several destinations on one edge keep separate arrow anchors.
@@ -903,7 +1308,7 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
         constructor (r, g, b, a) { Object.assign(this, { r, g, b, a }); }
     }
     const graphics = () => ({
-        clear () {}, rect () {}, fill () {}, stroke () {}, moveTo () {}, lineTo () {}, circle () {},
+        clear () {}, rect () {}, roundRect () {}, fill () {}, stroke () {}, moveTo () {}, lineTo () {}, circle () {},
     });
     const selector = Object.create(ZCrystalSelector.prototype);
     Object.assign(selector, {
@@ -951,7 +1356,8 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
 {
     const frameNames = new Set(['p', 'edge', 'core', 'ink', 'texel', 'r', 'a']);
     const names = bulletStyleNames();
-    if (names.length < 36 || !names.includes('dynamax-pokemon') || !names.includes('psychic')) {
+    if (names.length < 36 || !names.includes('dynamax-pokemon')
+        || !names.includes('gigantamax-pokemon') || !names.includes('psychic')) {
         throw new Error('bullet style roster regression');
     }
     for (const name of names) {
@@ -972,12 +1378,11 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
         }
     }
     // The Pokémon-art style must read the source sprite (not the glyph frame's ink) and the frame
-    // must give it sprite-space uv coordinates with the glyph-edge white-out off, or a 48 px+
-    // icon quad is blown out to a white blob. The dynamax look itself is rim-weighted: the art
-    // stays readable at the centre while the red energy rides the edge and travelling veins.
+    // must derive its silhouette contour from sprite alpha and keep the glyph-edge white-out off,
+    // so a 48 px+ icon quad stays readable while a colored halo can extend into transparent pixels.
     const artBody = bulletStyleBodySource('dynamax-pokemon');
     const artFrag = bulletFragmentSource('dynamax-pokemon');
-    if (!artBody.includes('texel.rgb * color.rgb') || !artBody.includes('rim')
+    if (!artBody.includes('texel.rgb * color.rgb') || !artBody.includes('insideRim')
         || !artBody.includes('veins') || !artBody.includes('cc_time')) {
         throw new Error('dynamax-pokemon art shader lost its source tint, rim glow, or animated veins');
     }
@@ -985,8 +1390,15 @@ const FORCED = (process.env.FORCED || '').split(',').filter(Boolean);
     if (!baseMix || Number(baseMix[1]) > 0.12) {
         throw new Error('dynamax-pokemon art shader washes the centre art with too much flat red');
     }
-    if (!artFrag.includes('uv0 * 2.0 - 1.0') || artFrag.includes('edge * 0.82')) {
+    if (!artFrag.includes('vec2 p = localPos;') || !artFrag.includes('textureSize(cc_spriteTexture, 0)')
+        || !artFrag.includes('outerHalo') || artFrag.includes('edge * 0.82')) {
         throw new Error('dynamax-pokemon art shader lost its sprite-space coordinates or edge opt-out');
+    }
+    const gmaxBody = bulletStyleBodySource('gigantamax-pokemon');
+    const gmaxFrag = bulletFragmentSource('gigantamax-pokemon');
+    if (!gmaxBody.includes('insideRim') || !gmaxFrag.includes('3.0')
+        || !gmaxFrag.includes('haloStrength = 0.68')) {
+        throw new Error('gigantamax-pokemon shader should have a wider, stronger silhouette glow');
     }
     // 极巨化期间的持续能量粒：稀疏小簇、上浮、带寿命，让粒子系统接管氛围而不是色块。
     // 激活是「冲击火花 + 向上喷发的红柱」组合，结束是向内收拢的坍缩火花。
@@ -1630,6 +2042,22 @@ console.log('调试按键门禁：默认关闭 · 仅 ?debug 参数可启用 PAS
         throw new Error('every non-final Gigantamax form must explicitly lock evolution');
     }
     console.log('超极巨喵喵/皮卡丘：手动/自动/奖励进化锁定，抓到高阶段同族时保留形态 PASS');
+}
+
+// The user-supplied Nemona 4×4 sheet must stay append-only and match the runtime's 64 px slicing contract.
+{
+    const nemona = TRAINER_SPRITES[PLAYER_APPEARANCES.nemona - 1];
+    const sheetPath = new URL('./assets/trainers/trRival_Nemona_Violet.png', import.meta.url);
+    const png = readFileSync(sheetPath);
+    const qishu = TRAINER_SPRITES[PLAYER_APPEARANCES.qishu - 1];
+    if (!nemona || nemona.name !== '尼莫' || nemona.file !== 'trRival_Nemona_Violet.png'
+        || PLAYER_APPEARANCES.nemona !== TRAINER_SPRITES.length
+        || PLAYER_APPEARANCES.nemona <= PLAYER_APPEARANCES.qishu
+        || !qishu || qishu.name !== '奇树'
+        || png.readUInt32BE(16) !== 256 || png.readUInt32BE(20) !== 256) {
+        throw new Error('Nemona trainer asset, player appearance index, or 256 px frame sheet regression');
+    }
+    console.log('训练家尼莫：原始4×4步行动画素材、追加式角色索引与可选外观 PASS');
 }
 
 // Runtime runs use a fresh seed, while a saved seed must still reproduce the same opening wild species.
@@ -2981,8 +3409,10 @@ enemies.spawn = (x, y, famIdx, tier, elite, minute, boss) => {
 const capture = new CaptureSystem(BALL, CATCH, makeRng(SEED + 1));
 const combat = new CombatSystem(ENEMY, PLAYER);
 {
-    if (Math.abs(combat.bite(0, 0, 0, 1) - 6.6) > 1e-8 || BOSS.projectileDamage !== 11
-        || BOSS.projectileWarning !== 0.62) {
+    if (Math.abs(combat.bite(0, 0, 0, 1) - 6.6) > 1e-8 || BOSS.projectileDamage !== 14
+        || BOSS.projectileWarning !== 0.72 || BOSS.commandWarning < 1
+        || BOSS.commandPeriod <= BOSS.phaseTwoCommandPeriod
+        || BOSS.encounters[0].hpMul < 400 || BOSS.encounters[1].hpMul < 650) {
         throw new Error('enemy threat tune changed damage targets or reduced the dodge telegraph');
     }
     const pressureProbe = new TrainerBossSystem();
@@ -2992,7 +3422,53 @@ const combat = new CombatSystem(ENEMY, PLAYER);
         || Math.abs(pressureProbe.party[0].period - BOSS.encounters[0].party[0].period / 1.12) > 1e-6) {
         throw new Error('trainer arena size or opening attack cadence regression');
     }
-    console.log('Enemy pressure tuning: tier-1 bite, trainer damage/cadence, 42% arena radius and readable warning verified: PASS');
+    const rosterRows = Array.from({ length: pressureProbe.party.length }, (_, slot) => {
+        for (let row = 0; row < pressureEnemies.n; row++) {
+            if (pressureEnemies.trainer[row] && pressureEnemies.trainerSlot[row] === slot) return row;
+        }
+        return -1;
+    });
+    const orbitRadius = pressureProbe.arenaR * 0.67;
+    if (rosterRows.some((row) => row < 0
+        || Math.abs(Math.hypot(pressureEnemies.x[row] - pressureProbe.cx,
+            pressureEnemies.y[row] - pressureProbe.cy) - orbitRadius) > 5)) {
+        throw new Error('trainer partners should begin in separated positions around the arena');
+    }
+    pressureProbe.formationLeft = 0;
+    pressureEnemies.trainerIntro = 0;
+    pressureProbe.warning.fill(0);
+    pressureProbe.cooldown.fill(50);
+    pressureProbe.commandCooldown = 0;
+    const movingHero = { x: 0, y: 0, vx: 140, vy: -30, hurt: () => true };
+    pressureProbe.step(1 / 60, pressureEnemies, movingHero, PLAYER.iFrame);
+    if (Array.from(pressureProbe.warning.slice(0, pressureProbe.party.length)).some((time) => time <= 0)) {
+        throw new Error('trainer command should synchronize every living partner into a combo warning');
+    }
+    const telegraphEnds = [];
+    pressureProbe.drawArenaAndWarnings({
+        circle: () => {}, moveTo: () => {}, lineTo: (x, y) => telegraphEnds.push([x, y]), stroke: () => {},
+    }, { get: (color, alpha) => ({ color, alpha }) }, pressureEnemies);
+    const expectedLines = pressureProbe.party.reduce((total, member) => total + member.shots, 0);
+    if (telegraphEnds.length !== expectedLines || telegraphEnds.some(([x, y]) =>
+        Math.abs(Math.hypot(x - pressureProbe.cx, y - pressureProbe.cy) - pressureProbe.arenaR) > 1e-3)) {
+        throw new Error(`trainer telegraphs should show each shot lane through to the arena edge: ${telegraphEnds.length}/${expectedLines}`);
+    }
+    for (const row of rosterRows) pressureEnemies.hp[row] = pressureEnemies.maxhp[row] * 0.45;
+    pressureProbe.step(1 / 60, pressureEnemies, movingHero, PLAYER.iFrame);
+    if (!pressureProbe.phaseTwo || pressureProbe.commandCooldown > 1.35) {
+        throw new Error('trainer party should enter its faster coordinated phase below half health');
+    }
+    pressureProbe.n = 0;
+    const phaseTwoSource = rosterRows[0];
+    pressureProbe._fire(0, pressureEnemies.x[phaseTwoSource], pressureEnemies.y[phaseTwoSource]);
+    if (pressureProbe.n !== pressureProbe.party[0].shots
+        || Math.abs(Math.hypot(pressureProbe.vx[0], pressureProbe.vy[0])
+            - pressureProbe.party[0].speed * BOSS.phaseTwoSpeedMul) > 1e-4
+        || Math.abs(pressureProbe.damage[0] - BOSS.projectileDamage * pressureProbe.damageMul
+            * BOSS.phaseTwoDamageMul) > 1e-4) {
+        throw new Error('trainer half-health volleys should accelerate and hit harder without changing shot count');
+    }
+    console.log('Trainer combat redesign: stronger early rosters, orbiting team, exact multi-lane warnings, synchronized command and half-health phase: PASS');
 }
 {
     const fence = new TrainerBossSystem();
@@ -4443,17 +4919,37 @@ for (const e of LEVELS) {
     const soloFollower = tandemausFollowerOffset(Math.PI, 1, 0, 1);
     const pairedLeft = tandemausFollowerOffset(Math.PI / 2, 1, 0, 2);
     const pairedRight = tandemausFollowerOffset(Math.PI / 2, 1, 1, 2);
-    const pack8 = Array.from({ length: 8 }, (_, i) => tandemausFollowerOffset(0, 1, i, 8));
+    const fan8 = Array.from({ length: 8 }, (_, i) => tandemausFollowerOffset(0, 1, i, 8));
+    const cloud30 = Array.from({ length: 30 }, (_, i) => tandemausFollowerOffset(0, 1, i, 30, 24));
+    const mirroredCloud = Array.from({ length: 30 }, (_, i) => tandemausFollowerOffset(0, 1, i, 30, 24, -1));
+    const cloud100 = Array.from({ length: 100 }, (_, i) => tandemausFollowerOffset(0, 1, i, 100, 32));
+    const sampledMouseCount = tandemausVisibleCompanionCount(10000);
+    const sampledFirst = tandemausVisibleCompanionIndex(0, 10000, sampledMouseCount);
+    const sampledLast = tandemausVisibleCompanionIndex(sampledMouseCount - 1, 10000, sampledMouseCount);
+    const infiniteMouseCount = tandemausVisibleCompanionCount(Infinity);
+    const infiniteMouseIndex = tandemausVisibleCompanionIndex(infiniteMouseCount - 1, Infinity, infiniteMouseCount);
+    const infiniteMouseOffset = tandemausFollowerOffset(0, 1, infiniteMouseIndex, Infinity, 32);
     const firstStep = tandemausFollowerMotion(Math.PI, 1, 0, 0.1);
     const secondStep = tandemausFollowerMotion(Math.PI, 1, 1, 0.1);
+    const crowdStep = tandemausFollowerMotion(Math.PI, 1, 0, 0.1, 30, 24);
+    const cloudRadius = (points) => Math.max(...points.map((point) => Math.hypot(point.x, point.y)));
     if (soloFollower.x >= 0 || Math.abs(soloFollower.y) > 1e-8
         || pairedLeft.y <= 0 || pairedRight.y <= 0 || pairedLeft.x * pairedRight.x >= 0
         || Math.abs(pairedLeft.x + pairedRight.x) > 1e-8
-        || new Set(pack8.slice(0, 4).map((point) => point.y.toFixed(3))).size !== 4
-        || Math.abs(pack8[4].x - pack8[0].x - 24) > 1e-8
-        || Math.hypot(firstStep.x - secondStep.x, firstStep.y - secondStep.y) < 0.1) {
-        throw new Error('Tandemaus followers must form a lively, staggered four-column pack behind Maushold');
+        || new Set(fan8.map((point) => `${point.x.toFixed(3)},${point.y.toFixed(3)}`)).size !== fan8.length
+        || fan8.some((point) => point.x <= 0) || tandemausFollowerCrowd(30, 1) !== 1
+        || tandemausFollowerCrowd(8, 24) <= 0
+        || cloud30.some((point) => point.y <= 0) || mirroredCloud.some((point) => point.y >= 0)
+        || cloudRadius(cloud30) > 100 || cloudRadius(cloud100) > 100
+        || sampledMouseCount !== 48 || sampledFirst <= 0 || sampledLast >= 10000 || sampledLast <= sampledFirst
+        || infiniteMouseCount !== 48 || !Number.isFinite(infiniteMouseOffset.x)
+        || !Number.isFinite(infiniteMouseOffset.y)
+        || tandemausFollowerScale(1, 30, 24) >= tandemausFollowerScale(1, 8, 1)
+        || Math.hypot(firstStep.x - secondStep.x, firstStep.y - secondStep.y) < 0.1
+        || Math.hypot(crowdStep.x, crowdStep.y) >= Math.hypot(firstStep.x, firstStep.y)) {
+        throw new Error('Tandemaus followers must form a lively fan or bounded side cloud for crowded parties');
     }
+    console.log('Maushold formation: shallow fan → bounded side cloud, mirrored parties, capped representative swarm: PASS');
     chain.segments.length = 0;
     chain.cap = 4;
     chain.add('tandemaus', 1, 1);
