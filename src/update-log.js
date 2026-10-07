@@ -3,8 +3,8 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: '技能预览',
-        title: '喷火龙 X 蓝焰十字加入火焰音效',
-        description: '加入火焰点燃、两段扫掠、爆燃与余烬噼啪声，让音效节奏贴合 X 形攻击演出。',
+        title: '喷火龙 X 技能预览新增三种火焰音效方案',
+        description: '可在同一落点对比交叉爆燃、蓝焰疾掠和龙焰重击三种声音节奏；方案使用 CC0 火焰音源。',
     },
     {
         date: '2026-10-06',
