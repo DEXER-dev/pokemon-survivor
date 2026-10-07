@@ -3,6 +3,12 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: 'MEGA视觉',
+        title: '19 种 MEGA 加入专属像素描边',
+        description: '按形态配色绘制贴合精灵轮廓的描边，加入呼吸亮度与少量上浮粒子，不使用圆环光晕。',
+    },
+    {
+        date: '2026-10-07',
+        category: 'MEGA视觉',
         title: '移除 MEGA 精灵身上的圆环光晕',
         description: '去掉 MEGA 泛光、常驻圆环和选中圆环，保留绕行的进化石，并用小菱形标出技能来源。',
     },

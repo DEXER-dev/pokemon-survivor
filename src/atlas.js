@@ -925,7 +925,7 @@ function alphaBox (data, w, x0, y0, x1, y1) {
  * @returns Promise<{glyphs, texture, canvas, CELL}> glyphs keyed by species name and by `<name>_s`
  *          for the shiny half - merged into the greybox atlas by the caller, not by this function.
  */
-export async function loadIconAtlas (cc, keys) {
+export async function loadIconAtlas (cc, keys, outlineKeys = []) {
     const imgs = await Promise.all(keys.map(async (key) => {
         try {
             return await loadPng(`${ICON_DIR}${key}.png`);
@@ -984,5 +984,92 @@ export async function loadIconAtlas (cc, keys) {
         });
         glyphs[p.key] = { frame: sf, size: CELL };
     });
+
+    // Mega outlines are actual pixel silhouettes, not circles or blurred sprite duplicates. Build
+    // two transparent exterior bands for each Mega icon (and its shiny art), then tint them per form
+    // at draw time. Keeping this atlas to the requested icon set avoids tripling all 278 species.
+    const outlineNames = new Set();
+    for (const key of outlineKeys) {
+        outlineNames.add(key);
+        outlineNames.add(`${key}_s`);
+    }
+    const outlineSources = placed.filter((p) => outlineNames.has(p.key));
+    if (outlineSources.length) {
+        const rows = Math.ceil(outlineSources.length / ICON_COLS);
+        const outlineCanvas = document.createElement('canvas');
+        outlineCanvas.width = ICON_COLS * CELL;
+        outlineCanvas.height = rows * CELL * 2;
+        const outlineCtx = outlineCanvas.getContext('2d');
+        const sourceCtx = cv.getContext('2d', { willReadFrequently: true });
+
+        const makeRing = (sourceData, outerRadius, innerRadius = 0) => {
+            const mask = new Uint8Array(CELL * CELL);
+            for (let pixel = 0; pixel < mask.length; pixel++) {
+                mask[pixel] = sourceData.data[pixel * 4 + 3] > 12 ? 1 : 0;
+            }
+            // Only trace transparent pixels connected to the cell exterior. Transparent eye/mouth
+            // gaps inside a sprite stay untouched instead of turning into accidental inner strokes.
+            const outside = new Uint8Array(mask.length);
+            const queue = new Int32Array(mask.length);
+            let tail = 0;
+            const seed = (index) => {
+                if (mask[index] || outside[index]) return;
+                outside[index] = 1;
+                queue[tail++] = index;
+            };
+            for (let edge = 0; edge < CELL; edge++) {
+                seed(edge); seed((CELL - 1) * CELL + edge);
+                seed(edge * CELL); seed(edge * CELL + CELL - 1);
+            }
+            for (let head = 0; head < tail; head++) {
+                const index = queue[head], x = index % CELL, y = Math.floor(index / CELL);
+                if (x > 0) seed(index - 1);
+                if (x < CELL - 1) seed(index + 1);
+                if (y > 0) seed(index - CELL);
+                if (y < CELL - 1) seed(index + CELL);
+            }
+            const ring = outlineCtx.createImageData(CELL, CELL);
+            for (let y = 0; y < CELL; y++) for (let x = 0; x < CELL; x++) {
+                const index = y * CELL + x;
+                if (!outside[index]) continue;
+                let nearest = outerRadius + 1;
+                for (let oy = -outerRadius; oy <= outerRadius && nearest > innerRadius; oy++) {
+                    for (let ox = -outerRadius; ox <= outerRadius; ox++) {
+                        const nx = x + ox, ny = y + oy;
+                        if (nx < 0 || nx >= CELL || ny < 0 || ny >= CELL) continue;
+                        if (!mask[ny * CELL + nx]) continue;
+                        nearest = Math.min(nearest, Math.max(Math.abs(ox), Math.abs(oy)));
+                    }
+                }
+                if (nearest <= innerRadius || nearest > outerRadius) continue;
+                const p = index * 4;
+                ring.data[p] = ring.data[p + 1] = ring.data[p + 2] = ring.data[p + 3] = 255;
+            }
+            return ring;
+        };
+
+        const outlineCells = [];
+        outlineSources.forEach((source, index) => {
+            const x = (index % ICON_COLS) * CELL;
+            const y = Math.floor(index / ICON_COLS) * CELL;
+            const sourceData = sourceCtx.getImageData(source.x, source.y, CELL, CELL);
+            outlineCtx.putImageData(makeRing(sourceData, 2), x, y);
+            outlineCtx.putImageData(makeRing(sourceData, 5, 2), x, y + rows * CELL);
+            outlineCells.push({ key: source.key, x, y });
+        });
+        const outlineSheet = cc.SpriteFrame.createWithImage(outlineCanvas);
+        if (outlineSheet.texture && typeof outlineSheet.texture.setFilters === 'function') {
+            outlineSheet.texture.setFilters(1, 1);
+        }
+        for (const cell of outlineCells) {
+            for (const [suffix, y] of [['outline', cell.y], ['glow', cell.y + rows * CELL]]) {
+                const frame = new cc.SpriteFrame();
+                frame.reset({ texture: outlineSheet.texture,
+                    rect: new cc.Rect(cell.x, y, CELL, CELL),
+                    originalSize: new cc.Size(CELL, CELL), offset: new cc.Vec2(0, 0) });
+                glyphs[`${cell.key}__mega_${suffix}`] = { frame, size: CELL };
+            }
+        }
+    }
     return { glyphs, texture, canvas: cv, CELL };
 }

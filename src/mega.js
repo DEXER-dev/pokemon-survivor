@@ -19,11 +19,33 @@ import metagrossSkill, { MEGA_FORM as metagrossForm, SIGNATURE as metagrossSigna
 import tyranitarSkill, { MEGA_FORM as tyranitarForm, SIGNATURE as tyranitarSignature } from './skills/active/mega/tyranitar.js';
 import lucarioSkill, { MEGA_FORM as lucarioForm, SIGNATURE as lucarioSignature } from './skills/active/mega/lucario.js';
 
+const MEGA_OUTLINE_PALETTES = Object.freeze({
+    venusaur: Object.freeze({ color: '#5cc453', highlight: '#ccff8f', deep: '#2a7038' }),
+    'charizard-x': Object.freeze({ color: '#3acff2', highlight: '#c7ffff', deep: '#1e68b0' }),
+    'charizard-y': Object.freeze({ color: '#ff852d', highlight: '#ffed7b', deep: '#b34524' }),
+    blastoise: Object.freeze({ color: '#4298ff', highlight: '#bee9ff', deep: '#254ba4' }),
+    swampert: Object.freeze({ color: '#23bece', highlight: '#b3ffec', deep: '#166584' }),
+    gengar: Object.freeze({ color: '#b55df2', highlight: '#f5c1ff', deep: '#5b2fa3' }),
+    gardevoir: Object.freeze({ color: '#f56fad', highlight: '#ffdbef', deep: '#9c3875' }),
+    beedrill: Object.freeze({ color: '#e8b72f', highlight: '#fff69d', deep: '#8f651e' }),
+    ampharos: Object.freeze({ color: '#ffd52d', highlight: '#fffab2', deep: '#b77918' }),
+    pidgeot: Object.freeze({ color: '#d28f37', highlight: '#ffdf8e', deep: '#824c2b' }),
+    blaziken: Object.freeze({ color: '#f65b3a', highlight: '#ffcb7a', deep: '#a52b31' }),
+    alakazam: Object.freeze({ color: '#a67bff', highlight: '#e6d0ff', deep: '#573fac' }),
+    lucario: Object.freeze({ color: '#2d7cff', highlight: '#b7deff', deep: '#213b97' }),
+    aggron: Object.freeze({ color: '#85aec3', highlight: '#e5f8ff', deep: '#425b70' }),
+    sceptile: Object.freeze({ color: '#49d477', highlight: '#c0ff9a', deep: '#22754e' }),
+    salamence: Object.freeze({ color: '#f44b55', highlight: '#ffb8a4', deep: '#8f2848' }),
+    garchomp: Object.freeze({ color: '#c252b0', highlight: '#ffbce9', deep: '#632a79' }),
+    metagross: Object.freeze({ color: '#6ca4ff', highlight: '#d7f3ff', deep: '#305397' }),
+    tyranitar: Object.freeze({ color: '#adc643', highlight: '#eeff8e', deep: '#5b702c' }),
+});
+
 export const MEGA_FORMS = [
     venusaurForm, charizardXForm, charizardYForm, blastoiseForm, swampertForm, gengarForm,
     gardevoirForm, beedrillForm, ampharosForm, pidgeotForm, blazikenForm, alakazamForm, lucarioForm,
     aggronForm, sceptileForm, salamenceForm, garchompForm, metagrossForm, tyranitarForm,
-];
+].map((form) => ({ ...form, outline: MEGA_OUTLINE_PALETTES[form.id] || null }));
 
 /** Active, aimed area attacks unlocked by Mega Evolution. Dimensions are world-pixels. */
 export const MEGA_ACTIVE_SKILLS = {

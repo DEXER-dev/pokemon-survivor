@@ -218,6 +218,38 @@ const MEGA_FX_MAX = 36;
 const SAY_READ = 2.8;
 const GREY = '#9a94ab';
 
+/** Draw a pulsing, per-form pixel contour and a few small motes without adding a ring-shaped halo. */
+function drawMegaFormOutline (batch, palette, glyphs, form, icon, x, y, sx, sy, time, seed = 0,
+    opacity = 255, flipX = false) {
+    if (!form?.outline || !icon) return false;
+    const outlineKey = `${icon}__mega_outline`;
+    if (!glyphs[outlineKey]) return false;
+    const colors = form.outline;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 4.1 + seed * 0.73);
+    const visibility = Math.max(0, Math.min(1, opacity / 255));
+    const glowKey = `${icon}__mega_glow`;
+    if (glyphs[glowKey]) {
+        batch.draw(glowKey, x, y, sx, sy, 0,
+            palette.get(colors.color, Math.round((28 + pulse * 42) * visibility)), flipX);
+    }
+    batch.draw(outlineKey, x, y, sx, sy, 0,
+        palette.get(colors.color, Math.round((178 + pulse * 68) * visibility)), flipX);
+
+    for (let mote = 0; mote < 3; mote++) {
+        const phase = (time * 0.62 + seed * 0.19 + mote / 3) % 1;
+        const angle = time * 0.32 + seed * 1.17 + mote * TAU / 3;
+        const radius = Math.max(Math.abs(sx), Math.abs(sy)) * (31 + phase * 13);
+        const mx = x + Math.cos(angle) * radius;
+        const my = y + Math.sin(angle) * radius + phase * 9;
+        const alpha = Math.round((1 - phase) * (72 + pulse * 94) * visibility);
+        const moteColor = mote === 1 ? colors.highlight : colors.color;
+        const size = 0.12 + 0.07 * (1 - phase);
+        batch.draw(mote === 1 ? 'shard' : 'star', mx, my, size, size, angle,
+            palette.get(moteColor, alpha));
+    }
+    return true;
+}
+
 export function createGame (cc) {
     class Game extends cc.Component {
         onLoad () {
@@ -318,7 +350,7 @@ export function createGame (cc) {
             }).catch((err) => console.warn('[trees] field trees unavailable:', err && err.message));
             // Start the 278-species atlas only after tree/field art has claimed its image requests.
             // It can keep loading while the title screen and game are already usable.
-            this.iconAtlasPromise = loadIconAtlas(cc, iconKeys()).then((a) => {
+            this.iconAtlasPromise = loadIconAtlas(cc, iconKeys(), MEGA_FORMS.map((form) => form.icon)).then((a) => {
                 Object.assign(this.atlas.glyphs, a.glyphs);
                 this.iconAtlas = a;
                 this.icons = true;
@@ -2925,11 +2957,17 @@ export function createGame (cc) {
                 const flight = flightFx ? charizardXFlightPose(flightFx)
                     : { amount: 0, lift: 0, scale: 1 };
                 const petY = arena.chain.ny[0] + flight.lift;
-                batch.draw('ring', petX, petY, scale * 1.35, scale * 1.35, 0,
-                    this.pal.get(ELEMENT[arena.fam.element] || '#d8afff', 150));
-                batch.draw(icon, petX, petY + Math.sin(arena.time * 8) * 2.6,
-                    scale * flight.scale * (1 - 0.08 * Math.sin(arena.time * 8)),
-                    scale * flight.scale, 0, this.pal.get(ICON_TINT));
+                const petBob = Math.sin(arena.time * 8) * 2.6;
+                const petScaleX = scale * flight.scale * (1 - 0.08 * Math.sin(arena.time * 8));
+                const petScaleY = scale * flight.scale;
+                if (mega) {
+                    drawMegaFormOutline(batch, this.pal, this.atlas.glyphs, mega, icon,
+                        petX, petY + petBob, petScaleX, petScaleY, this.wall, 0);
+                } else {
+                    batch.draw('ring', petX, petY, scale * 1.35, scale * 1.35, 0,
+                        this.pal.get(ELEMENT[arena.fam.element] || '#d8afff', 150));
+                }
+                batch.draw(icon, petX, petY + petBob, petScaleX, petScaleY, 0, this.pal.get(ICON_TINT));
                 if (seg.fam === 'tandemaus') {
                     const companions = arena.chain.companionCountOf(seg);
                     const partySize = arena.chain.segments.length;
@@ -3416,6 +3454,9 @@ export function createGame (cc) {
                 const body = icon ? (e.shiny[i] ? ICON_TINT : bo ? HORDE_TINT_BOSS : trainer ? '#e7a1a1' : el ? HORDE_TINT_ELITE : HORDE_TINT)
                     : (trainer ? '#bd4c5a' : el || bo ? COL.enemyElite : COL.enemy);
                 const bob = Math.sin(this.time * 7 + i * 1.3) * (bo ? 0.6 : el ? 1.2 : 2);
+                const trainerMegaOutline = trainerMega && drawMegaFormOutline(b, this.pal,
+                    this.atlas.glyphs, trainerForm, icon, e.x[i], e.y[i] + bob, scale,
+                    scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), this.wall, i);
                 b.draw(icon || (bo ? 'blob' : el ? 'diamond' : MOB_GLYPH[Math.min(3, e.tier[i] - 1)]),
                     e.x[i], e.y[i] + bob, scale, scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), 0,
                     this.pal.get(lit ? COL.heroTrim : body));
@@ -3425,13 +3466,16 @@ export function createGame (cc) {
                     b.draw('ring', e.x[i], e.y[i], scale * 1.12, scale * 1.12, 0, this.pal.get(COL.ink, 105));
                 }
                 if (trainer) {
-                    if (trainerMega) {
+                    if (trainerMega && !trainerMegaOutline) {
                         const pulse = 1 + 0.12 * Math.sin(this.wall * 7);
                         b.draw('aura', e.x[i], e.y[i], scale * 2.25 * pulse, scale * 2.25 * pulse,
                             0, this.pal.get(trainerForm.color, 80));
+                        b.draw('ring', e.x[i], e.y[i], scale * 1.17, scale * 1.17, 0,
+                            this.pal.get(trainerForm.color, 245));
+                    } else if (!trainerMega) {
+                        b.draw('ring', e.x[i], e.y[i], scale * 1.17, scale * 1.17, 0,
+                            this.pal.get('#d84a55', 230));
                     }
-                    b.draw('ring', e.x[i], e.y[i], scale * 1.17, scale * 1.17, 0,
-                        this.pal.get(trainerMega ? trainerForm.color : '#d84a55', trainerMega ? 245 : 230));
                 }
                 if (bo) {
                     // Grey-box 3:00 BOSS. `cross` is the one glyph in the atlas that no pet, no mob 阶 and
@@ -3783,6 +3827,10 @@ export function createGame (cc) {
                     const spriteScaleY = scale * flightScale * (1 + 0.08 * bob) * (1 - 0.24 * pop)
                         * (1 + swing) * entrySqueezeY
                         * (1 - (evolution ? 0.34 * evolution.landing * (1 - evolution.landing) : 0));
+                    if (mega && !megaEvolution && k === 0) {
+                        drawMegaFormOutline(b, this.pal, this.atlas.glyphs, mega, shownIcon,
+                            px, py, spriteScaleX, spriteScaleY, this.wall, si, bodyOpacity, flip);
+                    }
                     if (evolution && k === 0) {
                         const oldIcon = evolutionFx.oldIcon && this.atlas.glyphs[evolutionFx.oldIcon]
                             ? evolutionFx.oldIcon : icon;

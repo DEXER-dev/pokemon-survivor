@@ -3145,6 +3145,14 @@ console.log('超极巨闪焰王牌：玩家指定方向的大火球、扫掠命�
     }
     console.log('MEGA stone animation: opaque orb, reveal, and one-shot cue timing: PASS');
 
+    const outlineColors = MEGA_FORMS.map((form) => form.outline?.color);
+    if (MEGA_FORMS.length !== 19 || outlineColors.some((color) => !/^#[0-9a-f]{6}$/i.test(color || ''))
+        || new Set(outlineColors).size !== MEGA_FORMS.length
+        || MEGA_FORMS.some((form) => !form.outline?.highlight || !form.outline?.deep)) {
+        throw new Error('MEGA outline palette regression: every form needs a unique three-tone outline palette');
+    }
+    console.log('MEGA outline palettes: 19 unique per-form contour colors with highlight/deep tones: PASS');
+
     const build = { stacks: Object.create(null) };
     const makeSeg = (fam, tier, count = 1, mega = null) => ({ fam, tier, count, mega });
     if (megaCardsFor({ segments: [makeSeg('lizard', 1), makeSeg('lizard', 2)] }, build).length !== 0) {
