@@ -21,20 +21,31 @@
     canvas { position:absolute; left:50%; top:47%; width:192px; height:192px; transform:translate(-50%,-50%); image-rendering:pixelated; }
     .outline-layer { z-index:1; pointer-events:none; }
     .sprite-layer { z-index:2; }
-    .outline-layer.breathing { animation:outline-breathe 2s ease-in-out infinite; }
+    .outline-layer.breathing { animation:outline-breathe 1.5s ease-in-out infinite; }
     @keyframes outline-breathe {
-      0%,100% { opacity:.62; filter:drop-shadow(0 0 1px rgba(92,222,238,.28)) drop-shadow(0 0 2px rgba(92,222,238,.2)); }
-      50% { opacity:1; filter:drop-shadow(0 0 2px rgba(139,247,255,.65)) drop-shadow(0 0 4px rgba(92,222,238,.42)); }
+      0%,100% { opacity:.36; filter:brightness(.88) drop-shadow(0 0 1px rgba(92,222,238,.25)) drop-shadow(0 0 2px rgba(92,222,238,.18)); }
+      50% { opacity:1; filter:brightness(1.35) drop-shadow(0 0 3px rgba(170,250,255,.92)) drop-shadow(0 0 8px rgba(71,218,246,.78)); }
     }
-    .stone { position:absolute; z-index:2; left:calc(50% + 92px); top:calc(47% - 78px); width:58px; height:58px; image-rendering:pixelated; filter:drop-shadow(1px 2px 0 #596650); animation:float 2.2s ease-in-out infinite; }
+    .spark-layer { position:absolute; z-index:3; left:50%; top:47%; width:192px; height:192px; transform:translate(-50%,-50%); pointer-events:none; }
+    .spark { position:absolute; width:3px; height:3px; opacity:0; background:#b9fbff; image-rendering:pixelated; }
+    .spark-layer.active .spark { animation:spark-drift var(--duration,1.2s) ease-out var(--delay,0s) infinite; }
+    .spark:nth-child(3n + 2) { width:4px; height:4px; background:#f2ffff; box-shadow:0 0 5px 2px rgba(105,234,255,.72); }
+    .spark:nth-child(3n) { background:#4ccde7; box-shadow:0 0 4px 1px rgba(91,221,243,.68); }
+    @keyframes spark-drift {
+      0% { opacity:0; transform:translate(0,0) rotate(0deg) scale(.45); }
+      14% { opacity:1; transform:translate(0,0) rotate(45deg) scale(1); }
+      62% { opacity:.82; }
+      100% { opacity:0; transform:translate(var(--dx),var(--dy)) rotate(90deg) scale(.45); }
+    }
+    .stone { position:absolute; z-index:4; left:calc(50% + 92px); top:calc(47% - 78px); width:58px; height:58px; image-rendering:pixelated; filter:drop-shadow(1px 2px 0 #596650); animation:float 2.2s ease-in-out infinite; }
     @keyframes float { 50% { transform:translateY(-5px) rotate(7deg); } }
-    .caption { position:absolute; left:50%; top:calc(47% + 111px); transform:translateX(-50%); padding:5px 10px; border:1px solid #bac5a9; border-radius:999px; color:#4c6650; background:#fff9e9e8; font-size:12px; white-space:nowrap; }
+    .caption { position:absolute; z-index:5; left:50%; top:calc(47% + 111px); transform:translateX(-50%); padding:5px 10px; border:1px solid #bac5a9; border-radius:999px; color:#4c6650; background:#fff9e9e8; font-size:12px; white-space:nowrap; }
     .controls { padding:16px 18px 11px; display:flex; flex-wrap:wrap; gap:9px; justify-content:center; border-top:2px solid #c8d0b8; background:#f8f5e5; }
     button { padding:9px 13px; border:2px solid #a9b49c; border-radius:7px; color:#4d5a49; background:#fffbea; font:inherit; font-size:13px; cursor:pointer; box-shadow:0 2px 0 #c5cbb9; }
     button:hover { border-color:#77b8bd; } button[aria-pressed="true"] { color:#245b64; border-color:#3e9aa6; background:#e7fbfa; box-shadow:0 2px 0 #91c5c5; }
     .detail { min-height:64px; margin:0; padding:2px 20px 15px; color:#5d6c58; text-align:center; font-size:13px; line-height:1.65; background:#f8f5e5; }
     .detail strong { color:#28636b; }
-    @media (max-width:560px) { body { padding:10px; } header { padding:10px 12px; } h1 { font-size:15px; } .badge { font-size:10px; padding:5px 7px; } canvas { width:168px; height:168px; } .stone { left:calc(50% + 77px); width:48px; height:48px; } button { font-size:12px; padding:8px 10px; } }
+    @media (max-width:560px) { body { padding:10px; } header { padding:10px 12px; } h1 { font-size:15px; } .badge { font-size:10px; padding:5px 7px; } canvas { width:168px; height:168px; } .spark-layer { width:168px; height:168px; } .stone { left:calc(50% + 77px); width:48px; height:48px; } button { font-size:12px; padding:8px 10px; } }
   </style>
 </head>
 <body>
@@ -45,6 +56,18 @@
       <div class="shadow"></div>
       <canvas id="outline" class="outline-layer" width="64" height="64" aria-hidden="true"></canvas>
       <canvas id="sprite" class="sprite-layer" width="64" height="64" role="img" aria-label="超级喷火龙 X"></canvas>
+      <div id="sparks" class="spark-layer" aria-hidden="true">
+        <i class="spark" style="left:4%;top:30%;--dx:-18px;--dy:-5px;--delay:-.25s;--duration:1.15s"></i>
+        <i class="spark" style="left:18%;top:8%;--dx:-12px;--dy:-18px;--delay:-.72s;--duration:1.3s"></i>
+        <i class="spark" style="left:40%;top:2%;--dx:-5px;--dy:-20px;--delay:-.38s;--duration:1.18s"></i>
+        <i class="spark" style="left:75%;top:8%;--dx:12px;--dy:-18px;--delay:-.92s;--duration:1.28s"></i>
+        <i class="spark" style="left:96%;top:30%;--dx:19px;--dy:-10px;--delay:-.18s;--duration:1.22s"></i>
+        <i class="spark" style="left:98%;top:52%;--dx:20px;--dy:4px;--delay:-.62s;--duration:1.3s"></i>
+        <i class="spark" style="left:82%;top:76%;--dx:16px;--dy:13px;--delay:-.4s;--duration:1.16s"></i>
+        <i class="spark" style="left:64%;top:94%;--dx:7px;--dy:18px;--delay:-.86s;--duration:1.3s"></i>
+        <i class="spark" style="left:43%;top:91%;--dx:-6px;--dy:19px;--delay:-.12s;--duration:1.22s"></i>
+        <i class="spark" style="left:13%;top:77%;--dx:-17px;--dy:12px;--delay:-.56s;--duration:1.26s"></i>
+      </div>
       <img class="stone" src="../../assets/items/mega/CHARIZARDITEX.png" alt="喷火龙进化石 X">
       <div class="caption">喷火龙 X · 示例精灵</div>
     </section>
@@ -62,14 +85,15 @@
     const ctx = canvas.getContext("2d", { alpha: true });
     const outlineCanvas = document.querySelector("#outline");
     const outlineCtx = outlineCanvas.getContext("2d", { alpha: true });
+    const sparkLayer = document.querySelector("#sparks");
     const source = document.createElement("canvas");
     source.width = source.height = 64;
     const sourceCtx = source.getContext("2d", { willReadFrequently: true });
     const detail = document.querySelector("#detail");
     const copy = {
       none: "当前素材自带深色像素边；不额外描边，保留原始样子。",
-      cyan: "<strong>推荐方案：</strong>细青蓝像素线做轻微呼吸，微光只贴着外轮廓起伏；不套圆环，也不遮住精灵本体。",
-      double: "外侧深海蓝压轮廓、内侧浅青蓝提亮，再让边缘微光缓慢呼吸；层次更强，存在感也更高。"
+      cyan: "<strong>推荐方案：</strong>描边明暗起伏更清楚，细小像素火花从精灵轮廓向外飘散；不套圆环，也不遮住本体。",
+      double: "外侧深海蓝压轮廓、内侧浅青蓝提亮；呼吸光和外散火花更醒目，层次与存在感都更强。"
     };
     function render(style = "cyan") {
       sourceCtx.clearRect(0, 0, 64, 64);
@@ -78,10 +102,23 @@
       const pixels = sprite.data;
       const outline = outlineCtx.createImageData(64, 64);
       const out = outline.data;
+      const outside = new Uint8Array(64 * 64);
+      const queue = [];
+      for (let i = 0; i < 64; i++) {
+        for (const index of [i, 63 * 64 + i, i * 64, i * 64 + 63]) {
+          if (pixels[index * 4 + 3] <= 12 && !outside[index]) { outside[index] = 1; queue.push(index); }
+        }
+      }
+      for (let head = 0; head < queue.length; head++) {
+        const index = queue[head], x = index % 64, y = Math.floor(index / 64);
+        for (const next of [x > 0 ? index - 1 : -1, x < 63 ? index + 1 : -1, y > 0 ? index - 64 : -1, y < 63 ? index + 64 : -1]) {
+          if (next >= 0 && !outside[next] && pixels[next * 4 + 3] <= 12) { outside[next] = 1; queue.push(next); }
+        }
+      }
       if (style !== "none") {
         for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
           const p = (y * 64 + x) * 4;
-          if (pixels[p + 3] > 12) continue;
+          if (pixels[p + 3] > 12 || !outside[y * 64 + x]) continue;
           let nearest = 3;
           for (let oy = -2; oy <= 2; oy++) for (let ox = -2; ox <= 2; ox++) {
             const d = Math.max(Math.abs(ox), Math.abs(oy));
@@ -100,7 +137,9 @@
       outlineCtx.clearRect(0, 0, 64, 64);
       outlineCtx.putImageData(outline, 0, 0);
       outlineCanvas.classList.toggle("breathing", style !== "none");
+      ctx.clearRect(0, 0, 64, 64);
       ctx.drawImage(source, 0, 0);
+      sparkLayer.classList.toggle("active", style !== "none");
       detail.innerHTML = copy[style];
       document.querySelectorAll("button[data-style]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.style === style)));
     }
