@@ -2,6 +2,12 @@
 export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
+        category: 'Mega技能',
+        title: '喷火龙 X 苍焰十字加入实战',
+        description: '喷火龙 X 升空蓄势后，在玩家选点引爆全屏渐尖蓝焰 X，再落地收势；命中判定、点燃/双扫斩/爆燃音效与演出同步。',
+    },
+    {
+        date: '2026-10-07',
         category: '技能预览',
         title: '苍焰十字斩击带收窄',
         description: 'X 形火焰斩击带整体收窄约一半，保留全屏长度与交叉形态，命中范围不变。',

@@ -30,6 +30,18 @@ const Z_AUDIO_ELEMENT = Object.freeze({
     ice: 'water',
 });
 
+// Keep the approved preview's fire-first rhythm in the actual Mega skill: ignition, Charizard's
+// cry, two fast flame sweeps, then a bright burst and a short ember tail.
+const CHARIZARD_X_AUDIO_PLAN = Object.freeze([
+    Object.freeze({ delay: 0, file: 'charizard-x/blue-flame-ignite.ogg', volume: 0.45, key: 'charizard-x-ignite' }),
+    Object.freeze({ delay: 165, file: 'cries/CHARIZARD_1.ogg', volume: 0.22, key: 'charizard-x-cry' }),
+    Object.freeze({ delay: 220, file: 'charizard-x/blue-flame-embers.ogg', volume: 0.13, key: 'charizard-x-embers-pre' }),
+    Object.freeze({ delay: 240, file: 'charizard-x/blue-flame-sweep-a.ogg', volume: 0.25, key: 'charizard-x-sweep-a' }),
+    Object.freeze({ delay: 330, file: 'charizard-x/blue-flame-sweep-b.ogg', volume: 0.20, key: 'charizard-x-sweep-b' }),
+    Object.freeze({ delay: 760, file: 'charizard-x/blue-flame-burst.ogg', volume: 0.40, key: 'charizard-x-burst' }),
+    Object.freeze({ delay: 820, file: 'charizard-x/blue-flame-embers.ogg', volume: 0.25, key: 'charizard-x-embers-post' }),
+]);
+
 const resolveSound = (event) => {
     if (!event) return null;
     const kind = event.kind || '';
@@ -103,6 +115,7 @@ export class CombatSfx {
         const sounds = new Set(Object.values(ELEMENT_SOUNDS));
         sounds.add('combat-impact.ogg');
         sounds.add('tandemaus-throw.ogg');
+        for (const cue of CHARIZARD_X_AUDIO_PLAN) sounds.add(cue.file);
         for (const file of sounds) {
             cc.assetManager.loadRemote(`assets/audio/${file}`, { ext: '.ogg' }, (err, clip) => {
                 if (err) {
@@ -116,6 +129,17 @@ export class CombatSfx {
 
     enqueue (event) {
         if (this.destroyed || this.muted) return;
+        if (event && event.kind === 'charizard-x-skill') {
+            const enqueuedAt = Date.now();
+            for (const cue of CHARIZARD_X_AUDIO_PLAN) {
+                if (this.nPending >= this.pending.length) break;
+                this.pending[this.nPending++] = {
+                    ...cue, priority: 3, cooldown: 0, globalCooldown: 0,
+                    enqueuedAt, scheduledAt: enqueuedAt + cue.delay, sequence: true,
+                };
+            }
+            return;
+        }
         const sound = resolveSound(event);
         if (!sound) return;
         const queued = { ...sound, enqueuedAt: Date.now() };
@@ -134,13 +158,21 @@ export class CombatSfx {
         let best = -1;
         let bestPriority = -1;
         const unloaded = [];
+        const waiting = [];
         for (let offset = 0; offset < this.nPending; offset++) {
             const i = (this.roundRobin + offset) % this.nPending;
             const sound = this.pending[i];
+            if (sound.scheduledAt && now < sound.scheduledAt) {
+                waiting.push(sound);
+                continue;
+            }
             if (!this.clips[sound.file]) {
                 if (sound.priority >= 3 && Date.now() - sound.enqueuedAt <= 2500) unloaded.push(sound);
                 continue;
             }
+            // Most combat cues collapse to the best one for this frame; the Charizard X plan is a
+            // deliberate timeline, so keep its other ready cues queued after one is selected.
+            if (sound.sequence) waiting.push(sound);
             if (now - (this.lastPlayed[sound.key] ?? -Infinity) < sound.cooldown
                 || (sound.priority < 3 && now - this.lastGlobal < sound.globalCooldown)) continue;
             if (sound.priority > bestPriority) {
@@ -149,8 +181,10 @@ export class CombatSfx {
             }
         }
         const selected = best >= 0 ? this.pending[best] : null;
-        this.nPending = unloaded.length;
-        for (let i = 0; i < unloaded.length; i++) this.pending[i] = unloaded[i];
+        const remaining = selected ? waiting.filter((sound) => sound !== selected) : waiting;
+        this.nPending = remaining.length + unloaded.length;
+        for (let i = 0; i < remaining.length; i++) this.pending[i] = remaining[i];
+        for (let i = 0; i < unloaded.length; i++) this.pending[remaining.length + i] = unloaded[i];
         if (best < 0) return false;
         const sound = selected;
         const clip = this.clips[sound.file];

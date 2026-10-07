@@ -25,6 +25,7 @@ import { EvolutionReward } from './src/evolution-reward.js';
 import { Panel } from './src/panel.js';
 import { MusicManager, MUSIC_TRACKS } from './src/music-manager.js';
 import { CombatSystem, segDps, chainDps, nodeBonus, hitRect, hitHeart } from './src/combat.js';
+import { charizardXCrossLayout, charizardXFlightPose, hitCharizardXCross } from './src/skills/active/mega/charizard-x.js';
 import { createGame } from './src/game.js';
 import { makeDexArena } from './src/dex.js';
 import { SkillSystem } from './src/skills.js';
@@ -254,8 +255,22 @@ const TAU = Math.PI * 2;
         || played[4].volume <= 0 || audio.flush(2400) || played.length !== 5) {
         throw new Error('A Maushold volley must play one restrained throw cue, even when it has many bullets');
     }
+    audio.enqueue({ kind: 'charizard-x-skill', megaId: 'charizard-x' });
+    const audioStart = Date.now() + 1;
+    if (!audio.flush(audioStart) || !played[5].clip.endsWith('blue-flame-ignite.ogg')) {
+        throw new Error('Charizard X should start the approved fire cue when the X attack releases');
+    }
+    for (let i = 0; i < 6; i++) audio.flush(audioStart + 1000);
+    const xAudio = played.slice(5).map((cue) => cue.clip);
+    if (xAudio.length !== 7 || !xAudio.some((url) => url.endsWith('CHARIZARD_1.ogg'))
+        || !xAudio.some((url) => url.endsWith('blue-flame-sweep-a.ogg'))
+        || !xAudio.some((url) => url.endsWith('blue-flame-sweep-b.ogg'))
+        || !xAudio.some((url) => url.endsWith('blue-flame-burst.ogg'))
+        || !xAudio.some((url) => url.endsWith('blue-flame-embers.ogg'))) {
+        throw new Error('Charizard X fire audio should sequence its cry, two sweeps, burst, and ember tail');
+    }
     audio.destroy();
-    console.log('战斗音效：属性路由、专属/大招优先级、同帧合并与全局限频 PASS');
+    console.log('战斗音效：属性路由、优先级/限频与喷火龙 X 点燃-叫声-双扫斩-爆燃音效序列 PASS');
 }
 // Level-up UI has distinct, bounded cues for the reveal, focus movement, confirm, and exit.
 {
@@ -3862,6 +3877,62 @@ skills.on = SKILL;
         throw new Error('Mega Blastoise sustained rectangular cannon footprint regression');
     }
     console.log('Mega Blastoise module registry: 3-second 440x142 rectangular water cannon and exact rotated-box hit test: PASS');
+}
+{
+    const form = MEGA_FORMS.find((entry) => entry.id === 'charizard-x');
+    const skill = activeSkillForForm(form);
+    const module = activeSkillModuleForForm(form);
+    const enemies = {
+        x: Float32Array.of(100, 100, 100, 0, 440),
+        y: Float32Array.of(46.4, -46.4, 100, 0, 0),
+        r: Float32Array.of(6, 6, 6, 6, 6),
+        hp: Float32Array.of(100, 100, 100, 100, 100), dead: new Uint8Array(5), _q: [],
+        grid: { query (_x, _y, _radius, out) { out.length = 0; out.push(0, 1, 2, 3, 4); return out; } },
+        hurt (i, damage) { this.hp[i] -= damage; return false; },
+    };
+    const layout = charizardXCrossLayout({ visibleSize: { width: 1000, height: 500 },
+        cam: { x: 0, y: 0, z: 1 } }, 0, 0, skill.halfWidth);
+    const result = hitCharizardXCross(enemies, layout, 10);
+    if (!form || skill.shape !== 'charizard-x-cross' || skill.halfWidth !== 22
+        || typeof module?.cast !== 'function' || typeof module.step !== 'function'
+        || typeof module.drawPreview !== 'function' || typeof module.drawEffect !== 'function'
+        || typeof module.drawScreenEffect !== 'function'
+        || Math.abs(layout.axes[0].positive - 566.0) > 2
+        || result.hits !== 3 || enemies.hp[4] !== 100) {
+        throw new Error(`Charizard X should register a thin, viewport-filling tapered X once per target; got ${result.hits} hits`);
+    }
+    const castEnemies = {
+        ...enemies, x: Float32Array.of(100), y: Float32Array.of(46.4),
+        r: Float32Array.of(6), hp: Float32Array.of(1e6), dead: new Uint8Array(1),
+        grid: { query (_x, _y, _radius, out) { out.length = 0; out.push(0); return out; } },
+    };
+    const castGame = {
+        visibleSize: { width: 1000, height: 500 }, cam: { x: 0, y: 0, z: 1 }, enemies: castEnemies,
+        build: { dmg: 1 }, level: 1, wall: 0.3, pal: { get (color, alpha) { return { color, alpha }; } },
+        particleBursts: { burst () {} }, megaSkillFx (_form, x, y, _radius, options) { this.effect = { x, y, ...options }; },
+        wave () {}, kick () {}, say () {}, logEvent () {},
+    };
+    const segment = { fam: 'lizard', tier: 1, count: 1, megaSkillCd: 0 };
+    module.cast(castGame, segment, form, skill, 0, 0);
+    let drawCalls = 0;
+    const graphics = new Proxy({}, { get (_target, key) {
+        if (key === 'fillColor' || key === 'strokeColor' || key === 'lineWidth') return undefined;
+        return (..._args) => { drawCalls++; };
+    }, set () { return true; } });
+    if (castEnemies.hp[0] !== 1e6 || segment.megaSkillActive !== skill.effectDuration) {
+        throw new Error('Charizard X should delay its hit until the flying X reaches its impact beat');
+    }
+    module.step(castGame, segment, skill.impactDelay, form, skill);
+    module.drawScreenEffect(castGame, graphics,
+        { ...castGame.effect, active: true, form, age: 0.62, duration: skill.effectDuration }, skill);
+    const leap = charizardXFlightPose({ shape: skill.shape, age: 0.5, duration: skill.effectDuration });
+    const landing = charizardXFlightPose({ shape: skill.shape, age: 1.3, duration: skill.effectDuration });
+    if (segment.megaSkillCd !== skill.cooldown || castGame.effect?.shape !== skill.shape
+        || castEnemies.hp[0] >= 1e6 || drawCalls < 100 || leap.lift < 150 || leap.scale < 2.5
+        || landing.lift > 1) {
+        throw new Error('Charizard X cast should deal its visible cross damage, start cooldown, and draw the blue-flame bands');
+    }
+    console.log('喷火龙 X 苍焰十字：手机/鼠标选点、全屏双斜线与收窄渐尖命中框一致，实战只结算一次并绘出蓝焰 PASS');
 }
 {
     const cases = [

@@ -70,6 +70,8 @@ export function makeDexArena (fam, tier, count, target) {
     const arena = {
         fam, cfg, seg, chain, enemies, skills, player,
         build: { dmg: 1, fireRate: 1, skillSize: 1, splashR: 1, stacks: Object.create(null) },
+        camera: { x: player.x, y: player.y, z: DEX_PREVIEW_ZOOM },
+        visibleSize: { width: W, height: H },
         rng: makeRng(0xD3C5), megaFx: Array.from({ length: 36 }, () => ({
             active: false, x: 0, y: 0, angle: 0, age: 0, duration: 0, form: null,
             hit: false, area: false, radius: 0, shape: '', width: 0, segment: null, sustain: false,
@@ -197,7 +199,9 @@ export function installDex (cc, isTitleVisible) {
         const entry = selectedActive();
         $('dexActiveName').textContent = entry ? `主动技能 · ${entry.skill.name}` : '主动技能 · 未解锁';
         $('dexActiveInfo').textContent = entry
-            ? `${entry.form.name || entry.form.megaName}专属 · 冷却 ${entry.skill.cooldown || 0} 秒 · ${entry.skill.radius ? `范围 ${entry.skill.radius}px` : entry.skill.range ? `距离 ${entry.skill.range}px` : '特殊效果'}${entry.skill.duration ? ` · 持续 ${entry.skill.duration} 秒` : ''} · 使用正式技能与粒子系统，命中仅作用于训练靶`
+            ? entry.skill.shape === 'charizard-x-cross'
+                ? `${entry.form.name || entry.form.megaName}专属 · 玩家选点 · 升空后释放全屏 X 形蓝焰 · 冷却 ${entry.skill.cooldown || 0} 秒`
+                : `${entry.form.name || entry.form.megaName}专属 · 冷却 ${entry.skill.cooldown || 0} 秒 · ${entry.skill.radius ? `范围 ${entry.skill.radius}px` : entry.skill.range ? `距离 ${entry.skill.range}px` : '特殊效果'}${entry.skill.duration ? ` · 持续 ${entry.skill.duration} 秒` : ''} · 使用正式技能与粒子系统，命中仅作用于训练靶`
             : '当前阶没有可释放的主动技能；部分最终形态可通过 MEGA 或超极巨化解锁。';
         $('dexCast').hidden = !entry;
         updateCastButton();

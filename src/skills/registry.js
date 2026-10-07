@@ -4,6 +4,10 @@ import { GIGANTAMAX_MODULES } from '../gigantamax.js';
 import {
     castBlastoise, stepBlastoise, drawBlastoisePreview, drawBlastoiseEffect,
 } from './active/mega/blastoise.js';
+import charizardXSkill, {
+    cast as castCharizardX, step as stepCharizardX, drawPreview as drawCharizardXPreview,
+    drawScreenEffect as drawCharizardXScreenEffect,
+} from './active/mega/charizard-x.js';
 import { drawMegaProjectile } from './active/mega/projectile-renderer.js';
 import { drawMegaActiveArea } from './active/mega/area-renderer.js';
 import { drawMegaEffects } from './active/mega/effect-renderer.js';
@@ -118,6 +122,15 @@ const blastoise = Object.freeze({
     drawPreview: drawBlastoisePreview,
     drawEffect: drawBlastoiseEffect,
 });
+const charizardX = Object.freeze({
+    skill: charizardXSkill,
+    cast: castCharizardX,
+    step: stepCharizardX,
+    // Keep the normal circular Mega renderer/particle fallback off; the Graphics layer owns this X.
+    drawEffect () {},
+    drawPreview: drawCharizardXPreview,
+    drawScreenEffect: drawCharizardXScreenEffect,
+});
 const gardevoir = Object.freeze({ cast: castGardevoir, drawPreview: drawGardevoirPreview,
     drawEffect: drawGardevoirEffect });
 const cinderace = Object.freeze({
@@ -200,6 +213,7 @@ export function activeSkillForForm (form) {
 
 export function activeSkillModuleForForm (form) {
     if (!form) return null;
+    if (form.id === 'charizard-x') return charizardX;
     if (form.id === 'blastoise') return blastoise;
     if (form.id === 'gardevoir') return gardevoir;
     if (form.id === 'cinderace') return cinderace;
@@ -210,6 +224,17 @@ export function activeSkillModuleForForm (form) {
     const legendaryModule = legendaryActiveModuleForForm(form);
     if (legendaryModule) return legendaryModule;
     return rosterActiveModuleForForm(form);
+}
+
+/** Full-screen attacks render in the top Graphics pass so their silhouette stays visible above sprites. */
+export function drawMegaScreenEffects (game, graphics) {
+    for (const fx of game.megaFx || []) {
+        if (!fx.active || !fx.form) continue;
+        const module = activeSkillModuleForForm(fx.form);
+        if (!module?.drawScreenEffect) continue;
+        const skill = module.skill || activeSkillForForm(fx.form);
+        module.drawScreenEffect(game, graphics, fx, skill);
+    }
 }
 
 /** Render long-lived ground fields before enemies and the party, so sprites remain readable above them. */

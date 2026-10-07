@@ -17,6 +17,7 @@ import { createWorldLayout, inPondClearing } from './world-map-layout.js';
 import { MEGA_FORMS, MEGA_BY_ID, megaFormForSegment } from './mega.js';
 import { GIGANTAMAX_BY_ID, gigantamaxFormForSegment, gigantamaxLocksEvolution } from './gigantamax.js';
 import { FORM as HO_OH_SKILL_FORM } from './skills/active/legendary/ho-oh.js';
+import { charizardXFlightPose } from './skills/active/mega/charizard-x.js';
 import { legendaryActiveFormForSegment } from './skills/active/legendary/other-legendaries.js';
 import { iconKey, iconKeys, shinyKey, BOSS_SPECIES, displayName, dexText, typeText } from './species.js';
 import { Input } from './input.js';
@@ -37,7 +38,7 @@ import {
     activeSkillForForm as resolveActiveSkillForForm, activeSkillModuleForForm,
     drawPersistentSkillFields, drawCakePickups, rosterActiveFormForSegment,
     fieldEffectForFamily, projectileRendererForFamily,
-    drawMegaActiveArea, drawMegaEffects,
+    drawMegaActiveArea, drawMegaEffects, drawMegaScreenEffects,
 } from './skills/registry.js';
 import { stepFields as stepRillaboomFields } from './skills/active/gigantamax/rillaboom.js';
 import { stepCakes as stepAlcremieCakes } from './skills/active/roster/alcremie.js';
@@ -1008,7 +1009,9 @@ export function createGame (cc) {
             const kind = form.rosterActive ? 'roster'
                 : form.kind === 'legendary' ? 'legendary' : form.gigantamax ? 'gigantamax' : 'mega';
             this.logEvent(`${kind}.skill-selected`, { form: form.id, species: segment.fam });
-            const detail = skill.shape === 'rect-beam'
+            const detail = skill.shape === 'charizard-x-cross'
+                ? '玩家选点 · 全屏 X 形苍焰'
+                : skill.shape === 'rect-beam'
                 ? `矩形水炮 ${skill.radius}×${skill.width}px · 持续 ${skill.duration}s`
                 : skill.shape === 'cake-drop'
                     ? `随机生成蛋糕 · 回复 ${skill.heal} HP · ${skill.dropRadius}px 内`
@@ -1155,7 +1158,8 @@ export function createGame (cc) {
 
         playCombatSkillSound (seg, form) {
             if (!this.combatSfx) return;
-            const kind = form && form.id === 'blaziken' ? 'blaziken-charge' : 'mega-skill';
+            const kind = form && form.id === 'blaziken' ? 'blaziken-charge'
+                : form && form.id === 'charizard-x' ? 'charizard-x-skill' : 'mega-skill';
             this.combatSfx.enqueue({ kind, fam: seg && seg.fam, megaId: form && form.id });
             this.combatSfx.flush();
         }
@@ -1354,7 +1358,9 @@ export function createGame (cc) {
             fx.radius = 0;
             fx.shape = '';
             fx.width = 0;
+            fx.layout = null;
             fx.segment = null;
+            fx.sourceSegment = null;
             fx.sustain = false;
             if (!fx.hit) this.kick(0.045);
         }
@@ -1374,7 +1380,9 @@ export function createGame (cc) {
             fx.radius = radius;
             fx.shape = options.shape || '';
             fx.width = options.width || 0;
+            fx.layout = options.layout || null;
             fx.segment = options.segment || null;
+            fx.sourceSegment = options.sourceSegment || null;
             fx.sustain = !!options.segment;
             return fx;
         }
@@ -2770,6 +2778,7 @@ export function createGame (cc) {
             const values = {
                 chain: arena.chain, enemies: arena.enemies, skills: arena.skills,
                 player: arena.player, build: arena.build, level: arena.level, time: arena.time,
+                cam: arena.camera, visibleSize: arena.visibleSize,
                 wall: arena.wall, aimWorld: arena.target, selectedMega: arena.seg,
                 megaFx: arena.megaFx, megaFxSlot: arena.megaFxSlot,
                 particleBursts: this.dexPreviewBursts, ripples: arena.ripples,
@@ -2817,6 +2826,8 @@ export function createGame (cc) {
                 this.player.update(dt, axis, drive);
                 if (this.player.speed > 8) arena.heading = Math.atan2(this.player.vy, this.player.vx);
                 const heading = arena.heading || 0;
+                arena.camera.x = this.player.x;
+                arena.camera.y = this.player.y;
                 arena.chain.nx[0] = this.player.x - Math.cos(heading) * 34;
                 arena.chain.ny[0] = this.player.y - Math.sin(heading) * 34;
                 arena.chain.bx[0] = arena.chain.nx[0];
@@ -2908,11 +2919,17 @@ export function createGame (cc) {
                     + (merged ? PET_BULK * (bulk - 1) : 0)) * formScale(seg.tier)
                     * (mega ? 1.22 : (gigantamax ? gigantamax.size : 1)));
                 const petX = arena.chain.nx[0];
-                const petY = arena.chain.ny[0];
+                const flightFx = mega?.id === 'charizard-x'
+                    ? arena.megaFx.find((fx) => fx.active && fx.shape === 'charizard-x-cross'
+                        && fx.sourceSegment === seg) : null;
+                const flight = flightFx ? charizardXFlightPose(flightFx)
+                    : { amount: 0, lift: 0, scale: 1 };
+                const petY = arena.chain.ny[0] + flight.lift;
                 batch.draw('ring', petX, petY, scale * 1.35, scale * 1.35, 0,
                     this.pal.get(ELEMENT[arena.fam.element] || '#d8afff', 150));
                 batch.draw(icon, petX, petY + Math.sin(arena.time * 8) * 2.6,
-                    scale * (1 - 0.08 * Math.sin(arena.time * 8)), scale, 0, this.pal.get(ICON_TINT));
+                    scale * flight.scale * (1 - 0.08 * Math.sin(arena.time * 8)),
+                    scale * flight.scale, 0, this.pal.get(ICON_TINT));
                 if (seg.fam === 'tandemaus') {
                     const companions = arena.chain.companionCountOf(seg);
                     const partySize = arena.chain.segments.length;
@@ -2955,7 +2972,10 @@ export function createGame (cc) {
             this.dexPreviewFxNode.setPosition(-arena.player.x * DEX_PREVIEW_ZOOM + sx,
                 -arena.player.y * DEX_PREVIEW_ZOOM + sy, 0);
             this.dexPreviewFxNode.setScale(DEX_PREVIEW_ZOOM, DEX_PREVIEW_ZOOM, 1);
-            this._withDexPreviewArena(arena, () => this.drawMegaSkillPreview(this.dexPreviewFx));
+            this._withDexPreviewArena(arena, () => {
+                this.drawMegaSkillPreview(this.dexPreviewFx);
+                drawMegaScreenEffects(this, this.dexPreviewFx);
+            });
         }
 
         _updateDexPreview (dt) {
@@ -3020,6 +3040,7 @@ export function createGame (cc) {
                 this.trainerBoss.drawArenaAndWarnings(g, this.pal, e);
                 this.drawLegendaryCompanionWarnings(g);
                 this.drawMegaSkillPreview(g);
+                drawMegaScreenEffects(this, g);
                 return;
             }
 
@@ -3219,6 +3240,7 @@ export function createGame (cc) {
             }
 
             this.drawMegaSkillPreview(g);
+            drawMegaScreenEffects(this, g);
 
             // §7.1-4: a foldable stack lights in the 进化 colour on the one link E would spend.
             if (this.evo >= 0) {
@@ -3588,6 +3610,11 @@ export function createGame (cc) {
                 const base = PET_SCALE + 0.05 * (visual - 1) + 0.06 * (s.tier - 1);
                 const mega = megaFormForSegment(s);
                 const gigantamax = gigantamaxFormForSegment(s);
+                const charizardXFlightFx = mega?.id === 'charizard-x'
+                    ? this.megaFx.find((fx) => fx.active && fx.shape === 'charizard-x-cross'
+                        && fx.sourceSegment === s) : null;
+                const charizardXFlight = charizardXFlightFx
+                    ? charizardXFlightPose(charizardXFlightFx) : { amount: 0, lift: 0, scale: 1 };
                 const legendaryArrival = legendary ? Math.max(0, s.legendaryCatchFx || 0) : 0;
                 const combatForm = mega || gigantamax;
                 const gigaEntry = gigantamax && s.gigaEntry ? s.gigaEntry : null;
@@ -3658,6 +3685,7 @@ export function createGame (cc) {
                     const px = ch.nx[i] + o[0] * r;
                     const groundY = ch.ny[i] + o[1] * r + Math.abs(bob) * 2.6 + pop * 3;
                     const py = groundY + entryLift + (megaEvolution ? megaEvolution.lift : 0)
+                        + (k === 0 ? charizardXFlight.lift : 0)
                         + (evolution && k === 0 ? evolution.lift : 0);
                     if (gigaEntry && k === 0) {
                         const liftRatio = entryLift / 58;
@@ -3753,10 +3781,11 @@ export function createGame (cc) {
                                 this.pal.get('#fff9d6', 245));
                         }
                     }
-                    const spriteScaleX = scale * (1 - 0.08 * bob) * (1 + 0.34 * pop)
+                    const flightScale = k === 0 ? charizardXFlight.scale : 1;
+                    const spriteScaleX = scale * flightScale * (1 - 0.08 * bob) * (1 + 0.34 * pop)
                         * (1 - 0.72 * swing) * entrySqueezeX
                         * (1 + (evolution ? 0.56 * evolution.landing * (1 - evolution.landing) : 0));
-                    const spriteScaleY = scale * (1 + 0.08 * bob) * (1 - 0.24 * pop)
+                    const spriteScaleY = scale * flightScale * (1 + 0.08 * bob) * (1 - 0.24 * pop)
                         * (1 + swing) * entrySqueezeY
                         * (1 - (evolution ? 0.34 * evolution.landing * (1 - evolution.landing) : 0));
                     if (evolution && k === 0) {
