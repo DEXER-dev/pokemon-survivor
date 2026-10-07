@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>喷火龙 X · 苍焰十字预览</title>
+  <style>
+    @font-face{font-family:FusionPixel;src:url('../../assets/fonts/fusion-pixel/fusion-pixel-12px-proportional-zh_hans.otf.woff2') format('woff2');font-display:swap}
+    :root{color-scheme:light;--ink:#203347;--ink2:#34536a;--cream:#f9f6e9;--line:#becbb2;--grass:#e7efd5;--blue:#27c9f5;--cyan:#9bf2ff;--ice:#edffff;--gold:#f2c85d}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:24px;background:#d8e0d1;color:var(--ink);font-family:FusionPixel,"Microsoft YaHei",sans-serif;display:grid;place-items:center}
+    .shell{width:min(1080px,100%);overflow:hidden;border:3px solid #26384a;border-radius:18px;background:var(--cream);box-shadow:0 8px 0 #aab7a0,0 24px 60px #25364a26}
+    header{min-height:80px;padding:13px 22px;display:flex;justify-content:space-between;align-items:center;gap:18px;color:#f2f8f5;background:linear-gradient(108deg,#172b42,#244e64 72%,#1c465f);border-bottom:4px solid #38c9e8}
+    .brand{display:flex;align-items:center;gap:13px}.mark{width:43px;height:43px;border:2px solid #a5f4ff;border-radius:50%;display:grid;place-items:center;color:#d9fdff;font:bold 23px/1 system-ui,sans-serif;text-shadow:0 0 12px #58e9ff;box-shadow:inset 0 0 0 4px #1f4057,0 0 16px #49d9f055;background:radial-gradient(circle at 35% 30%,#36859a,#152b43 70%)}.eyebrow{font:700 10px/1.2 system-ui,sans-serif;letter-spacing:.16em;color:#9ddde7}.brand h1{margin:5px 0 0;font-size:20px;line-height:1.2}.status{padding:8px 11px;border:1px solid #6a8796;border-radius:999px;background:#10294177;color:#daf7f6;font-size:11px;white-space:nowrap}.dot{display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:#6de9db;box-shadow:0 0 0 3px #6de9db22}
+    main{padding:19px 22px 18px}.intro{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin:0 2px 13px}.intro h2{margin:0;font-size:17px}.intro p{margin:5px 0 0;color:#66736f;font:12px/1.55 system-ui,sans-serif}.phase{flex:none;padding:8px 11px;border:1px solid #afc6c2;border-radius:10px;background:#e9f4e7;color:#49616a;font-size:11px}.phase b{color:#147c9a}
+    .stage{position:relative;overflow:hidden;border:2px solid #516c6c;border-radius:14px;background:var(--grass);box-shadow:inset 0 2px 0 #fffbe8}canvas{display:block;width:100%;height:auto;aspect-ratio:1000/470;image-rendering:pixelated}
+    .hud{position:absolute;top:12px;left:12px;display:flex;gap:8px;pointer-events:none}.card{display:flex;align-items:center;gap:8px;padding:6px 9px;background:#fff9e8ed;border:2px solid #697a71;border-radius:10px;box-shadow:0 3px 0 #b4bba4;color:#344450}.face{width:32px;height:32px;display:grid;place-items:center;border:1px solid #c9cfb8;border-radius:7px;background:#eff0dc;overflow:hidden}.face img{width:32px;height:32px;max-width:none;object-fit:fill;object-position:left center;image-rendering:pixelated}.copy{font-size:10px;line-height:1.5}.copy b{font-size:11px}.skill{position:absolute;right:13px;bottom:13px;min-width:145px;display:flex;align-items:center;gap:9px;padding:8px 11px;border:2px solid #4d6975;border-radius:11px;background:#fff9e9ed;box-shadow:0 3px 0 #aeb8a6}.skill-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:linear-gradient(145deg,#c4f6f5,#54b5ca);color:#12445f;text-shadow:0 1px white;font:bold 18px/1 system-ui,sans-serif;box-shadow:inset 0 0 0 2px #eaffff}.skill-text{font-size:10px;line-height:1.45}.skill-text b{font-size:11px}.badge{position:absolute;right:12px;top:12px;padding:7px 9px;border:1px solid #98bec5;border-radius:9px;background:#edfafaE8;color:#286271;font-size:10px}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px}.timeline{display:flex;gap:7px;align-items:center;color:#69766f;font-size:10px}.step{display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #d0d3be;border-radius:8px;background:#f1efdf}.step i{width:8px;height:8px;border-radius:50%;background:#7cbcc4}.step.active{border-color:#5fb6c7;background:#e7f8f6;color:#1f6377;box-shadow:inset 0 -2px #9ddce2}.step.active i{background:#15b9dc;box-shadow:0 0 0 3px #15b9dc25}.actions{display:flex;gap:8px;align-items:center}.replay{padding:9px 14px;border:1px solid #23475e;border-radius:9px;background:#24475e;color:#f3ffff;font:inherit;font-size:11px;cursor:pointer;box-shadow:0 3px 0 #9cae9e}.replay:hover{background:#28617a}.replay:active{transform:translateY(2px);box-shadow:0 1px 0 #9cae9e}.loop{font:11px system-ui,sans-serif;color:#758078}.notes{display:flex;justify-content:space-between;gap:16px;margin:13px 2px 0;color:#778077;font:11px/1.55 system-ui,sans-serif}.notes strong{color:#405961}.caption{max-width:690px}
+    @media(max-width:740px){body{padding:9px}.shell{border-radius:13px}header{min-height:66px;padding:10px 12px}.mark{width:35px;height:35px}.brand h1{font-size:15px}.eyebrow{font-size:8px}.status{font-size:9px;padding:6px 8px}main{padding:13px 10px}.intro{align-items:flex-start;flex-direction:column;gap:8px}.intro h2{font-size:14px}.phase{font-size:9px;padding:6px 8px}.hud{top:6px;left:6px;gap:5px}.card{gap:5px;padding:4px 6px;border-width:1px}.face{width:24px;height:24px}.face img{width:24px;height:24px}.copy{font-size:8px}.copy b{font-size:9px}.badge{top:6px;right:6px;padding:5px 6px;font-size:8px}.skill{right:6px;bottom:6px;min-width:0;padding:5px 7px;gap:6px;border-width:1px}.skill-icon{width:25px;height:25px;font-size:15px}.skill-text{font-size:8px}.skill-text b{font-size:9px}.toolbar{align-items:flex-start;flex-direction:column}.timeline{flex-wrap:wrap}.step{padding:6px 7px;font-size:9px}.notes{flex-direction:column;font-size:10px}.replay{font-size:10px;padding:8px 11px}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header><div class="brand"><span class="mark" aria-hidden="true">X</span><div><div class="eyebrow">MEGA ACTIVE SKILL · VISUAL CONCEPT</div><h1>喷火龙 X · 苍焰十字</h1></div></div><div class="status"><i class="dot"></i>技能特效设计预览</div></header>
+    <main>
+      <div class="intro"><div><h2>交叉斩开的蓝焰，在命中点爆燃</h2><p>以目标点为中心，双道苍蓝火刃形成清楚的 X，交点短促闪白，地面留下片刻蓝焰。</p></div><div class="phase">演出阶段　<b id="phase">苍焰蓄势</b></div></div>
+      <section class="stage" aria-label="喷火龙 X 苍焰十字技能演示"><canvas id="scene" width="1000" height="470"></canvas>
+        <div class="hud"><div class="card"><span class="face"><img src="../../assets/icons/CHARIZARD_1.png" alt="超级喷火龙 X"></span><span class="copy"><b>超级喷火龙 X</b><br>MEGA ACTIVE</span></div><div class="card"><span class="copy"><b>目标区域</b><br>锁定 4 个目标</span></div></div>
+        <div class="badge">✦ 范围攻击 · 视觉概念</div>
+        <div class="skill"><span class="skill-icon">✕</span><span class="skill-text"><b>苍焰十字</b><br>蓝焰交叉爆发</span></div>
+      </section>
+      <div class="toolbar"><div class="timeline" id="timeline"><span class="step active" data-phase="0"><i></i>苍焰蓄势</span><span class="step" data-phase="1"><i></i>交叉斩击</span><span class="step" data-phase="2"><i></i>中心爆燃</span><span class="step" data-phase="3"><i></i>余焰消散</span></div><div class="actions"><span class="loop">静音循环演示</span><button class="replay" id="replay" type="button">↻　重新播放</button></div></div>
+      <div class="notes"><span class="caption"><strong>设计重点：</strong>火焰轮廓带有像素状的分叉与尾迹，冰蓝内芯保证可读性；闪光只出现在交叉命中瞬间，避免持续遮挡战场。</span><span>此页仅为演出预览，游戏技能尚未修改。</span></div>
+    </main>
+  </div>
+  <script>
+    (()=>{
+      const canvas=document.querySelector('#scene'),ctx=canvas.getContext('2d'),phaseLabel=document.querySelector('#phase'),steps=[...document.querySelectorAll('.step')];
+      const charizard=new Image();charizard.src='../../assets/icons/CHARIZARD_1.png';
+      let restart=performance.now();
+      const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),ease=v=>{v=clamp(v);return 1-Math.pow(1-v,3)};
+      function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
+      const grass=Array.from({length:75},(_,i)=>{const r=rng(i*897+74);return{x:20+r()*960,y:25+r()*420,n:3+Math.floor(r()*3),s:2+r()*2,a:.13+r()*.13}});
+      const motes=Array.from({length:54},(_,i)=>{const r=rng(i*451+88);return{a:r()*Math.PI*2,dist:42+r()*210,s:2+r()*4,phase:r()*6.28,seed:r()}});
+      const enemies=[['SQUIRTLE',221,166],['CHARMELEON',779,162],['TOTODILE',222,342],['MUDKIP',779,341]];
+      const cache={};
+      function loadSprite(name){if(cache[name])return cache[name];const img=new Image();img.src=`../../assets/icons/${name}.png`;cache[name]=img;return img}
+      enemies.forEach(e=>loadSprite(e[0]));
+      function drawGrass(){
+        const g=ctx.createLinearGradient(0,0,1000,470);g.addColorStop(0,'#edf2dc');g.addColorStop(.54,'#e5edcf');g.addColorStop(1,'#dfe9c9');ctx.fillStyle=g;ctx.fillRect(0,0,1000,470);
+        ctx.globalAlpha=.2;ctx.fillStyle='#c4dca9';[[145,120,180,80],[866,104,170,88],[152,384,190,58],[854,385,200,66],[505,72,170,45]].forEach(([x,y,rx,ry])=>{ctx.beginPath();ctx.ellipse(x,y,rx,ry,-.12,0,Math.PI*2);ctx.fill()});ctx.globalAlpha=1;
+        for(const p of grass){ctx.globalAlpha=p.a;ctx.fillStyle='#a6c58c';for(let i=0;i<p.n;i++){const x=p.x+i*2-p.n,y=p.y-Math.sin(i*1.1)*p.s;ctx.fillRect(Math.round(x),Math.round(y-p.s),1,Math.ceil(p.s))}}ctx.globalAlpha=1;
+        // Quiet broken footpath provides a sense of a lived-in meadow without competing with the fire.
+        ctx.fillStyle='#c6d3b6';ctx.globalAlpha=.28;ctx.beginPath();ctx.moveTo(0,391);ctx.bezierCurveTo(180,360,287,407,451,385);ctx.bezierCurveTo(654,359,811,406,1000,368);ctx.lineTo(1000,400);ctx.bezierCurveTo(790,439,632,393,455,416);ctx.bezierCurveTo(271,440,166,398,0,426);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
+      }
+      function drawShadow(x,y,rx,alpha){ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle='#576b50';ctx.beginPath();ctx.ellipse(x,y,rx,7,0,0,Math.PI*2);ctx.fill();ctx.restore()}
+      function drawCreature(name,x,y,size,alpha=1){const img=loadSprite(name);if(!img.complete||!img.naturalWidth)return;ctx.save();ctx.globalAlpha=alpha;ctx.imageSmoothingEnabled=false;ctx.drawImage(img,0,0,64,64,x-size*.5,y-size*.48,size,size);ctx.restore()}
+      function drawPixelSpark(x,y,s,a,color='#efffff'){ctx.save();ctx.globalAlpha=a;ctx.fillStyle=color;ctx.fillRect(Math.round(x-s/2),Math.round(y-s/2),s,s);ctx.fillRect(Math.round(x-1),Math.round(y-s*1.5),2,s*3);ctx.fillRect(Math.round(x-s*1.5),Math.round(y-1),s*3,2);ctx.restore()}
+      function flamePolygon(points,fill,alpha){ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=fill;ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);ctx.closePath();ctx.fill();ctx.restore()}
+      function drawCrossSlash(cx,cy,angle,reach,width,alpha,t,seed){
+        const dir={x:Math.cos(angle),y:Math.sin(angle)},perp={x:-dir.y,y:dir.x};
+        const edge=[];const count=20;
+        for(let i=0;i<=count;i++){const q=-1+i*2/count,env=.23+.77*Math.pow(Math.sin(Math.PI*(i/count)),.58),flick=Math.sin(t*19+i*2.2+seed)*6+Math.cos(t*11+i*1.37)*4+((i%5===1)?11:0);const w=(width*env+flick)*(.86+.14*Math.cos(q*6));edge.push([cx+dir.x*q*reach+perp.x*(w+3),cy+dir.y*q*reach+perp.y*(w+3)])}
+        for(let i=count;i>=0;i--){const q=-1+i*2/count,env=.23+.77*Math.pow(Math.sin(Math.PI*(i/count)),.58),flick=Math.sin(t*19+i*2.2+seed+2.4)*6+Math.cos(t*11+i*1.37+1.7)*4+((i%7===3)?12:0);const w=(width*env+flick)*(.86+.14*Math.cos(q*6));edge.push([cx+dir.x*q*reach-perp.x*(w+3),cy+dir.y*q*reach-perp.y*(w+3)])}
+        ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor='#35dfff';ctx.shadowBlur=18;flamePolygon(edge,'#087fae',alpha*.7);ctx.restore();
+        const inner=[];for(let i=0;i<=count;i++){const q=-1+i*2/count,env=.18+.82*Math.pow(Math.sin(Math.PI*(i/count)),.62),flick=Math.sin(t*21+i*1.9+seed)*2;const w=(width*.62*env+flick)*(.87+.13*Math.cos(q*5));inner.push([cx+dir.x*q*reach+perp.x*w,cy+dir.y*q*reach+perp.y*w])}for(let i=count;i>=0;i--){const q=-1+i*2/count,env=.18+.82*Math.pow(Math.sin(Math.PI*(i/count)),.62),flick=Math.sin(t*21+i*1.9+seed)*2;const w=(width*.62*env+flick)*(.87+.13*Math.cos(q*5));inner.push([cx+dir.x*q*reach-perp.x*w,cy+dir.y*q*reach-perp.y*w])}
+        flamePolygon(inner,'#20c9ed',alpha*.95);
+        // The narrow white-cyan spine keeps each slash legible at normal gameplay scale.
+        ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=alpha*.88;ctx.lineCap='square';ctx.strokeStyle='#d9ffff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx-dir.x*reach*.88,cy-dir.y*reach*.88);ctx.lineTo(cx+dir.x*reach*.88,cy+dir.y*reach*.88);ctx.stroke();ctx.globalAlpha=alpha*.8;ctx.strokeStyle='#8ef4ff';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(cx-dir.x*reach*.69,cy-dir.y*reach*.69);ctx.lineTo(cx+dir.x*reach*.69,cy+dir.y*reach*.69);ctx.stroke();ctx.restore();
+        // Detached flame tongues kick outward from the ribbon edges.
+        for(let i=0;i<13;i++){const q=-.9+i*.15,side=i%2?1:-1,pulse=.65+.35*Math.sin(t*16+i+seed),d=reach*q,spread=width*(.72+.28*Math.sin(i*2.1));const x=cx+dir.x*d+perp.x*spread*side,y=cy+dir.y*d+perp.y*spread*side,lick=35+26*Math.sin(t*12+i*2.1);const tipX=x+perp.x*side*lick,tipY=y+perp.y*side*lick;ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=alpha*.76*pulse;ctx.fillStyle=i%3?'#35d9f4':'#c9ffff';ctx.beginPath();ctx.moveTo(Math.round(x-perp.x*4),Math.round(y-perp.y*4));ctx.lineTo(Math.round(tipX+dir.x*6),Math.round(tipY+dir.y*6));ctx.lineTo(Math.round(tipX-perp.x*3),Math.round(tipY-perp.y*3));ctx.closePath();ctx.fill();ctx.restore()}
+      }
+      function drawLingering(cx,cy,t,fade){if(fade<=0)return;ctx.save();ctx.globalCompositeOperation='lighter';for(let i=0;i<13;i++){const a=i*6.283/13+t*.13,r=28+(i%4)*11,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r*.62;ctx.globalAlpha=fade*(.33+.18*Math.sin(t*8+i));ctx.fillStyle=i%3?'#19bfdf':'#d9ffff';ctx.beginPath();ctx.moveTo(Math.round(x-3),Math.round(y+4));ctx.lineTo(Math.round(x-1),Math.round(y-8-(i%3)*3));ctx.lineTo(Math.round(x+2),Math.round(y-2));ctx.lineTo(Math.round(x+4),Math.round(y+5));ctx.closePath();ctx.fill()}ctx.restore()}
+      function draw(now){
+        const dpr=Math.min(2,window.devicePixelRatio||1),w=canvas.clientWidth||1000,h=w*.47;if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr)}ctx.setTransform(canvas.width/1000,0,0,canvas.height/470,0,0);ctx.clearRect(0,0,1000,470);
+        const t=(now-restart)/1000,loop=2.7,u=(t%loop)/loop;drawGrass();
+        const cx=500,cy=236,charge=ease(u/.25)*(1-ease((u-.35)/.14)),slash=ease((u-.2)/.22)*(1-ease((u-.59)/.18)),impact=Math.max(0,1-Math.abs(u-.49)/.095),linger=ease((u-.57)/.08)*(1-ease((u-.93)/.29));
+        for(const [name,x,y] of enemies){drawShadow(x,y+25,19,.12);drawCreature(name,x,y,48,.84)}
+        drawShadow(cx,cy+46,39,.2);
+        // Reticle is intentionally subtle: the cross-shaped fire is the clear focal point.
+        if(u<.29){ctx.save();ctx.globalAlpha=.16+charge*.22;ctx.strokeStyle='#178ca9';ctx.lineWidth=2;ctx.setLineDash([5,7]);ctx.beginPath();ctx.ellipse(cx,cy,88+charge*9,57+charge*6,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#308ca4';ctx.beginPath();ctx.arc(cx,cy,3+charge*2,0,6.283);ctx.fill();ctx.restore()}
+        // Gathering embers spiral inward immediately before the two slashes ignite.
+        if(u<.52){for(let i=0;i<motes.length;i++){const p=motes[i],phase=u*2.2+p.phase*.08,rad=p.dist*(1-charge*.77),a=p.a+phase,x=cx+Math.cos(a)*rad,y=cy+Math.sin(a)*rad*.6;const apha=(.16+charge*.75)*(u<.39?1:1-ease((u-.39)/.13));ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=apha;ctx.fillStyle=i%7===0?'#edffff':i%3===0?'#52e6f7':'#12a8d2';ctx.fillRect(Math.round(x),Math.round(y),p.s,p.s);ctx.restore()}}
+        if(slash>.01){const reach=220*slash,width=26+34*Math.sin(Math.PI*slash);drawCrossSlash(cx,cy,-Math.PI/4,reach,width,slash,t,1);drawCrossSlash(cx,cy,Math.PI/4,reach,width,slash*.97,t+1.1,5)}
+        drawLingering(cx,cy,t,linger*.84);
+        // Impact flash, pixel shards, and a low shockwave all peak on the crossing beat.
+        if(impact>.01){ctx.save();ctx.globalCompositeOperation='lighter';const g=ctx.createRadialGradient(cx,cy,3,cx,cy,92);g.addColorStop(0,`rgba(247,255,255,${.62*impact})`);g.addColorStop(.16,`rgba(109,239,255,${.48*impact})`);g.addColorStop(.72,`rgba(35,180,220,${.16*impact})`);g.addColorStop(1,'rgba(35,180,220,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,92,0,6.283);ctx.fill();ctx.globalAlpha=impact*.62;ctx.strokeStyle='#bdfaff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(cx,cy,25+(1-impact)*76,17+(1-impact)*36,0,0,6.283);ctx.stroke();ctx.restore();for(let i=0;i<16;i++){const a=i*6.283/16+t*.35,r=24+(1-impact)*53,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r*.72;drawPixelSpark(x,y,i%4===0?4:2,impact*.65,i%3?'#aefaff':'#fff') }}
+        // Put the actual game sprite above the flames and preserve its familiar pixel silhouette.
+        if(charizard.complete&&charizard.naturalWidth){ctx.save();ctx.imageSmoothingEnabled=false;ctx.shadowColor='#49dcf6';ctx.shadowBlur=slash*12;ctx.drawImage(charizard,0,0,64,64,cx-40,cy-42,80,80);ctx.restore()}
+        if(u>.25&&u<.88){for(let i=0;i<21;i++){const p=motes[(i*7)%motes.length],a=p.a+t*(.8+p.seed),r=32+((i*19)%102)+slash*30,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r*.68;const life=1-ease((u-.61+i%3*.012)/.3);drawPixelSpark(x,y,p.s*.72,life*(.23+p.seed*.38),i%6===0?'#f2ffff':i%2?'#72eaff':'#13a7cf')}}
+        const state=u<.19?0:u<.43?1:u<.59?2:3;phaseLabel.textContent=['苍焰蓄势','交叉斩击','中心爆燃','余焰消散'][state];steps.forEach((s,i)=>s.classList.toggle('active',i===state));requestAnimationFrame(draw)
+      }
+      document.querySelector('#replay').addEventListener('click',()=>{restart=performance.now()});requestAnimationFrame(draw);
+    })();
+  </script>
+</body>
+</html>
