@@ -3,6 +3,12 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: '技能预览',
+        title: '苍焰十字线条变得更有火焰流动感',
+        description: '收弱硬朗描边，让 X 形蓝焰轮廓自然摆动、明暗起伏，边缘火舌改成弯曲渐尖的形状。',
+    },
+    {
+        date: '2026-10-07',
+        category: '技能预览',
         title: '苍焰十字音效减少金属感',
         description: '柔化火焰起音和扫斩的尖锐高频，降低叫声叠音，并让真实余烬噼啪声托住火焰尾音。',
     },
