@@ -3,6 +3,12 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: '技能预览',
+        title: '苍焰十字斩击带收窄',
+        description: 'X 形火焰斩击带整体收窄约一半，保留全屏长度与交叉形态，命中范围不变。',
+    },
+    {
+        date: '2026-10-07',
+        category: '技能预览',
         title: '苍焰十字线条变得更有火焰流动感',
         description: '收弱硬朗描边，让 X 形蓝焰轮廓自然摆动、明暗起伏，边缘火舌改成弯曲渐尖的形状。',
     },
