@@ -3,6 +3,12 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: '技能预览',
+        title: '喷火龙 X 飞升并扩大苍焰十字',
+        description: '预览中喷火龙 X 会喷焰升空后发动更大范围的 X 形斩击，再落地收势；命中范围同步扩大。',
+    },
+    {
+        date: '2026-10-07',
+        category: '技能预览',
         title: '喷火龙 X 技能预览放大 X 形斩击',
         description: 'X 形火焰斩击加大约三成，并同步调整命中范围；预览保留三种火焰音效与喷火龙叫声。',
     },
