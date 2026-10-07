@@ -3,6 +3,12 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: '技能预览',
+        title: '苍焰十字恢复层叠火焰质感',
+        description: '全屏 X 加回更密的锯齿焰缘、蓝青内焰与沿斩击流动的亮色火纹，避免拉长后纹理变稀。',
+    },
+    {
+        date: '2026-10-07',
+        category: '技能预览',
         title: '苍焰十字扩展到整个战场',
         description: '蓝焰 X 按玩家选点铺满整个战场；喷火龙 X 以更大体型高空升起，展开火翼后回落落地。',
     },
