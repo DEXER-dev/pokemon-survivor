@@ -3731,8 +3731,8 @@ export function createGame (cc) {
                     }
                     if (selectedMegaHead && k === 0) {
                         const pulse = 1 + 0.1 * Math.sin(this.wall * 7);
-                        b.draw('ring', px, py, scale * 2.15 * pulse, scale * 2.15 * pulse,
-                            -this.wall, this.pal.get(COL.heroTrim, 245));
+                        b.draw('diamond', px, py + scale * 1.45, 0.34 * pulse, 0.34 * pulse,
+                            this.wall * 0.45, this.pal.get(COL.heroTrim, 205));
                     }
                     if (legendary && k === 0) {
                         const legendaryColor = ELEMENT[family(s.fam).element] || COL.gold;
@@ -3756,11 +3756,6 @@ export function createGame (cc) {
                         }
                     }
                     const meowthGigantamax = gigantamax?.id === 'meowth';
-                    if (mega && !megaEvolution && k === 0) {
-                        const pulse = 1 + 0.1 * Math.sin(this.wall * 5 + i);
-                        b.draw('aura', px, py, scale * 2.7 * pulse, scale * 2.7 * pulse, 0,
-                            this.pal.get(mega.color, 70));
-                    }
                     if (dynamax && k === 0) {
                         const pulse = 0.78 + 0.22 * Math.sin(this.wall * 13 + i * 0.7);
                         b.draw('aura', px, py, scale * 4.1 * pulse, scale * 4.1 * pulse, 0,
@@ -3819,9 +3814,6 @@ export function createGame (cc) {
                             dynamax ? DYNAMAX_BAND.shader : gigantamax ? 'gigantamax-pokemon' : null);
                     }
                     if (mega && !megaEvolution && k === 0) {
-                        const ring = scale * (1.62 + 0.12 * Math.sin(this.wall * 6 + i));
-                        b.draw('ring', px, py, ring, ring, -this.wall * 0.55,
-                            this.pal.get(combatForm.color, 235));
                         const stoneKey = `megaStone_${combatForm.id}`;
                         if (!gigantamax && this.atlas.glyphs[stoneKey]) {
                             const a = this.wall * 1.35 + i;

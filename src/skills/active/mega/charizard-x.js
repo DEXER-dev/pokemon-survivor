@@ -274,7 +274,7 @@ export function drawScreenEffect (game, g, fx, skill) {
     const envelope = rise * fall;
     if (envelope <= 0.005) return;
     for (let i = 0; i < fx.layout.axes.length; i++) {
-        drawFlameAxis(game, g, fx.layout.axes[i], fx.layout, envelope * (i ? 0.97 : 1), i * 2.1 + 1);
+        drawFlameAxis(game, g, fx.layout.axes[i], fx.layout, 255 * envelope * (i ? 0.97 : 1), i * 2.1 + 1);
     }
 
     // A short white ignition at the crossing point and directional pixel sparks sell the release

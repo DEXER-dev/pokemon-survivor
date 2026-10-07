@@ -3906,9 +3906,10 @@ skills.on = SKILL;
         r: Float32Array.of(6), hp: Float32Array.of(1e6), dead: new Uint8Array(1),
         grid: { query (_x, _y, _radius, out) { out.length = 0; out.push(0); return out; } },
     };
+    const drawnAlphas = [];
     const castGame = {
         visibleSize: { width: 1000, height: 500 }, cam: { x: 0, y: 0, z: 1 }, enemies: castEnemies,
-        build: { dmg: 1 }, level: 1, wall: 0.3, pal: { get (color, alpha) { return { color, alpha }; } },
+        build: { dmg: 1 }, level: 1, wall: 0.3, pal: { get (color, alpha) { drawnAlphas.push(alpha); return { color, alpha }; } },
         particleBursts: { burst () {} }, megaSkillFx (_form, x, y, _radius, options) { this.effect = { x, y, ...options }; },
         wave () {}, kick () {}, say () {}, logEvent () {},
     };
@@ -3929,7 +3930,7 @@ skills.on = SKILL;
     const landing = charizardXFlightPose({ shape: skill.shape, age: 1.3, duration: skill.effectDuration });
     if (segment.megaSkillCd !== skill.cooldown || castGame.effect?.shape !== skill.shape
         || castEnemies.hp[0] >= 1e6 || drawCalls < 100 || leap.lift < 150 || leap.scale < 2.5
-        || landing.lift > 1) {
+        || landing.lift > 1 || Math.max(...drawnAlphas) < 220) {
         throw new Error('Charizard X cast should deal its visible cross damage, start cooldown, and draw the blue-flame bands');
     }
     console.log('喷火龙 X 苍焰十字：手机/鼠标选点、全屏双斜线与收窄渐尖命中框一致，实战只结算一次并绘出蓝焰 PASS');

@@ -2,6 +2,12 @@
 export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
+        category: 'MEGA视觉',
+        title: '移除 MEGA 精灵身上的圆环光晕',
+        description: '去掉 MEGA 泛光、常驻圆环和选中圆环，保留绕行的进化石，并用小菱形标出技能来源。',
+    },
+    {
+        date: '2026-10-07',
         category: 'Mega技能',
         title: '喷火龙 X 苍焰十字加入实战',
         description: '喷火龙 X 升空蓄势后，在玩家选点引爆全屏渐尖蓝焰 X，再落地收势；命中判定、点燃/双扫斩/爆燃音效与演出同步。',
