@@ -3,6 +3,12 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: '技能预览',
+        title: '苍焰十字音效减少金属感',
+        description: '柔化火焰起音和扫斩的尖锐高频，降低叫声叠音，并让真实余烬噼啪声托住火焰尾音。',
+    },
+    {
+        date: '2026-10-07',
+        category: '技能预览',
         title: '苍焰十字恢复层叠火焰质感',
         description: '全屏 X 加回更密的锯齿焰缘、蓝青内焰与沿斩击流动的亮色火纹，避免拉长后纹理变稀。',
     },
