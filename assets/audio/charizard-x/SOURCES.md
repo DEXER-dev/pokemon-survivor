@@ -1,7 +1,7 @@
-# Charizard X ice-cross preview SFX
+# Charizard X blue-flame preview SFX
 
-The preview uses a four-part, source-based cue timed to its on-screen action: an ice-spell swell, two quick blade passes, then a short crystal break. The OGG files are local runtime conversions; they do not depend on third-party hosting.
+The preview audio uses locally bundled, source-based fire sounds: ignition, two closely staggered flame sweeps, a fireball burst, and a brief ember crackle. The OGG files are edited runtime conversions and do not depend on third-party hosting.
 
-- `ice-charge.ogg` — `ice.wav` from [Ice spells](https://opengameart.org/content/ice-spells) by bart, CC0. The source page notes the original sound by Stephan via pdSounds.
-- `ice-cross-slash-a.ogg` / `ice-cross-slash-b.ogg` — `sword.4.ogg` and `sword.6.ogg` from [20 Sword Sound Effects (Attacks and Clashes)](https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes) by StarNinjas, CC0.
-- `ice-crystal-shatter.ogg` — `LedasLuzta2.ogg` from [Ice breaking/shattering](https://opengameart.org/content/ice-breakingshattering) by IgnasD, CC0.
+- `blue-flame-ignite.ogg`, `blue-flame-sweep-a.ogg`, and `blue-flame-sweep-b.ogg` — short edits from `105016__julien-matthey__jm-fx-fireball-01.wav`, [Fireball](https://lpc.opengameart.org/content/fireball-1) by Julien Matthey, CC0.
+- `blue-flame-burst.ogg` — layers a later section of the Fireball recording with `explosion.wav` from [Explosion](https://opengameart.org/content/explosion-0) by TinyWorlds, CC0.
+- `blue-flame-embers.ogg` — short edit from `fire-1.ogg` in [Fire Crackling](https://opengameart.org/content/fire-crackling/) by AntumDeluge, CC0.

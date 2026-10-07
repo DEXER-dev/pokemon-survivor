@@ -3,8 +3,8 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: '技能预览',
-        title: '喷火龙 X 冰刃演出加入分段音效',
-        description: '加入冰系蓄势、两段交错斩击与冰晶碎裂声，让音效节奏贴合 X 形攻击演出。',
+        title: '喷火龙 X 蓝焰十字加入火焰音效',
+        description: '加入火焰点燃、两段扫掠、爆燃与余烬噼啪声，让音效节奏贴合 X 形攻击演出。',
     },
     {
         date: '2026-10-06',
