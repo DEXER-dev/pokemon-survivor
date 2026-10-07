@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MEGA 无圆环预览</title>
+  <style>
+    :root { color-scheme: light; font-family: "Fusion Pixel", "Microsoft YaHei", sans-serif; }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px;
+      color: #394838; background: #dfe8cf;
+    }
+    .preview {
+      width: min(760px, 100%); overflow: hidden; border: 3px solid #51624b;
+      border-radius: 8px; background: #e7efd5; box-shadow: 0 7px 0 #adb89c;
+    }
+    header {
+      min-height: 62px; padding: 12px 18px; display: flex; align-items: center;
+      justify-content: space-between; gap: 12px; background: #fff8e6; border-bottom: 2px solid #b1b99f;
+    }
+    h1 { margin: 0; font-size: 17px; letter-spacing: .06em; }
+    .badge { padding: 5px 9px; border: 1px solid #76aabd; border-radius: 999px; color: #27617a; background: #effbff; font-size: 12px; }
+    .field {
+      position: relative; height: clamp(290px, 57vw, 420px); overflow: hidden; isolation: isolate;
+      background:
+        radial-gradient(ellipse at 22% 82%, #dbe8bf 0 12%, transparent 12.5%),
+        radial-gradient(ellipse at 77% 20%, #dce8c2 0 15%, transparent 15.5%),
+        linear-gradient(145deg, #edf2dc, #e4edcf 58%, #eaf0d8);
+    }
+    .grass { position: absolute; width: 12px; height: 8px; opacity: .55; }
+    .grass::before, .grass::after { content: ""; position: absolute; bottom: 0; width: 1px; height: 8px; background: #a9c585; transform-origin: bottom; }
+    .grass::before { left: 4px; transform: rotate(-22deg); }
+    .grass::after { left: 8px; transform: rotate(19deg); height: 6px; }
+    .g1 { left: 12%; top: 25%; } .g2 { left: 28%; top: 73%; transform: scale(1.3); }
+    .g3 { right: 18%; top: 27%; transform: scale(.8); } .g4 { right: 13%; bottom: 15%; transform: scale(1.2); }
+    .pokemon-shadow { position: absolute; left: 50%; top: 63%; width: 98px; height: 22px; transform: translate(-50%,-50%); border-radius: 50%; background: #777f69; opacity: .38; filter: blur(1px); }
+    .pokemon {
+      position: absolute; left: 50%; top: 48%; width: 96px; height: 96px; transform: translate(-50%,-50%);
+      background-image: url("../../assets/icons/CHARIZARD_1.png"); background-repeat: no-repeat;
+      background-position: 0 0; background-size: 288px 96px; image-rendering: pixelated;
+      filter: drop-shadow(2px 3px 0 #465143);
+    }
+    .skill-marker {
+      position: absolute; z-index: 2; left: 50%; top: calc(48% - 65px); width: 10px; height: 10px;
+      transform: translateX(-50%) rotate(45deg); border: 2px solid #f4ffff; background: #42c9ed;
+      box-shadow: 0 0 0 2px #3989a4;
+    }
+    .stone {
+      position: absolute; left: calc(50% + 54px); top: calc(48% - 45px); width: 48px; height: 48px;
+      image-rendering: pixelated; filter: drop-shadow(1px 2px 0 #536353);
+      animation: float 2.2s ease-in-out infinite;
+    }
+    @keyframes float { 50% { transform: translateY(-5px) rotate(7deg); } }
+    .note {
+      position: absolute; left: 16px; bottom: 14px; padding: 7px 10px; border: 1px solid #a8b59b;
+      border-radius: 6px; color: #63705c; background: #fff9e9e8; font-size: 12px;
+    }
+    footer { padding: 11px 16px; border-top: 2px solid #c8d0b8; color: #5e6b58; background: #f4f3df; font-size: 13px; }
+    @media (max-width: 520px) { body { padding: 10px; } header { padding: 10px 12px; } h1 { font-size: 14px; } .badge { font-size: 10px; } }
+  </style>
+</head>
+<body>
+  <main class="preview" aria-label="MEGA形态去除光环后的预览">
+    <header><h1>MEGA 形态 · 清爽版</h1><span class="badge">无圆环 · 无大光晕</span></header>
+    <section class="field" aria-label="草地上的超级喷火龙 X">
+      <i class="grass g1"></i><i class="grass g2"></i><i class="grass g3"></i><i class="grass g4"></i>
+      <div class="pokemon-shadow"></div>
+      <div class="skill-marker" title="当前技能来源"></div>
+      <div class="pokemon" role="img" aria-label="超级喷火龙 X"></div>
+      <img class="stone" src="../../assets/items/mega/CHARIZARDITEX.png" alt="喷火龙进化石 X">
+      <div class="note">MEGA 石绕行 · 小菱形标记技能来源</div>
+    </section>
+    <footer>移除常驻双圆环和泛光，让精灵本体更突出。</footer>
+  </main>
+</body>
+</html>
