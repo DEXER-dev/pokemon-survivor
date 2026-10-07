@@ -24,14 +24,14 @@
   <div class="shell">
     <header><div class="brand"><span class="mark" aria-hidden="true">X</span><div><div class="eyebrow">MEGA ACTIVE SKILL · VISUAL CONCEPT</div><h1>喷火龙 X · 苍焰十字</h1></div></div><div class="status"><i class="dot"></i>技能特效设计预览</div></header>
     <main>
-      <div class="intro"><div><h2>玩家选点，蓝焰 X 在落点爆发</h2><p>拖动或点按战场选择 X 的中心；确认释放后，蓝火沿两条对角线交叉斩出。</p></div><div class="phase">演出阶段　<b id="phase">玩家选择落点</b></div></div>
+      <div class="intro"><div><h2>玩家选点，蓝焰 X 在落点爆发</h2><p>点按或拖动战场，松手即按 X 落点释放；释放后可拖动再选位置。</p></div><div class="phase">演出阶段　<b id="phase">玩家选择落点</b></div></div>
       <section class="stage" aria-label="喷火龙 X 苍焰十字技能演示"><canvas id="scene" width="1000" height="470"></canvas>
         <div class="hud"><div class="card"><span class="face"><img src="../../assets/icons/CHARIZARD_1.png" alt="超级喷火龙 X"></span><span class="copy"><b>超级喷火龙 X</b><br>MEGA ACTIVE</span></div><div class="card"><span class="copy"><b>X形攻击</b><br>命中 <span id="targetCount">4</span> 个目标</span></div></div>
         <div class="badge">✦ X 的落点由玩家选择</div>
         <div class="skill"><span class="skill-icon">✕</span><span class="skill-text"><b>苍焰十字</b><br>蓝焰交叉爆发</span></div>
       </section>
-      <div class="toolbar"><div class="timeline" id="timeline"><span class="step active" data-phase="0"><i></i>玩家选点</span><span class="step" data-phase="1"><i></i>蓝焰汇聚</span><span class="step" data-phase="2"><i></i>X形斩击</span><span class="step" data-phase="3"><i></i>交叉爆燃</span><span class="step" data-phase="4"><i></i>火星消散</span></div><div class="actions"><span class="loop" id="aimStatus">点按或拖动选择 X 的中心</span><button class="replay" id="cast" type="button">✦　释放苍焰十字</button></div></div>
-      <div class="notes"><span class="caption"><strong>操作：</strong>点按或拖动选择 X 的落点；释放后，两道蓝焰斜斩交叉命中。</span><span>此页为交互概念预览，游戏技能尚未修改。</span></div>
+      <div class="toolbar"><div class="timeline" id="timeline"><span class="step active" data-phase="0"><i></i>玩家选点</span><span class="step" data-phase="1"><i></i>蓝焰汇聚</span><span class="step" data-phase="2"><i></i>X形斩击</span><span class="step" data-phase="3"><i></i>交叉爆燃</span><span class="step" data-phase="4"><i></i>火星消散</span></div><div class="actions"><span class="loop" id="aimStatus">点按或拖动战场，松手释放</span><button class="replay" id="cast" type="button">↻　重播苍焰十字</button></div></div>
+      <div class="notes"><span class="caption"><strong>操作：</strong>点按或拖动选择 X 的落点，松手立即释放；按钮可在同一落点重播。</span><span>此页为交互概念预览，游戏技能尚未修改。</span></div>
     </main>
   </div>
   <script>
@@ -53,9 +53,10 @@
       function insideCross(x,y,cx,cy){const dx=x-cx,dy=y-cy;return [Math.PI/4,-Math.PI/4].some(a=>{const ux=Math.cos(a),uy=Math.sin(a),along=Math.abs(dx*ux+dy*uy),across=Math.abs(-dx*uy+dy*ux);return along<=slashReach&&across<=slashHalfWidth})}
       const targetTotal=()=>enemies.filter(([,x,y])=>insideCross(x,y,aim.x,aim.y)).length;
       function setAimFromPointer(event){const rect=canvas.getBoundingClientRect();aim.x=clamp((event.clientX-rect.left)/rect.width*1000,24,976);aim.y=clamp((event.clientY-rect.top)/rect.height*470,30,440);targetCount.textContent=String(targetTotal());aimStatus.textContent=`预计命中 ${targetTotal()} 个目标`}
-      canvas.addEventListener('pointermove',event=>{if(castStartedAt!==null)return;if(event.pointerType==='mouse'||isPointerDown)setAimFromPointer(event)});
+      canvas.addEventListener('pointermove',event=>{if(castStartedAt!==null||!isPointerDown)return;setAimFromPointer(event)});
+      function castAtAim(){if(castStartedAt!==null)return;castPoint={x:aim.x,y:aim.y};castStartedAt=performance.now();castButton.disabled=true;castButton.textContent='演出中…';aimStatus.textContent=`已锁定落点 · 命中 ${targetTotal()} 个目标`}
       canvas.addEventListener('pointerdown',event=>{if(castStartedAt!==null)return;event.preventDefault();isPointerDown=true;canvas.setPointerCapture(event.pointerId);setAimFromPointer(event);aimStatus.textContent=`落点已选 · 预计命中 ${targetTotal()} 个`});
-      canvas.addEventListener('pointerup',()=>{isPointerDown=false});canvas.addEventListener('pointercancel',()=>{isPointerDown=false});
+      canvas.addEventListener('pointerup',event=>{if(!isPointerDown)return;setAimFromPointer(event);isPointerDown=false;castAtAim()});canvas.addEventListener('pointercancel',()=>{isPointerDown=false});
       function drawGrass(){
         const g=ctx.createLinearGradient(0,0,1000,470);g.addColorStop(0,'#edf2dc');g.addColorStop(.54,'#e5edcf');g.addColorStop(1,'#dfe9c9');ctx.fillStyle=g;ctx.fillRect(0,0,1000,470);
         ctx.globalAlpha=.2;ctx.fillStyle='#c4dca9';[[145,120,180,80],[866,104,170,88],[152,384,190,58],[854,385,200,66],[505,72,170,45]].forEach(([x,y,rx,ry])=>{ctx.beginPath();ctx.ellipse(x,y,rx,ry,-.12,0,Math.PI*2);ctx.fill()});ctx.globalAlpha=1;
@@ -94,10 +95,10 @@
         if(charizard.complete&&charizard.naturalWidth){ctx.save();ctx.imageSmoothingEnabled=false;ctx.shadowColor='#49dcf6';ctx.shadowBlur=casting?slash*12:0;ctx.drawImage(charizard,0,0,64,64,player.x-36,player.y-36,72,72);ctx.restore()}
         if(!casting)drawAimMarker(cx,cy,t);
         const state=!casting?0:u<.19?1:u<.48?2:u<.64?3:4;phaseLabel.textContent=['玩家选择落点','蓝焰汇聚','X形斩击','交叉爆燃','火星消散'][state];steps.forEach((s,i)=>s.classList.toggle('active',i===state));
-        if(casting&&elapsed>=1){castStartedAt=null;castPoint=null;castButton.disabled=false;castButton.textContent='✦　释放苍焰十字';aimStatus.textContent='演出完成 · 可重新选点'}
+        if(casting&&elapsed>=1){castStartedAt=null;castPoint=null;castButton.disabled=false;castButton.textContent='↻　重播苍焰十字';aimStatus.textContent='演出完成 · 点按/拖动可再选位置'}
         requestAnimationFrame(draw)
       }
-      castButton.addEventListener('click',()=>{if(castStartedAt!==null)return;castPoint={x:aim.x,y:aim.y};castStartedAt=performance.now();castButton.disabled=true;castButton.textContent='蓝焰释放中…';aimStatus.textContent=`已锁定落点 · 命中 ${targetTotal()} 个目标`});targetCount.textContent=String(targetTotal());requestAnimationFrame(draw);
+      castButton.addEventListener('click',castAtAim);targetCount.textContent=String(targetTotal());requestAnimationFrame(draw);
     })();
   </script>
 </body>
