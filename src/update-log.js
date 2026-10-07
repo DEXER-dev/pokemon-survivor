@@ -3,6 +3,12 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: '技能预览',
+        title: '苍焰十字扩展到整个战场',
+        description: '蓝焰 X 按玩家选点铺满整个战场；喷火龙 X 以更大体型高空升起，展开火翼后回落落地。',
+    },
+    {
+        date: '2026-10-07',
+        category: '技能预览',
         title: '喷火龙 X 飞升并扩大苍焰十字',
         description: '预览中喷火龙 X 会喷焰升空后发动更大范围的 X 形斩击，再落地收势；命中范围同步扩大。',
     },
