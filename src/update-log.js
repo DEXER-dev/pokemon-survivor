@@ -3,8 +3,20 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-07',
         category: '技能预览',
+        title: '喷火龙 X 技能预览放大 X 形斩击',
+        description: 'X 形火焰斩击加大约三成，并同步调整命中范围；预览保留三种火焰音效与喷火龙叫声。',
+    },
+    {
+        date: '2026-10-07',
+        category: '技能预览',
         title: '喷火龙 X 技能预览新增叫声与三种火焰音效',
         description: '三套火焰方案都加入喷火龙 X 的叫声，可在同一落点对比交叉爆燃、蓝焰疾掠和龙焰重击。',
+    },
+    {
+        date: '2026-10-07',
+        category: '技能预览',
+        title: '喷火龙 X 蓝焰十字加入火焰音效',
+        description: '加入火焰点燃、两段扫掠、爆燃与余烬噼啪声，让音效节奏贴合 X 形攻击演出。',
     },
     {
         date: '2026-10-06',

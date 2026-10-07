@@ -47,7 +47,7 @@
       const soundChoices=[...document.querySelectorAll('.sound-option')],soundPlans={cross:[[0,'ignite',-5],[165,'cry',-8],[240,'sweepA',-12],[330,'sweepB',-14],[760,'burst',-7],[820,'embers',-12]],rush:[[0,'ignite',-9],[165,'cry',-8],[135,'sweepA',-9],[225,'sweepB',-9],[535,'burst',-12]],dragon:[[0,'staff',-7],[165,'cry',-8],[275,'sweepB',-11],[620,'burst',-4],[770,'embers',-8]]};let selectedSound='cross';
       function selectSoundPlan(id){selectedSound=id;soundChoices.forEach(button=>{const selected=button.dataset.sound===id;button.setAttribute('aria-pressed',String(selected));button.querySelector('em').textContent=selected?'选中 · 点击试听':'点击试听此方案'});aimStatus.textContent=`音效方案 ${id.toUpperCase()} 已选 · 点击战场释放`}
       function playPlan(id){for(const [delay,name,decibels] of soundPlans[id]){if(delay===0)playSfx(name,decibels);else window.setTimeout(()=>playSfx(name,decibels),delay)}}
-      const slashReach=132,slashHalfWidth=28,player={x:272,y:365};let aim={x:610,y:235},castStartedAt=null,castPoint=null,isPointerDown=false;
+      const slashReach=172,slashHalfWidth=35,player={x:272,y:365};let aim={x:610,y:235},castStartedAt=null,castPoint=null,isPointerDown=false;
       const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),ease=v=>{v=clamp(v);return 1-Math.pow(1-v,3)};
       function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
       const grass=Array.from({length:75},(_,i)=>{const r=rng(i*897+74);return{x:20+r()*960,y:25+r()*420,n:3+Math.floor(r()*3),s:2+r()*2,a:.13+r()*.13}});
@@ -93,7 +93,7 @@
         for(const [name,x,y] of enemies){const inside=insideCross(x,y,cx,cy);drawShadow(x,y+22,17,inside ? 0.12 : 0.07);drawCreature(name,x,y,inside ? 46 : 38,inside ? 1 : 0.48)}
         drawShadow(player.x,player.y+33,34,.22);
         if(casting&&u<.50){const gather=ease(u/.31);for(let i=0;i<motes.length;i++){const p=motes[i],a=p.arm?Math.PI/4:-Math.PI/4,ux=Math.cos(a),uy=Math.sin(a),px=-uy,py=ux,q=p.along*slashReach*(1-gather*.68),offset=p.offset*(1-gather*.7),x=cx+ux*q+px*offset,y=cy+uy*q+py*offset+Math.sin(elapsed*10+p.phase)*2,alpha=(.12+charge*.48)*(u<.39?1:1-ease((u-.39)/.13));ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=alpha;ctx.fillStyle=i%7===0?'#edffff':i%3===0?'#52e6f7':'#12a8d2';ctx.fillRect(Math.round(x),Math.round(y),p.s,p.s);ctx.restore()}}
-        if(casting&&activity>.01){const reach=slashReach*(slash>.01?slash:.78),width=slash>.01?15+35*slash:18,alpha=slash>.01?slash:linger*.42;if(alpha>.01){drawIceBlade(cx,cy,-Math.PI/4,reach,width,alpha,t,1);drawIceBlade(cx,cy,Math.PI/4,reach,width,alpha*.97,t+1.1,5)}}
+        if(casting&&activity>.01){const reach=slashReach*(slash>.01?slash:.78),width=slash>.01?19+41*slash:23,alpha=slash>.01?slash:linger*.42;if(alpha>.01){drawIceBlade(cx,cy,-Math.PI/4,reach,width,alpha,t,1);drawIceBlade(cx,cy,Math.PI/4,reach,width,alpha*.97,t+1.1,5)}}
         if(casting&&impact>.01)drawPixelSpark(cx,cy,7,impact*.78,'#e8ffff');
         if(casting&&u>.25&&u<.88){for(let i=0;i<21;i++){const p=motes[(i*7)%motes.length],a=p.arm?Math.PI/4:-Math.PI/4,q=p.along*(slashReach-8),x=cx+Math.cos(a)*q,y=cy+Math.sin(a)*q+p.offset*.15;const life=1-ease((u-.61+i%3*.012)/.3);drawPixelSpark(x,y,p.s*.72,life*(.23+p.seed*.38),i%6===0?'#f2ffff':i%2?'#72eaff':'#13a7cf')}}
         if(charizard.complete&&charizard.naturalWidth){ctx.save();ctx.imageSmoothingEnabled=false;ctx.shadowColor='#49dcf6';ctx.shadowBlur=casting?slash*12:0;ctx.drawImage(charizard,0,0,64,64,player.x-36,player.y-36,72,72);ctx.restore()}
