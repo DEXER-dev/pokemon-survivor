@@ -2,6 +2,12 @@
 export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-08',
+        category: '神兽关卡',
+        title: '已解锁神兽地点可自由选择挑战',
+        description: '不用先击败更早的神兽；靠近任一已解锁且未完成的地点即可进入，地点仍按训练家 BOSS 进度解锁。',
+    },
+    {
+        date: '2026-10-08',
         category: '战斗音效',
         title: '裂空座出场加入云风音效',
         description: '进入裂空座的神兽出没地时播放云幕散开的短风掠声；静音测试参数照常生效。',

@@ -44,14 +44,31 @@ export class LegendaryLairs {
         return this.active || this.sites.find((site) => !site.complete) || null;
     }
 
+    /** Choose the nearest unlocked, unfinished lair that the player can currently enter. */
+    siteAt (x, y, radius) {
+        if (this.active) return null;
+        const radiusSq = radius * radius;
+        let nearest = null;
+        let nearestSq = radiusSq;
+        for (const site of this.sites) {
+            if (site.complete) continue;
+            const dx = site.x - x;
+            const dy = site.y - y;
+            const distanceSq = dx * dx + dy * dy;
+            if (distanceSq > nearestSq) continue;
+            nearest = site;
+            nearestSq = distanceSq;
+        }
+        return nearest;
+    }
+
     canEnter (x, y, radius) {
-        const site = this.next;
-        return !!site && !site.complete && Math.hypot(site.x - x, site.y - y) <= radius;
+        return !!this.siteAt(x, y, radius);
     }
 
     enter (x, y, radius) {
-        const site = this.next;
-        if (!site || site.complete || Math.hypot(site.x - x, site.y - y) > radius) return null;
+        const site = this.siteAt(x, y, radius);
+        if (!site) return null;
         this.activeId = site.id;
         return site;
     }

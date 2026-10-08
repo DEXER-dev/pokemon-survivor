@@ -4294,9 +4294,9 @@ export function createGame (cc) {
             this.perf.pets = this.capture.n;
             const mm = Math.floor(this.time / 60);
             const ss = Math.floor(this.time % 60);
-            const lairTarget = !this.legendaryMap.active ? this.legendaryLairs.next : null;
-            const nearLair = lairTarget && Math.hypot(lairTarget.x - this.player.x,
-                lairTarget.y - this.player.y) <= 112;
+            const lairTarget = !this.legendaryMap.active
+                ? this.legendaryLairs.siteAt(this.player.x, this.player.y, 112) : null;
+            const nearLair = !!lairTarget;
             this.hud.set(
                 '', '',
                 this.levelUp

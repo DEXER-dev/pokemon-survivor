@@ -771,6 +771,19 @@ const TAU = Math.PI * 2;
     const lair = new LegendaryLairs(LEGENDARY_BOSSES);
     const firstSite = lair.unlockForBossCount(5, 0, 0, makeRng(4))[0];
     const expectedIds = expected.map(([id]) => id);
+    const freeOrder = new LegendaryLairs(LEGENDARY_BOSSES);
+    freeOrder.unlockForBossCount(6, 0, 0, makeRng(40));
+    const laterSite = freeOrder.sites[1];
+    const laterEntry = laterSite && freeOrder.enter(laterSite.x, laterSite.y, 112);
+    if (!laterEntry || laterEntry !== laterSite || freeOrder.active !== laterSite
+        || freeOrder.next !== laterSite) {
+        throw new Error('an unlocked later legendary lair must be enterable before an earlier lair is challenged');
+    }
+    freeOrder.completeActive();
+    if (freeOrder.sites[0].complete || freeOrder.next !== freeOrder.sites[0]
+        || freeOrder.canEnter(laterSite.x, laterSite.y, 112)) {
+        throw new Error('finishing a later lair must preserve earlier unfinished sites and close the completed one');
+    }
     if (WILD_BOSSES.map((family) => family.id).join(',') !== expectedIds.join(',')
         || WILD_BOSSES.some((family) => LEGENDARY_BOSSES.includes(family))
         || firstSite?.species !== 'legend-mewtwo'
@@ -813,6 +826,7 @@ const TAU = Math.PI * 2;
         || balls.bfam[0] !== enemies.fam[index]) {
         throw new Error('weakened roaming wild boss must be catchable and release the boss slot');
     }
+    console.log('神兽关卡：已解锁地点可跳序进入，完成后保留其他未挑战地点 PASS');
     console.log('野外强敌：随机刷新、独立于一级神地点与训练家BOSS、强袭可避、击败后可收服 PASS');
 }
 // Caught legendaries keep a distinct body scale and release separate, boss-prioritized signature moves.
