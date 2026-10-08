@@ -663,7 +663,8 @@ const TAU = Math.PI * 2;
         'legend-mewtwo': ['念力陨石', '精神冲击', '心灵封域'],
         'legend-lugia': ['海啸推线 · 躲进蓝色窄道', '气旋爆裂', '苍穹风眼'],
         'legend-hooh': ['凤凰翼焰', '圣焰坠羽', '日轮焚天'],
-        'legend-rayquaza': ['天穹俯冲 · 画龙点睛', '龙尾回旋 · 苍天十字', '苍天裂界 · 绿辉流星雨'],
+        'legend-rayquaza': ['天穹俯冲 · 画龙点睛', '苍天环斩 · 双环回旋',
+            '苍天裂界 · 绿辉流星雨', '苍天龙卷 · 翡翠风暴'],
         'legend-kyogre': ['根源水柱', '原始海潮', '深渊漩潮'],
         'legend-groudon': ['分叉地脉', '断崖喷发', '大陆震落'],
         'legend-dialga': ['时间裂束', '时光咆哮 · 回响', '时序停摆'],
@@ -674,7 +675,7 @@ const TAU = Math.PI * 2;
         'legend-mewtwo': ['vfx_arcane_', 'vfx_arcane_', 'vfx_arcane_'],
         'legend-lugia': ['vfx_water04_', 'vfx_water03_', 'vfx_water04_'],
         'legend-hooh': ['hoohFire_', 'hoohFire_', 'hoohFire_'],
-        'legend-rayquaza': ['dragon', 'dragon', 'dragon'],
+        'legend-rayquaza': ['dragon', 'dragon', 'dragon', 'dragon'],
         'legend-kyogre': ['vfx_water03_', 'vfx_water05_', 'vfx_water05_'],
         'legend-groudon': ['vfx_earth04_', 'vfx_earth03_', 'vfx_earth03_'],
         'legend-dialga': ['vfx_cosmic02_', 'vfx_cosmic02_', 'vfx_cosmic05_'],
@@ -689,15 +690,18 @@ const TAU = Math.PI * 2;
         system.start(0, 0, family.id);
         let firstPhaseFootprint = 0;
         const observed = [];
+        const cycleLength = family.id === 'legend-rayquaza' ? 4 : 3;
         for (let i = 0; i < 4; i++) {
             system.phase = 'idle';
             system.cooldown = 0;
             const hpRatio = i < 2 ? 1 : 0.45;
             system.step(0, 190, 28, rng, 0, 0, hpRatio);
             observed.push(system.name);
-            if (system.name !== moves[family.id][i % 3] || system.moveIndex !== i % 3
-                || system.ultimate !== (i % 3 === 2) || system.phaseTwo !== (hpRatio <= 0.5)) {
-                throw new Error(`${family.id} must rotate three signature moves and reinforce them at half health`);
+            const moveSlot = i % cycleLength;
+            const expectedUltimate = family.id !== 'legend-rayquaza' && moveSlot === 2;
+            if (system.name !== moves[family.id][moveSlot] || system.moveIndex !== moveSlot
+                || system.ultimate !== expectedUltimate || system.phaseTwo !== (hpRatio <= 0.5)) {
+                throw new Error(`${family.id} must rotate its distinct signature moves and reinforce them at half health`);
             }
             if (i === 0) firstPhaseFootprint = footprint(system.areas);
             if (i === 3 && footprint(system.areas) <= firstPhaseFootprint) {
@@ -708,13 +712,29 @@ const TAU = Math.PI * 2;
             if (!drawPrimaryLegendaryBossAttack(batch, palette, system, 1.2)
                 || calls.length > 100
                 || !calls.some(([glyph]) => typeof glyph === 'string'
-                    && glyph.startsWith(materialPrefix[family.id][i % 3]))) {
+                    && glyph.startsWith(materialPrefix[family.id][moveSlot]))) {
                 throw new Error(`${family.id} boss warning must use its move-matched material or native dragon glyph within budget`);
             }
             const impact = system.step(BOSS.legendaryWindup + 0.01,
                 system.areas[0].x, system.areas[0].y, rng, 0, 0, hpRatio);
-            if (!impact?.hit || impact.name !== system.name || impact.ultimate !== system.ultimate) {
-                throw new Error(`${family.id} attack collision must match its telegraphed primary-boss pattern`);
+            let hit = impact;
+            if (impact?.sequenceStart && !impact.hit) {
+                if (system.sequenceKind === 'meteor-columns') {
+                    hit = system.step(0.015, system.columnXs[0], system.topY, rng, 0, 0, hpRatio);
+                } else if (system.sequenceKind === 'ring') {
+                    const a = system.ringAngle;
+                    hit = system.step(0.03, system.x + Math.cos(a) * system.ringRadius,
+                        system.y + Math.sin(a) * system.ringRadius, rng, 0, 0, hpRatio);
+                } else if (system.sequenceKind === 'tornado') {
+                    const area = system.areas[0];
+                    hit = system.step(0.03,
+                        area.x + Math.cos(area.angle) * area.length * 0.42,
+                        area.y + Math.sin(area.angle) * area.length * 0.42,
+                        rng, 0, 0, hpRatio);
+                }
+            }
+            if (!hit?.hit || hit.name !== system.name || hit.ultimate !== system.ultimate) {
+                throw new Error(`${family.id} ${system.name} (slot ${moveSlot}) attack collision must match its telegraphed primary-boss pattern`);
             }
             calls.length = 0;
             if (!drawPrimaryLegendaryBossAttack(batch, palette, system, 1.4)
@@ -722,8 +742,8 @@ const TAU = Math.PI * 2;
                 throw new Error(`${family.id} boss impact must remain visible and within its source sprite budget`);
             }
         }
-        if (new Set(observed.slice(0, 3)).size !== 3) {
-            throw new Error(`${family.id} three attacks must have separate gameplay footprints`);
+        if (new Set(observed.slice(0, cycleLength)).size !== cycleLength) {
+            throw new Error(`${family.id} signature attacks must have separate gameplay footprints`);
         }
     }
     for (const phaseTwo of [false, true]) {
@@ -740,6 +760,25 @@ const TAU = Math.PI * 2;
         }
     }
     console.log('一级神战斗：九只三招轮换、半血扩大命中图形、素材预警/冲击渲染与终极招式回气 PASS');
+}
+// Rayquaza phase-two Sky Dive follows the live player during the tell, then commits to the final position.
+{
+    const rng = makeRng(8675309);
+    const system = new LegendaryAttackSystem();
+    system.start(0, 0, 'legend-rayquaza');
+    system.attackCount = 0;
+    system.cooldown = 0;
+    system.step(0, 180, 20, rng, 0, 0, 0.4);
+    const initialX = system.x;
+    system.step(0.4, -140, 75, rng, 0, 0, 0.4);
+    if (system.name !== '天穹俯冲 · 画龙点睛' || Math.abs(system.x - initialX) < 40) {
+        throw new Error('Rayquaza phase-two dive warning must track the moving player');
+    }
+    system.step(0.8, 70, -120, rng, 0, 0, 0.4);
+    const lockedX = system.x;
+    if (!system.locked) throw new Error('Rayquaza dive must visibly lock shortly before impact');
+    system.step(0.08, -200, -160, rng, 0, 0, 0.4);
+    if (Math.abs(system.x - lockedX) > 1) throw new Error('Rayquaza dive must hold its final target after lock');
 }
 // Roaming bosses tighten their recovery after the half-health escalation while retaining the full tell.
 {

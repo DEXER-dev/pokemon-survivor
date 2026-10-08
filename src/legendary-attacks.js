@@ -1,4 +1,5 @@
 import { BOSS, PLAYER } from './config.js';
+import { RAYQUAZA_ARENA_BOUNDS } from './world-mewtwo-arena.js';
 
 const TAU = Math.PI * 2;
 const circle = (x, y, radius) => ({ shape: 'circle', x, y, radius });
@@ -42,6 +43,18 @@ export class LegendaryAttackSystem {
         this.sourceX = 0;
         this.sourceY = 0;
         this.attackCount = 0;
+        this.locked = false;
+        this.sequenceKind = '';
+        this.impactDuration = BOSS.legendaryImpact;
+        this.columnXs = [];
+        this.columnCount = 0;
+        this.shotsPerColumn = 0;
+        this.columnDelay = 0;
+        this.shotDelay = 0;
+        this.fallTime = 0;
+        this.sequenceHitResolved = false;
+        this.topY = 0;
+        this.bottomY = 0;
     }
 
     start (cx, cy, family = '', { wildBoss = false } = {}) {
@@ -55,7 +68,13 @@ export class LegendaryAttackSystem {
         this.cooldown = wildBoss ? 1.45 : 1.1;
     }
 
-    _buildPattern (rng, px, py, sourceX, sourceY, phaseTwo) {
+    _buildPattern (rng, px, py, sourceX, sourceY, phaseTwo, moveIndexOverride = null) {
+        this.sequenceKind = '';
+        this.impactDuration = BOSS.legendaryImpact;
+        this.columnXs = [];
+        this.columnCount = this.shotsPerColumn = 0;
+        this.sequenceHitResolved = false;
+        this.locked = false;
         const dx = px - sourceX;
         const dy = py - sourceY;
         const distance = Math.hypot(dx, dy) || 1;
@@ -68,9 +87,11 @@ export class LegendaryAttackSystem {
         const ny = ux;
         const advance = Math.min(550, Math.max(112, distance - 25));
         const target = { x: sourceX + ux * advance, y: sourceY + uy * advance };
-        const moveIndex = this.wildBoss ? this.attackCount % 2 : this.attackCount % 3;
+        const moveCount = this.wildBoss ? 2 : this.family === 'legend-rayquaza' ? 4 : 3;
+        const moveIndex = Number.isInteger(moveIndexOverride)
+            ? moveIndexOverride : this.attackCount % moveCount;
         const second = moveIndex === 1;
-        const ultimate = moveIndex === 2;
+        const ultimate = this.family !== 'legend-rayquaza' && moveIndex === 2;
         const areas = [];
         const markers = [];
         let name = '';
@@ -176,27 +197,56 @@ export class LegendaryAttackSystem {
                     areas.push(lane(target.x, target.y, phaseTwo ? 620 : 560,
                         phaseTwo ? 112 : 86, angle));
                 } else if (second) {
-                    name = '龙尾回旋 · 苍天十字';
-                    const sweepAngle = angle + (rng.next() < 0.5 ? -0.42 : 0.42);
-                    areas.push(lane(target.x, target.y, 480, 52, sweepAngle));
-                    areas.push(lane(target.x, target.y, 420, 46, sweepAngle + Math.PI * 0.5));
-                    if (phaseTwo) {
-                        areas.push(lane(target.x, target.y, 360, 36, sweepAngle + 0.72));
-                        areas.push(lane(target.x, target.y, 360, 36, sweepAngle - 0.72));
+                    name = '苍天环斩 · 双环回旋';
+                    this.sequenceKind = 'ring';
+                    this.ringRadius = phaseTwo ? 196 : 164;
+                    this.innerRingRadius = phaseTwo ? 118 : 0;
+                    this.ringBlades = phaseTwo ? 5 : 4;
+                    this.ringAngle = angle - Math.PI * 0.65;
+                    this.ringDirection = rng.next() < 0.5 ? 1 : -1;
+                    this.impactDuration = phaseTwo ? 1.25 : 1.05;
+                    this.safeAreas = [circle(target.x, target.y, phaseTwo ? 74 : 60)];
+                    for (let ring = 0; ring < (phaseTwo ? 2 : 1); ring++) {
+                        const radius = ring === 0 ? this.ringRadius : this.innerRingRadius;
+                        const blades = ring === 0 ? this.ringBlades : 4;
+                        for (let i = 0; i < blades; i++) {
+                            const a = this.ringAngle + i * TAU / blades;
+                            const from = polar(target.x, target.y, radius - 32, a);
+                            const to = polar(target.x, target.y, radius + 32, a);
+                            areas.push(segment(from.x, from.y, to.x, to.y, 42));
+                        }
+                    }
+                } else if (moveIndex === 2) {
+                    name = '苍天裂界 · 绿辉流星雨';
+                    this.sequenceKind = 'meteor-columns';
+                    this.columnCount = phaseTwo ? 8 : 6;
+                    this.shotsPerColumn = phaseTwo ? 4 : 3;
+                    this.columnDelay = phaseTwo ? 0.16 : 0.19;
+                    this.shotDelay = 0.12;
+                    this.fallTime = phaseTwo ? 0.42 : 0.48;
+                    this.impactDuration = (this.columnCount - 1) * this.columnDelay
+                        + (this.shotsPerColumn - 1) * this.shotDelay + this.fallTime;
+                    this.topY = this.cy + RAYQUAZA_ARENA_BOUNDS.halfHeight - 30;
+                    this.bottomY = this.cy - RAYQUAZA_ARENA_BOUNDS.halfHeight + 30;
+                    const spacing = (RAYQUAZA_ARENA_BOUNDS.halfWidth * 2 - 100)
+                        / (this.columnCount - 1);
+                    this.columnXs = Array.from({ length: this.columnCount }, (_, i) =>
+                        this.cx - RAYQUAZA_ARENA_BOUNDS.halfWidth + 50 + i * spacing);
+                    const stripWidth = phaseTwo ? 52 : 62;
+                    for (const x of this.columnXs) {
+                        areas.push({ ...lane(x, this.cy, this.topY - this.bottomY, stripWidth, -Math.PI / 2),
+                            telegraph: 'meteor-column' });
+                        markers.push(circle(x, this.topY, 13));
                     }
                 } else {
-                    name = '苍天裂界 · 绿辉流星雨';
-                    const count = phaseTwo ? 5 : 4;
-                    const spacing = phaseTwo ? 108 : 116;
-                    for (let i = 0; i < count; i++) {
-                        const offset = (i - (count - 1) * 0.5) * spacing;
-                        const along = (i % 2 ? 18 : -18);
-                        const x = target.x + nx * offset + ux * along;
-                        const y = target.y + ny * offset + uy * along;
-                        const radius = phaseTwo ? 33 : 30;
-                        areas.push(circle(x, y, radius));
-                        markers.push(circle(x, y, radius + 11));
-                    }
+                    name = '苍天龙卷 · 翡翠风暴';
+                    this.sequenceKind = 'tornado';
+                    this.impactDuration = phaseTwo ? 1.35 : 1.1;
+                    const sweepAngle = angle + (rng.next() < 0.5 ? -0.34 : 0.34);
+                    areas.push(lane(target.x, target.y, phaseTwo ? 720 : 620,
+                        phaseTwo ? 120 : 104, sweepAngle));
+                    if (phaseTwo) areas.push(lane(target.x, target.y, 520, 72, sweepAngle + Math.PI * 0.5));
+                    this.safeAreas = [circle(target.x, target.y, 48)];
                 }
             } else if (this.family === 'legend-kyogre') {
                 if (moveIndex === 0) {
@@ -457,6 +507,9 @@ export class LegendaryAttackSystem {
         this.phaseTwo = phaseTwo;
         this.moveIndex = moveIndex;
         this.ultimate = ultimate;
+        this.locked = false;
+        this.sequenceHitResolved = false;
+        if (!this.sequenceKind) this.impactDuration = BOSS.legendaryImpact;
     }
 
     _inside (shape, px, py, safe = false) {
@@ -484,7 +537,44 @@ export class LegendaryAttackSystem {
         return !this.safeAreas.some((area) => this._inside(area, px, py, true));
     }
 
-    /** Returns a one-shot attack result exactly when the warning window closes. */
+    _ringContains (px, py, elapsed) {
+        const dx = px - this.x;
+        const dy = py - this.y;
+        const radius = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx);
+        const rings = [{ radius: this.ringRadius, blades: this.ringBlades, direction: this.ringDirection }];
+        if (this.innerRingRadius > 0) rings.push({ radius: this.innerRingRadius, blades: 4,
+            direction: -this.ringDirection });
+        for (const ring of rings) {
+            if (Math.abs(radius - ring.radius) > 28 + PLAYER.radius) continue;
+            const rotation = ring.direction * elapsed * 2.8;
+            for (let i = 0; i < ring.blades; i++) {
+                const bladeAngle = this.ringAngle + i * TAU / ring.blades + rotation;
+                const delta = Math.atan2(Math.sin(angle - bladeAngle), Math.cos(angle - bladeAngle));
+                if (Math.abs(delta) <= 0.22) return true;
+            }
+        }
+        return false;
+    }
+
+    _result (hit, extra = {}) {
+        return { hit, type: this.type, name: this.name, x: this.x, y: this.y,
+            radius: this.radius, length: this.length, width: this.width,
+            angle: this.angle, safeWidth: this.safeWidth, safeOffset: this.safeOffset,
+            sourceX: this.sourceX, sourceY: this.sourceY, areas: this.areas,
+            safeAreas: this.safeAreas, markers: this.markers, family: this.family,
+            wildBoss: this.wildBoss, phaseTwo: this.phaseTwo, moveIndex: this.moveIndex,
+            ultimate: this.ultimate, sequenceKind: this.sequenceKind,
+            impactDuration: this.impactDuration, timeLeft: this.timeLeft,
+            columnXs: this.columnXs, columnCount: this.columnCount,
+            shotsPerColumn: this.shotsPerColumn, columnDelay: this.columnDelay,
+            shotDelay: this.shotDelay, fallTime: this.fallTime, topY: this.topY,
+            bottomY: this.bottomY, ringRadius: this.ringRadius,
+            innerRingRadius: this.innerRingRadius, ringBlades: this.ringBlades,
+            ringAngle: this.ringAngle, ringDirection: this.ringDirection, ...extra };
+    }
+
+    /** Returns warning, sequence, and impact events for one boss attack. */
     step (dt, px, py, rng, sourceX = this.cx, sourceY = this.cy, hpRatio = 1) {
         if (!this.active) return null;
         if (this.phase === 'idle') {
@@ -498,16 +588,50 @@ export class LegendaryAttackSystem {
             return null;
         }
         this.timeLeft -= dt;
+        if (this.phase === 'warning' && this.family === 'legend-rayquaza'
+            && this.moveIndex === 0 && this.phaseTwo && this.timeLeft > 0.22) {
+            this._buildPattern(rng, px, py, sourceX, sourceY, true, 0);
+        } else if (this.phase === 'warning' && this.family === 'legend-rayquaza'
+            && this.moveIndex === 0 && this.phaseTwo) {
+            this.locked = true;
+        }
         if (this.phase === 'warning' && this.timeLeft <= 0) {
             this.phase = 'impact';
-            this.timeLeft = BOSS.legendaryImpact;
-            return { hit: this._contains(px, py), type: this.type, name: this.name,
-                x: this.x, y: this.y, radius: this.radius, length: this.length, width: this.width,
-                angle: this.angle, safeWidth: this.safeWidth, safeOffset: this.safeOffset,
-                sourceX: this.sourceX, sourceY: this.sourceY,
-                areas: this.areas, safeAreas: this.safeAreas, markers: this.markers,
-                family: this.family, wildBoss: this.wildBoss, phaseTwo: this.phaseTwo,
-                moveIndex: this.moveIndex, ultimate: this.ultimate };
+            this.timeLeft = this.impactDuration;
+            if (this.sequenceKind) {
+                const hit = this.sequenceKind === 'tornado' ? this._contains(px, py)
+                    : this.sequenceKind === 'ring' && this._ringContains(px, py, 0);
+                this.sequenceHitResolved = hit;
+                return this._result(hit, { sequenceStart: true });
+            }
+            return this._result(this._contains(px, py));
+        }
+        if (this.phase === 'impact' && this.sequenceKind === 'ring' && !this.sequenceHitResolved) {
+            const elapsed = this.impactDuration - Math.max(0, this.timeLeft);
+            if (this._ringContains(px, py, elapsed)) {
+                this.sequenceHitResolved = true;
+                return this._result(true, { impactTick: true });
+            }
+        }
+        if (this.phase === 'impact' && this.sequenceKind === 'tornado' && !this.sequenceHitResolved
+            && this._contains(px, py)) {
+            this.sequenceHitResolved = true;
+            return this._result(true, { impactTick: true });
+        }
+        if (this.phase === 'impact' && this.sequenceKind === 'meteor-columns' && !this.sequenceHitResolved) {
+            const elapsed = this.impactDuration - Math.max(0, this.timeLeft);
+            for (let col = 0; col < this.columnCount; col++) {
+                for (let shot = 0; shot < this.shotsPerColumn; shot++) {
+                    const t = (elapsed - col * this.columnDelay - shot * this.shotDelay) / this.fallTime;
+                    if (t < 0 || t > 1) continue;
+                    const y = this.topY + (this.bottomY - this.topY) * t;
+                    if (Math.abs(px - this.columnXs[col]) <= 16 + PLAYER.radius
+                        && Math.abs(py - y) <= 16 + PLAYER.radius) {
+                        this.sequenceHitResolved = true;
+                        return this._result(true, { impactTick: true });
+                    }
+                }
+            }
         }
         if (this.phase === 'impact' && this.timeLeft <= 0) {
             this.phase = 'idle';
@@ -515,7 +639,12 @@ export class LegendaryAttackSystem {
                 this.cooldown = this.phaseTwo ? 1.55 + rng.next() * 0.35 : 2.15 + rng.next() * 0.55;
             } else {
                 const mainBossRecovery = this.phaseTwo ? 1.35 + rng.next() * 0.45 : 1.85 + rng.next() * 0.5;
-                this.cooldown = mainBossRecovery + (this.moveIndex === 2 ? 0.65 : 0);
+                this.cooldown = mainBossRecovery + (this.moveIndex >= 2 ? 0.65 : 0);
+            }
+            if (this.sequenceKind) {
+                const result = this._result(false, { sequenceEnd: true, dodgeCheck: true });
+                this.sequenceKind = '';
+                return result;
             }
         }
         return null;

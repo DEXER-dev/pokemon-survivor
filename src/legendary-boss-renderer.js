@@ -77,7 +77,40 @@ function drawRayquazaAttack (batch, pal, attack, wall, progress, impact, draw) {
             draw(i % 2 ? 'star' : 'diamond', x, y, size, size * 1.35,
                 angle + wall, i % 2 ? '#d9ffe8' : '#50f0ab', 210);
         }
-        if (attack.moveIndex === 2) {
+        if (attack.sequenceKind === 'meteor-columns') {
+            const activeColumn = Math.min(attack.columnCount - 1,
+                Math.floor(progress * attack.columnCount));
+            for (let col = 0; col < attack.columnCount; col++) {
+                const x = attack.columnXs[col];
+                const active = col === activeColumn;
+                draw('meteor', x, attack.topY - (active ? progress * 100 : 0),
+                    active ? 0.88 : 0.58, active ? 0.88 : 0.58, -Math.PI / 2,
+                    active ? '#eafff0' : '#65e8a2', active ? 230 : 115);
+                draw('legendRay', x, (attack.topY + attack.bottomY) * 0.5,
+                    0.3, (attack.topY - attack.bottomY) / 48, -Math.PI / 2,
+                    '#53e69b', active ? 82 : 36);
+            }
+        } else if (attack.sequenceKind === 'ring') {
+            for (const [radius, count, direction] of [[attack.ringRadius, attack.ringBlades, attack.ringDirection],
+                ...(attack.innerRingRadius ? [[attack.innerRingRadius, 4, -attack.ringDirection]] : [])]) {
+                draw('ring', attack.x, attack.y, radius / 48, radius / 48,
+                    wall * direction * 0.34, '#60e8a1', Math.round(55 + progress * 70));
+                for (let i = 0; i < count; i++) {
+                    const a = attack.ringAngle + i * TAU / count + wall * direction * 0.5;
+                    const x = attack.x + Math.cos(a) * radius;
+                    const y = attack.y + Math.sin(a) * radius;
+                    draw('legendRay', x, y, 1.0, 0.42, a, '#bbffda', 220);
+                }
+            }
+        } else if (attack.sequenceKind === 'tornado') {
+            draw('aura', attack.x, attack.y, 3.6, 3.6, wall * 0.7, '#45df9c', 160);
+            for (let i = 0; i < 4; i++) {
+                const a = wall * (1.3 + i * 0.07) + i * TAU / 4;
+                const x = attack.x + Math.cos(a) * (42 + i * 18);
+                const y = attack.y + Math.sin(a) * (42 + i * 18);
+                draw('legendRay', x, y, 2.0, 0.42, a + Math.PI / 2, '#83f5b4', 175);
+            }
+        } else if (attack.moveIndex === 2) {
             for (const area of attack.areas) {
                 const fall = 1 - progress;
                 draw('meteor', area.x, area.y + 150 * fall, 0.84, 0.84,
@@ -89,19 +122,56 @@ function drawRayquazaAttack (batch, pal, attack, wall, progress, impact, draw) {
         return;
     }
 
-    if (attack.moveIndex === 2) {
-        // Each falling star lands exactly at one of the marked collision circles.
-        for (let i = 0; i < attack.areas.length; i++) {
-            const area = attack.areas[i];
-            const x = area.x + Math.cos(wall * 4 + i) * 7;
-            const y = area.y + 68 * (1 - progress);
-            draw('legendRay', x, area.y + 35 * (1 - progress), 0.68, 2.6,
-                -Math.PI / 2, '#55e99e', 210);
-            draw('meteor', x, y, 1.08, 1.08, -Math.PI / 2,
-                '#edfff1', 255);
-            draw('aura', area.x, area.y, 1.25 + progress * 0.8,
-                1.25 + progress * 0.8, 0, '#52e69b', Math.round(145 * (1 - progress * 0.55)));
+    if (attack.sequenceKind === 'meteor-columns') {
+        const elapsed = progress * attack.impactDuration;
+        for (let col = 0; col < attack.columnCount; col++) {
+            for (let shot = 0; shot < attack.shotsPerColumn; shot++) {
+                const t = (elapsed - col * attack.columnDelay - shot * attack.shotDelay) / attack.fallTime;
+                if (t < 0 || t > 1) continue;
+                const x = attack.columnXs[col] + Math.sin(wall * 11 + shot) * 3;
+                const y = attack.topY + (attack.bottomY - attack.topY) * t;
+                draw('legendRay', x, y - 24, 0.52, 1.8, -Math.PI / 2, '#56e99e', 215);
+                draw('meteor', x, y, 0.88, 0.88, -Math.PI / 2, '#edfff1', 255);
+                if (t > 0.82) draw('aura', x, y, 0.65 + (t - 0.82) * 3,
+                    0.65 + (t - 0.82) * 3, 0, '#69f2a9', Math.round(150 * (1 - t)));
+            }
         }
+        return;
+    }
+
+    if (attack.sequenceKind === 'ring') {
+        const elapsed = progress * attack.impactDuration;
+        for (const [radius, count, direction] of [[attack.ringRadius, attack.ringBlades, attack.ringDirection],
+            ...(attack.innerRingRadius ? [[attack.innerRingRadius, 4, -attack.ringDirection]] : [])]) {
+            for (let i = 0; i < count; i++) {
+                const a = attack.ringAngle + i * TAU / count + direction * elapsed * 2.8;
+                const x = attack.x + Math.cos(a) * radius;
+                const y = attack.y + Math.sin(a) * radius;
+                draw('legendRay', x, y, 1.6, 0.5, a + Math.PI / 2, '#b9ffd4', 235);
+                draw('star', x, y, 0.52, 0.52, a + wall, '#effff5', 235);
+            }
+        }
+        const sprite = batch.glyphs?.RAYQUAZA ? 'RAYQUAZA' : 'dragon';
+        const orbit = attack.ringRadius * (0.72 + 0.08 * Math.sin(elapsed * 7));
+        batch.draw(sprite, attack.x + Math.cos(wall * 1.4) * orbit,
+            attack.y + Math.sin(wall * 1.4) * orbit, 1.65, 1.12, wall * 1.4,
+            pal.get('#eafff0', 220));
+        return;
+    }
+
+    if (attack.sequenceKind === 'tornado') {
+        const sprite = batch.glyphs?.RAYQUAZA ? 'RAYQUAZA' : 'dragon';
+        const sweep = progress * Math.PI * 2.2;
+        const x = attack.x + Math.cos(sweep) * attack.areas[0].length * 0.34;
+        const y = attack.y + Math.sin(sweep) * 42;
+        for (let i = 0; i < 5; i++) {
+            const a = wall * 1.8 + i * TAU / 5;
+            const radius = 48 + i * 15;
+            draw('legendRay', attack.x + Math.cos(a) * radius,
+                attack.y + Math.sin(a) * radius, 1.5, 0.4, a + Math.PI / 2, '#76f2ae', 185);
+        }
+        batch.draw(sprite, x, y, 2.2, 1.5, sweep + Math.PI,
+            pal.get('#ecfff3', 245));
         return;
     }
 
@@ -141,7 +211,7 @@ export function drawPrimaryLegendaryBossAttack (batch, pal, attack, wall) {
 
     const impact = attack.phase === 'impact';
     const progress = impact
-        ? clamp(1 - attack.timeLeft / BOSS.legendaryImpact, 0, 1)
+        ? clamp(1 - attack.timeLeft / (attack.impactDuration || BOSS.legendaryImpact), 0, 1)
         : clamp(1 - attack.timeLeft / BOSS.legendaryWindup, 0, 1);
     const material = materialFor(attack.family, attack.moveIndex || 0);
     const alpha = Math.round(impact ? 230 - 45 * progress : 76 + progress * 90);

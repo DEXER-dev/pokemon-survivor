@@ -1000,7 +1000,8 @@ export function createGame (cc) {
                 if (this.evolutionSfx) this.evolutionSfx.play('charge');
             }
             if (lugiaEncounter) this.enemies.intro[boss] = 1;
-            this.legendaryAttacks.start(this.enemies.x[boss], this.enemies.y[boss], site.species);
+            this.legendaryAttacks.start(rayquazaEncounter ? this.legendaryMap.x : this.enemies.x[boss],
+                rayquazaEncounter ? this.legendaryMap.y : this.enemies.y[boss], site.species);
             if (!mewtwoEncounter && !lugiaEncounter) {
                 this.particleBursts.burst(site.species, this.enemies.x[boss], this.enemies.y[boss],
                     -Math.PI / 2, 'legendary-lair-entry');
@@ -2712,11 +2713,15 @@ export function createGame (cc) {
             }
             if (legendaryAttack) {
                 const fam = this.legendaryAttacks.family;
-                this.combatSfx.enqueue({ kind: 'legendary-attack', fam });
-                this.combatSfx.flush();
-                for (const area of legendaryAttack.areas.slice(0, 8)) {
-                    this.particleBursts.burst(fam, area.x, area.y,
-                        area.angle || legendaryAttack.angle, 'legendary-attack-impact');
+                if (!legendaryAttack.impactTick && !legendaryAttack.sequenceEnd) {
+                    this.combatSfx.enqueue({ kind: 'legendary-attack', fam });
+                    this.combatSfx.flush();
+                }
+                if (!legendaryAttack.impactTick && !legendaryAttack.sequenceEnd) {
+                    for (const area of legendaryAttack.areas.slice(0, 8)) {
+                        this.particleBursts.burst(fam, area.x, area.y,
+                            area.angle || legendaryAttack.angle, 'legendary-attack-impact');
+                    }
                 }
                 if (legendaryAttack.hit) {
                     const hpBefore = p.hp;
@@ -2732,7 +2737,7 @@ export function createGame (cc) {
                         if (p.dead) this.logEvent('player.defeated', { time: Math.round(this.time),
                             legendary: !legendaryAttack.wildBoss, wildBoss: legendaryAttack.wildBoss });
                     }
-                } else {
+                } else if (legendaryAttack.dodgeCheck) {
                     this.logEvent('legendary.attack-dodged', { attack: legendaryAttack.name,
                         wildBoss: legendaryAttack.wildBoss,
                         x: Math.round(legendaryAttack.x), y: Math.round(legendaryAttack.y) });

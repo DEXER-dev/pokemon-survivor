@@ -59,11 +59,16 @@ export function drawLegendaryAttackPattern (g, attack, pal, pulse, impact) {
     const edge = pal.get(impact ? '#fff0c2' : familyColor, impact ? 255 : Math.round(185 + 55 * pulse));
     const lineWidth = impact ? 6 : 4;
     for (const shape of attack.areas || []) {
-        if (shape.shape === 'circle') drawCircle(g, shape, fill, edge, lineWidth);
+        if (shape.telegraph === 'meteor-column') {
+            drawRect(g, shape, pal.get('#39c985', impact ? 74 : 25),
+                pal.get(impact ? '#eafff0' : '#6bf0a8', impact ? 245 : 185), lineWidth);
+        } else if (shape.shape === 'circle') drawCircle(g, shape, fill, edge, lineWidth);
         else drawRect(g, shape, fill, edge, lineWidth);
     }
     for (const shape of attack.safeAreas || []) {
-        drawRect(g, shape, pal.get('#42f2e7', impact ? 196 : 225),
+        if (shape.shape === 'circle') drawCircle(g, shape, pal.get('#42f2e7', impact ? 74 : 30),
+            pal.get('#eaffff', impact ? 230 : 150), impact ? 5 : 3);
+        else drawRect(g, shape, pal.get('#42f2e7', impact ? 196 : 225),
             pal.get('#eaffff', 255), impact ? 5 : 4);
     }
     for (const marker of attack.markers || []) {
