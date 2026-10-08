@@ -1,0 +1,15 @@
+{
+  "name": "pokemon-survivor-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Android APK build of Pokemon Survivor",
+  "scripts": {
+    "prepare:web": "node prepare-web.cjs",
+    "prepare:android": "node prepare-android.cjs"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.0.0",
+    "@capacitor/cli": "8.0.0",
+    "@capacitor/core": "8.0.0"
+  }
+}

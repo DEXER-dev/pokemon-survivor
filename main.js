@@ -14,6 +14,10 @@ import { installDex } from './src/dex.js';
 import { GAME_FONT } from './src/ui-font.js';
 import { UPDATE_LOG_ENTRIES } from './src/update-log.js';
 
+const nativeAppShell = document.documentElement.dataset.nativeShell === 'true'
+    || new URLSearchParams(location.search).has('desktop');
+if (nativeAppShell) document.querySelector('.title-download-links')?.remove();
+
 const assetLoading = document.getElementById('assetLoading');
 const assetProgressBar = document.getElementById('assetProgressBar');
 const assetProgressText = document.getElementById('assetProgressText');
@@ -177,6 +181,7 @@ try {
       const updateLogOpen = document.getElementById('updateLogOpen');
       const updateLogClose = document.getElementById('updateLogClose');
       const updateLogList = document.getElementById('updateLogEntries');
+      const downloadLinks = [...titleScreen.querySelectorAll('.title-download-link')];
       const latestUpdate = UPDATE_LOG_ENTRIES[0];
       document.getElementById('updateLogLatestDate').textContent = latestUpdate.date.replaceAll('-', '.');
       updateLogOpen.setAttribute('aria-label',
@@ -578,6 +583,7 @@ try {
           } else selectTrainer(selectedTrainer + 1);
         } else if (event.key === 'Enter' && event.target !== startButton
             && event.target !== document.getElementById('dexFromTitle')
+            && !event.target.closest('.title-download-link')
             && event.target !== updateLogOpen
             && !event.target.closest('.trainer-options')) {
           event.preventDefault();
@@ -586,7 +592,7 @@ try {
         if (event.key === 'Tab') {
           event.preventDefault();
             const controls = [...generationButtons, ...starterButtons, ...trainerButtons, document.getElementById('trainerPrevious'),
-            document.getElementById('trainerNext'), startButton, document.getElementById('dexFromTitle')];
+            document.getElementById('trainerNext'), startButton, ...downloadLinks, document.getElementById('dexFromTitle')];
           controls.push(updateLogOpen);
           const index = controls.indexOf(document.activeElement);
           controls[(index + (event.shiftKey ? controls.length - 1 : 1)) % controls.length].focus();

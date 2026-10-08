@@ -1,5 +1,11 @@
 .quarantine-rejected/
 node_modules/
+distribution/desktop/node_modules/
+distribution/desktop/dist/
+distribution/android/node_modules/
+distribution/android/www/
+distribution/android/android/
+distribution/android/pokemon-survivor-android.apk
 *.log
 .DS_Store
 Thumbs.db

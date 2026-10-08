@@ -1,0 +1,9 @@
+{
+  "appId": "com.dexerdev.pokemonsurvivor",
+  "appName": "宝可梦幸存者",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#221f2e",
+    "allowMixedContent": false
+  }
+}

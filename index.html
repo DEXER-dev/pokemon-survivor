@@ -226,6 +226,31 @@
       margin: 10px auto 0; max-width: 100%; }
     .title-aux-links .dex-title-link { display: inline-flex; align-items: center; justify-content: center;
       gap: 8px; min-height: 34px; margin: 0; }
+    .title-download-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px; width: min(100%, 390px); margin: 13px auto 0; }
+    .title-download-link { display: flex; align-items: center; justify-content: center; gap: 9px;
+      min-width: 0; min-height: 50px; padding: 6px 10px; border: 1px solid rgba(195,178,255,.48);
+      border-radius: 12px; color: #f4edff; background: linear-gradient(145deg, rgba(111,82,178,.34), rgba(28,29,48,.88));
+      box-shadow: inset 0 1px rgba(255,255,255,.09), 0 5px 16px rgba(0,0,0,.18);
+      font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: transform .14s, border-color .14s, background .14s; }
+    .title-download-link:hover { transform: translateY(-2px); border-color: #ffe59b;
+      background: linear-gradient(145deg, rgba(143,111,211,.48), rgba(37,35,59,.94)); }
+    .title-download-link:focus-visible { outline: 2px solid #ffe59b; outline-offset: 3px; }
+    .title-download-icon { display: grid; flex: none; place-items: center; width: 30px; height: 30px;
+      border: 1px solid rgba(230,220,255,.24); border-radius: 9px; color: #ffe59b;
+      background: rgba(14,13,27,.38); }
+    .title-download-icon svg { display: block; width: 18px; height: 18px; }
+    .title-download-copy { display: grid; min-width: 0; gap: 2px; }
+    .title-download-copy strong { font-size: 13px; line-height: 1.1; }
+    .title-download-copy small { overflow: hidden; color: #c4bbd7; font-size: 10px; line-height: 1.1;
+      text-overflow: ellipsis; white-space: nowrap; }
+    @media (max-width: 420px) {
+      .title-download-links { width: min(100%, 360px); gap: 7px; margin-top: 10px; }
+      .title-download-link { min-height: 46px; gap: 7px; padding: 5px 7px; }
+      .title-download-icon { width: 27px; height: 27px; }
+      .title-download-copy strong { font-size: 12px; }
+      .title-download-copy small { font-size: 9px; }
+    }
     .update-log-date { padding-left: 8px; border-left: 1px solid rgba(230,220,255,.25);
       color: #ffe59b; font-size: 10px; }
     .title-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px;
@@ -265,10 +290,9 @@
       .title-footnote { margin-top: 8px; }
     }
     /* Size this menu from its actual game-frame container, so the primary action stays in view. */
-    /* Middle band: the regular card is ~640px tall, so frames between ~540 and ~660px would clip
-       the start button below the fold (the scrollbar is deliberately invisible). Trim the
-       decorative rows first and keep every picker. */
-    @container game-frame (max-height: 660px) {
+    /* Compact the full picker in shorter desktop windows and portrait mobile viewports so
+       the download links stay close to the primary start action. */
+    @container game-frame (max-height: 850px) {
       .title-card { padding: 14px 26px; border-radius: 20px; }
       .title-card h1 { font-size: clamp(30px, 5vw, 46px); }
       .title-logo { max-height: min(23vh, 172px); }
@@ -301,6 +325,11 @@
       .trainer-arrow { height: 36px; }
       .trainer-current { min-height: 15px; margin: 0 0 5px; font-size: 11px; }
       #startAdventure { min-height: 42px; }
+      .title-download-links { margin-top: 7px; }
+      .title-download-link { min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
+      .title-download-icon { width: 25px; height: 25px; }
+      .title-download-copy small { display: none; }
+      .title-aux-links { margin-top: 6px; }
     }
     @media (prefers-reduced-motion: reduce) {
       #titleScreen::before, #titleScreen::after { animation: none; }
@@ -362,6 +391,16 @@
           </div>
           <p class="trainer-current" id="trainerCurrent" aria-live="polite"></p>
           <button id="startAdventure" type="button" autofocus>开始冒险 <span aria-hidden="true">➜</span></button>
+          <div class="title-download-links" aria-label="游戏客户端下载">
+            <a class="title-download-link" href="https://github.com/DEXER-dev/pokemon-survivor/releases/latest/download/pokemon-survivor-setup.exe" download>
+              <span class="title-download-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></span>
+              <span class="title-download-copy"><strong>电脑端下载</strong><small>Windows 安装程序 · EXE</small></span>
+            </a>
+            <a class="title-download-link" href="https://github.com/DEXER-dev/pokemon-survivor/releases/latest/download/pokemon-survivor-android.apk" download>
+              <span class="title-download-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18.5h4"/></svg></span>
+              <span class="title-download-copy"><strong>手机端下载</strong><small>Android 安装包 · APK</small></span>
+            </a>
+          </div>
           <div class="title-aux-links">
             <button id="dexFromTitle" class="dex-title-link" type="button">打开图鉴 · 预览弹幕</button>
             <button id="updateLogOpen" class="dex-title-link" type="button" aria-haspopup="dialog" aria-expanded="false">

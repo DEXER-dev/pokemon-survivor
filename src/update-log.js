@@ -1,6 +1,12 @@
 /** Player-facing release notes. Add the newest, concise entry here with every shipped update. */
 export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
+        date: '2026-10-08',
+        category: '下载渠道',
+        title: '首页新增 Windows EXE 与 Android APK 下载',
+        description: '电脑端下载安装程序，Android 手机直接下载 APK；最新版安装包由 GitHub Releases 自动构建并更新。',
+    },
+    {
         date: '2026-10-07',
         category: 'MEGA视觉',
         title: '19 种 MEGA 加入专属像素描边',

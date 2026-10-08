@@ -1,0 +1,65 @@
+{
+  "name": "pokemon-survivor-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Windows desktop build of Pokemon Survivor",
+  "main": "main.cjs",
+  "scripts": {
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.16.0"
+  },
+  "build": {
+    "appId": "com.dexerdev.pokemonsurvivor",
+    "productName": "宝可梦幸存者",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../..",
+        "to": "game",
+        "filter": [
+          "index.html",
+          "main.js",
+          "builtin-materials.js",
+          "system.min.js",
+          "dex.css",
+          "update-log.css",
+          "src/**",
+          "engine/**",
+          "assets/**",
+          "LICENSE",
+          "THIRD-PARTY-NOTICES.md"
+        ]
+      }
+    ],
+    "win": {
+      "icon": "../../assets/ui/app-icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "pokemon-survivor-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

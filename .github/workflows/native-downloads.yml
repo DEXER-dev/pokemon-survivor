@@ -1,0 +1,109 @@
+name: Build downloadable game apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: native-downloads
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install desktop packager
+        working-directory: distribution/desktop
+        run: npm install --no-audit --no-fund
+      - name: Build Windows installer
+        working-directory: distribution/desktop
+        run: npm run dist
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: pokemon-survivor-windows
+          path: distribution/desktop/dist/pokemon-survivor-setup.exe
+          if-no-files-found: error
+          retention-days: 3
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Install Android SDK platform
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - name: Install Capacitor
+        working-directory: distribution/android
+        run: npm install --no-audit --no-fund
+      - name: Prepare local game assets
+        working-directory: distribution/android
+        run: npm run prepare:web
+      - name: Create Android project
+        working-directory: distribution/android
+        run: npx cap add android
+      - name: Sync game assets and apply icon
+        working-directory: distribution/android
+        run: |
+          npx cap sync android
+          npm run prepare:android
+      - name: Build installable APK
+        working-directory: distribution/android/android
+        run: ./gradlew --no-daemon assembleDebug
+      - name: Stage APK
+        run: cp distribution/android/android/app/build/outputs/apk/debug/app-debug.apk distribution/android/pokemon-survivor-android.apk
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pokemon-survivor-android
+          path: distribution/android/pokemon-survivor-android.apk
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: [windows, android]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows installer
+        uses: actions/download-artifact@v4
+        with:
+          name: pokemon-survivor-windows
+          path: downloads
+      - name: Download Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: pokemon-survivor-android
+          path: downloads
+      - name: Publish latest download assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="native-downloads"
+          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$tag" downloads/pokemon-survivor-setup.exe downloads/pokemon-survivor-android.apk --repo "$GH_REPO" --clobber
+            gh release edit "$tag" --repo "$GH_REPO" --title "最新 Windows / Android 安装包" --notes "由 GitHub Actions 从 main 自动构建。Windows x64 安装程序为未签名 EXE；Android APK 使用调试证书签名，可直接侧载安装。每次构建重新签名的 APK 需要先卸载旧版再安装。"
+          else
+            gh release create "$tag" downloads/pokemon-survivor-setup.exe downloads/pokemon-survivor-android.apk --repo "$GH_REPO" --title "最新 Windows / Android 安装包" --notes "由 GitHub Actions 从 main 自动构建。Windows x64 安装程序为未签名 EXE；Android APK 使用调试证书签名，可直接侧载安装。每次构建重新签名的 APK 需要先卸载旧版再安装。" --latest
+          fi
