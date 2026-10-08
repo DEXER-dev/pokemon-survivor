@@ -98,10 +98,10 @@
     .cloud-puff {
       position: absolute;
       height: 9%;
-      opacity: .64;
+      opacity: .8;
       image-rendering: pixelated;
       filter: drop-shadow(0 2px 0 #345c8750);
-      background: linear-gradient(180deg,#f7fcff 0 30%,#e3f1fb 31% 52%,#a8cce8 53% 79%,#78a8d2 80%);
+      background: linear-gradient(180deg,#ffffff 0 30%,#d8eeff 31% 52%,#94c5ed 53% 79%,#5d94c3 80%);
       clip-path: polygon(0 68%,7% 68%,7% 47%,19% 47%,19% 27%,33% 27%,33% 10%,47% 10%,47% 0,60% 0,60% 18%,75% 18%,75% 38%,91% 38%,91% 58%,100% 58%,100% 90%,94% 90%,94% 100%,5% 100%,5% 84%,0 84%);
       animation: cloud-drift var(--drift-time,36s) ease-in-out var(--drift-delay,0s) infinite alternate;
     }
@@ -117,10 +117,10 @@
       opacity: .82;
     }
     .cloud-puff.alt { clip-path: polygon(0 64%,12% 64%,12% 40%,25% 40%,25% 17%,42% 17%,42% 0,58% 0,58% 23%,76% 23%,76% 43%,91% 43%,91% 61%,100% 61%,100% 91%,95% 91%,95% 100%,4% 100%,4% 83%,0 83%); }
-    .cloud-left-high { left: 0; top: 24%; width: 10%; height: 9%; --drift-from:-9px; --drift-to:9px; --drift-time:30s; --drift-delay:-17s; opacity:.72; }
-    .cloud-right-high { right: 0; top: 27%; width: 10%; height: 9%; --drift-from:9px; --drift-to:-9px; --drift-time:34s; --drift-delay:-31s; opacity:.68; }
-    .cloud-left-mid { left: 0; top: 44%; width: 10%; height: 8%; --drift-from:-8px; --drift-to:8px; --drift-time:26s; --drift-delay:-9s; opacity:.5; }
-    .cloud-right-mid { right: 0; top: 47%; width: 10%; height: 8%; --drift-from:8px; --drift-to:-8px; --drift-time:31s; --drift-delay:-24s; opacity:.52; }
+    .cloud-left-high { left: 0; top: 24%; width: 6%; height: 9%; --drift-from:-32px; --drift-to:32px; --drift-time:7s; --drift-delay:-2s; opacity:.86; }
+    .cloud-right-high { right: 0; top: 27%; width: 6%; height: 9%; --drift-from:32px; --drift-to:-32px; --drift-time:8s; --drift-delay:-4s; opacity:.82; }
+    .cloud-left-mid { left: 0; top: 44%; width: 6%; height: 8%; --drift-from:-28px; --drift-to:28px; --drift-time:9s; --drift-delay:-6s; opacity:.68; }
+    .cloud-right-mid { right: 0; top: 47%; width: 6%; height: 8%; --drift-from:28px; --drift-to:-28px; --drift-time:7.5s; --drift-delay:-3s; opacity:.72; }
     @keyframes cloud-drift { from { transform: translate3d(var(--drift-from,-14px),1px,0); } to { transform: translate3d(var(--drift-to,14px),-1px,0); } }
     .shade {
       position: absolute;
