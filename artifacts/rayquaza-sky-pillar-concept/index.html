@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#172b50">
+  <title>天空之柱顶层 · 裂空座战斗地图预览</title>
+  <style>
+    @font-face{font-family:FusionPixel;src:url('../../assets/fonts/fusion-pixel/fusion-pixel-12px-proportional-zh_hans.otf.woff2') format('woff2');font-display:swap}
+    :root{color-scheme:light;--navy:#192a4a;--blue:#405f8e;--blue2:#91c5db;--cream:#fff8e9;--paper:#f1ead8;--line:#cdbf9e;--gold:#dbad56;--ink:#30354a;--muted:#726f76}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;padding:22px;background:radial-gradient(ellipse at 50% 0,#dbe8e7 0,#d7d4c4 78%);color:var(--ink);font-family:FusionPixel,"Microsoft YaHei",sans-serif;display:grid;place-items:center}
+    button{font:inherit;color:inherit}
+    .frame{width:min(1240px,100%);background:var(--cream);border:3px solid var(--navy);border-radius:19px;overflow:hidden;box-shadow:0 7px 0 #a9a18e,0 22px 58px #1a294533}
+    .header{min-height:72px;padding:12px 20px;background:var(--navy);color:#fff6de;border-bottom:4px solid var(--gold);display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:12px;min-width:0}.sigil{width:38px;height:38px;border:2px solid #d5c7a0;border-radius:9px;display:grid;place-items:center;color:#b9e5ef;font-size:23px;box-shadow:inset 0 0 0 3px #314a70;background:#21365a}.title-wrap{min-width:0}.eyebrow{font:700 10px/1.2 system-ui,sans-serif;letter-spacing:.16em;color:#b6cee0}.header h1{font-size:19px;line-height:1.2;margin:5px 0 0;color:#fff6de}.status{font-size:11px;color:#e4d6b5;border:1px solid #687795;border-radius:999px;padding:7px 10px;white-space:nowrap}
+    .body{padding:18px}.lead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:0 2px 12px}.lead h2{font-size:16px;margin:0}.lead p{font:12px/1.55 system-ui,sans-serif;color:var(--muted);margin:5px 0 0}.mode{display:flex;gap:6px;flex:none}.mode button{border:1px solid #c8b995;border-radius:9px;background:#fffaf0;padding:8px 11px;font-size:11px;cursor:pointer}.mode button[aria-pressed="true"]{background:#e1edf2;border-color:#7899a8;color:#274b65;box-shadow:inset 0 -2px #a6c8d2}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 218px;gap:14px;align-items:stretch}.stage{position:relative;min-width:0;overflow:hidden;aspect-ratio:1674/940;border:3px solid #263a5e;border-radius:13px;background:#304f80;box-shadow:inset 0 0 0 2px #cbb77e}.scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+    .scene:after{content:""}.top-mark{position:absolute;left:14px;top:13px;padding:6px 9px;border:1px solid #d5c799;border-radius:8px;background:#fff7e4e8;color:#334866;font-size:10px;box-shadow:0 2px 0 #6b6b67}.hint{position:absolute;right:13px;top:13px;padding:6px 9px;background:#172a48de;color:#eef7f4;border:1px solid #90c1d3;border-radius:8px;font-size:10px;opacity:.94}
+    .actor{position:absolute;z-index:2;image-rendering:pixelated;filter:drop-shadow(0 3px 1px #13203b80);transition:opacity .2s,transform .2s}.ray{width:64px;height:64px;left:calc(50% - 32px);top:calc(47% - 32px);background:url('../../assets/icons/RAYQUAZA.png') left top/128px 64px no-repeat;transform:scale(1.35);transform-origin:center}.trainer{width:48px;height:48px;left:calc(50% - 24px);top:72%;background:url('../../assets/player/NPC_198_Lucas.png') left top/192px 192px no-repeat;filter:drop-shadow(0 2px 1px #0b172f);transform:scale(1.12)}.ground-shadow{position:absolute;z-index:1;left:50%;top:66%;width:80px;height:14px;transform:translateX(-50%);background:#08162b66;filter:blur(5px);border-radius:50%;opacity:.6}
+    .stage.clean .actor,.stage.clean .ground-shadow{opacity:0;transform:translateY(6px) scale(.96)}.stage.clean .hint{display:none}
+    .side{display:flex;flex-direction:column;gap:9px}.card{border:1px solid var(--line);border-radius:12px;background:#fffaf0;padding:12px 13px;box-shadow:0 3px 0 #e8dfca}.card h3{font-size:12px;margin:0 0 8px;color:#344460}.card p{font:11px/1.6 system-ui,sans-serif;color:#6c6870;margin:0}.anchors{display:grid;gap:8px}.anchor{display:grid;grid-template-columns:20px 1fr;gap:7px;align-items:start;font:11px/1.45 system-ui,sans-serif;color:#5f5b62}.num{width:19px;height:19px;border-radius:6px;background:#dceaf0;color:#365d75;display:grid;place-items:center;font:700 10px system-ui,sans-serif}.open{border-color:#b9d2d0;background:#f1f8ed}.open h3{color:#3f6757}.foot{display:flex;justify-content:space-between;gap:14px;margin-top:11px;font:10px/1.5 system-ui,sans-serif;color:#78716b}.foot strong{color:#3c4c68}
+    @media(max-width:800px){body{padding:10px}.frame{border-radius:14px}.header{padding:10px 13px}.header h1{font-size:16px}.status{font-size:9px;padding:6px 8px}.body{padding:12px}.lead{align-items:flex-start;flex-direction:column;gap:10px}.layout{grid-template-columns:1fr}.stage{order:0}.side{display:grid;grid-template-columns:1fr 1fr}.card:last-child{grid-column:1/-1}.actor.ray{transform:scale(1.05)}.trainer{transform:scale(.95)}}
+    @media(max-width:480px){.header{align-items:flex-start}.sigil{width:32px;height:32px}.status{max-width:120px;text-align:center;white-space:normal}.side{grid-template-columns:1fr}.card:last-child{grid-column:auto}.mode button{padding:7px 9px}.foot{flex-direction:column;gap:3px}}
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <header class="header">
+      <div class="brand"><div class="sigil" aria-hidden="true">⌁</div><div class="title-wrap"><div class="eyebrow">RAYQUAZA BOSS ARENA · REFERENCE STUDY</div><h1>天空之柱 · 顶层战斗地图</h1></div></div>
+      <div class="status">基于《宝可梦 绿宝石》顶部房间</div>
+    </header>
+    <section class="body">
+      <div class="lead">
+        <div><h2>先对齐原作的空间语言</h2><p>这是场景方向预览：室内蓝石砖、重复的浅色石块纹样、南侧棕金门槛；中间刻意留出宽阔走位区。</p></div>
+        <div class="mode" role="group" aria-label="预览模式"><button id="encounter" aria-pressed="true">遭遇构图</button><button id="clean" aria-pressed="false">纯场地</button></div>
+      </div>
+      <div class="layout">
+        <div class="stage" id="stage" aria-label="天空之柱顶层战斗地图场景预览">
+          <img class="scene" src="assets/sky-pillar-arena-base.png" alt="参考宝可梦绿宝石天空之柱顶层绘制的蓝色石砖房间，浅色石块纹样分列两侧，底部有棕金门槛">
+          <div class="top-mark">天空之柱 · 顶层</div><div class="hint">裂空座出现</div>
+          <div class="ground-shadow" aria-hidden="true"></div>
+          <div class="actor ray" role="img" aria-label="裂空座"></div>
+          <div class="actor trainer" role="img" aria-label="玩家角色"></div>
+        </div>
+        <aside class="side">
+          <section class="card"><h3>原作识别点</h3><div class="anchors"><div class="anchor"><span class="num">1</span><span>蓝紫色石砖构成的室内顶层。</span></div><div class="anchor"><span class="num">2</span><span>浅色石块按行列重复，沿墙边排布。</span></div><div class="anchor"><span class="num">3</span><span>南侧棕金色门槛与中央出口。</span></div></div></section>
+          <section class="card open"><h3>战斗空间</h3><p>保留原作的砖纹和石块节奏，但让中区明显空出来。石块不进入核心走位区，技能范围与裂空座轮廓能读清。</p></section>
+          <section class="card"><h3>预览范围</h3><p>这里只展示地图美术方向与遭遇构图，还没有替换游戏里的实际 BOSS 场地。确认方向后再接入正式地图碰撞与镜头。</p></section>
+        </aside>
+      </div>
+      <div class="foot"><span>原作画面参考：<a href="https://kiroe.hatenablog.com/entry/2019/12/30/212748" target="_blank" rel="noreferrer"><strong>绿宝石天空之柱顶层实机记录</strong></a> · <a href="https://bulbapedia.bulbagarden.net/wiki/Sky_Pillar" target="_blank" rel="noreferrer">天空之柱资料</a></span><span>切换右上按钮，可比较纯场地和角色尺度</span></div>
+    </section>
+  </main>
+  <script>
+    const stage=document.getElementById('stage'), encounter=document.getElementById('encounter'), clean=document.getElementById('clean');
+    function setMode(showActors){stage.classList.toggle('clean',!showActors);encounter.setAttribute('aria-pressed',String(showActors));clean.setAttribute('aria-pressed',String(!showActors))}
+    encounter.addEventListener('click',()=>setMode(true));clean.addEventListener('click',()=>setMode(false));
+  </script>
+</body>
+</html>
