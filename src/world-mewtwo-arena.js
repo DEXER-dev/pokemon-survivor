@@ -70,3 +70,92 @@ export class WorldRayquazaArena extends WorldArenaBackdrop {
         super(cc, gameRoot, 'RayquazaSkyPillarBackdrop');
     }
 }
+
+const HOOH_CLOUD_LAYOUT = [
+    [-4, -6, 22, 0.92], [84, -5, 22, 0.90],
+    [-8, 11, 20, 0.90], [86, 13, 18, 0.88],
+    [-6, 28, 17, 0.84], [83, 30, 20, 0.90],
+    [-7, 44, 21, 0.78], [85, 46, 20, 0.82],
+    [-6, 59, 19, 0.86], [83, 60, 20, 0.78],
+    [-4, 74, 16, 0.72], [86, 76, 17, 0.78],
+];
+
+/** Ho-Oh's summit uses twelve separately animated cloud sprites behind the transparent tower art. */
+export class WorldHoOhArena {
+    constructor (cc, gameRoot) {
+        this.cc = cc;
+        this.foreground = null;
+        this.clouds = [];
+        this.imageWidth = 1672;
+        this.imageHeight = 941;
+        this.wall = 0;
+        this.node = new cc.Node('HoOhBellTowerArena');
+        this.node.layer = cc.Layers.Enum.UI_2D;
+        gameRoot.addChild(this.node);
+        this.node.setSiblingIndex(1);
+        this.transform = this.node.addComponent(cc.UITransform);
+        this.transform.anchorX = 0.5;
+        this.transform.anchorY = 0.5;
+        this.node.active = false;
+    }
+
+    setAssets ({ foreground, clouds }) {
+        this.imageWidth = foreground.width;
+        this.imageHeight = foreground.height;
+        const addSprite = (name, asset) => {
+            const node = new this.cc.Node(name);
+            node.layer = this.cc.Layers.Enum.UI_2D;
+            this.node.addChild(node);
+            const sprite = node.addComponent(this.cc.Sprite);
+            sprite.spriteFrame = asset.frame;
+            sprite.sizeMode = this.cc.Sprite.SizeMode.CUSTOM;
+            const transform = node.getComponent(this.cc.UITransform);
+            transform.anchorX = 0.5;
+            transform.anchorY = 0.5;
+            return { node, sprite, transform, asset };
+        };
+
+        // Insert the clouds first so the transparent tower silhouette covers their inner edges.
+        this.clouds = clouds.map((asset, index) => {
+            const cloud = addSprite(`HoOhCloud${index + 1}`, asset);
+            cloud.sprite.color = new this.cc.Color(255, 255, 255,
+                Math.round(HOOH_CLOUD_LAYOUT[index][3] * 255));
+            return cloud;
+        });
+        this.foreground = addSprite('HoOhTowerForeground', foreground);
+    }
+
+    update (camera, center, enabled, dt = 0, speed = 1) {
+        const active = !!enabled && !!this.foreground;
+        this.node.active = active;
+        if (!active) return;
+
+        this.wall += Math.max(0, dt);
+        const zoom = Math.max(0.01, camera.z || 1);
+        const width = 1200 * zoom;
+        const height = width * this.imageHeight / this.imageWidth;
+        this.transform.setContentSize(width, height);
+        this.node.setPosition((center.x - camera.x) * zoom, (center.y - camera.y) * zoom, 0);
+        this.foreground.transform.setContentSize(width, height);
+        this.foreground.node.setPosition(0, 0, 0);
+
+        const gale = speed > 1.01;
+        const amplitude = gale ? 135 : 18;
+        const frequency = gale ? 0.92 : 0.102;
+        for (let index = 0; index < this.clouds.length; index++) {
+            const cloud = this.clouds[index];
+            const [left, top, widthPercent] = HOOH_CLOUD_LAYOUT[index];
+            const cloudWidth = width * widthPercent / 100;
+            const cloudHeight = cloudWidth * cloud.asset.height / cloud.asset.width;
+            const baseX = width * (left / 100 + widthPercent / 200 - 0.5);
+            const baseY = height * (0.5 - top / 100) - cloudHeight * 0.5;
+            const phase = index * 2.399963 + (index % 2 ? Math.PI : 0);
+            const direction = index % 2 ? -1 : 1;
+            const travel = Math.sin(this.wall * frequency + phase);
+            const driftX = direction * amplitude * travel * zoom;
+            const driftY = Math.cos(this.wall * frequency * 0.72 + phase) * (gale ? 12 : 3) * zoom;
+            cloud.transform.setContentSize(cloudWidth, cloudHeight);
+            cloud.node.setPosition(baseX + driftX, baseY + driftY, 0);
+        }
+    }
+}

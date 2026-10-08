@@ -835,7 +835,8 @@ export class Hud {
         gauge(this.progressGauge, this.cc, -160, -9, 320, 8, kills / Math.max(1, threshold), '#f5cb65');
     }
 
-    setBoss (name, hp, maxHp, detail = 'BOSS · 不可捕捉', segments = 1) {
+    setBoss (name, hp, maxHp, detail = 'BOSS · 不可捕捉', segments = 1, verticalOffset = 0) {
+        this.bossRoot.setPosition(0, verticalOffset, 0);
         const show = maxHp > 0;
         this.bossRoot.active = show;
         if (!show) return;

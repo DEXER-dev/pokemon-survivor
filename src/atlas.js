@@ -608,6 +608,30 @@ export async function loadRayquazaArenaBackdrop (cc) {
     return { frame, width: image.width, height: image.height };
 }
 
+/** Individually layered Ho-Oh summit clouds plus the transparent Bell Tower foreground. */
+export async function loadHoOhArenaAssets (cc) {
+    const paths = [
+        'assets/maps/hooh-tower-foreground.webp',
+        ...Array.from({ length: 12 }, (_, index) => `assets/maps/hooh-cloud-${index + 1}.png`),
+    ];
+    const images = await Promise.all(paths.map((path) => loadPng(path)));
+    const toFrame = (image, path) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        canvas.getContext('2d').drawImage(image, 0, 0);
+        const frame = cc.SpriteFrame.createWithImage(canvas);
+        if (frame.texture && typeof frame.texture.setFilters === 'function') frame.texture.setFilters(1, 1);
+        return { frame, width: image.width, height: image.height, path };
+    };
+    const foreground = toFrame(images[0], paths[0]);
+    const clouds = images.slice(1).map((image, index) => toFrame(image, paths[index + 1]));
+    if (foreground.width !== 1672 || foreground.height !== 941) {
+        throw new Error(`Ho-Oh tower foreground must be 1672×941, got ${foreground.width}×${foreground.height}`);
+    }
+    return { foreground, clouds };
+}
+
 /** Source-resolution Kanto tree families, with crisp pixel edges. */
 export async function loadTreeAtlas (cc) {
     const image = await loadPng('assets/tilesets/KANTO50S_TREE_FAMILIES.png');

@@ -8,13 +8,14 @@ import {
     PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, WILD_BOSSES, family,
 } from './config.js';
 import { SpriteBatch, Palette } from './batch.js';
-import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLugiaArenaBackdrop, loadRayquazaArenaBackdrop, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
+import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLugiaArenaBackdrop, loadRayquazaArenaBackdrop, loadHoOhArenaAssets, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
 import { WorldFlora } from './world-flora.js';
 import { WorldTrees } from './world-trees.js';
 import { WorldPond } from './world-pond.js';
-import { WorldMewtwoArena, WorldLugiaArena, MEWTWO_ARENA_BOUNDS, MEWTWO_ARENA_SIZE,
-    LUGIA_ARENA_BOUNDS, LUGIA_ARENA_SIZE, WorldRayquazaArena,
-    RAYQUAZA_ARENA_BOUNDS, RAYQUAZA_ARENA_SIZE } from './world-mewtwo-arena.js';
+import { WorldMewtwoArena, WorldLugiaArena, WorldRayquazaArena, MEWTWO_ARENA_BOUNDS, MEWTWO_ARENA_SIZE,
+    LUGIA_ARENA_BOUNDS, LUGIA_ARENA_SIZE, RAYQUAZA_ARENA_BOUNDS, RAYQUAZA_ARENA_SIZE } from './world-mewtwo-arena.js';
+import { WorldHoOhArena } from './world-mewtwo-arena.js';
+import { createHoOhSpecialState, startHoOhSpecial, stepHoOhSpecial } from './hooh-special.js';
 import { drawWorldGround } from './world-ground.js';
 import { createWorldLayout, inPondClearing } from './world-map-layout.js';
 import { MEGA_FORMS, MEGA_BY_ID, megaFormForSegment } from './mega.js';
@@ -84,6 +85,8 @@ const TAU = Math.PI * 2;
 const TIER_GLYPH = ['circle', 'hex', 'star', 'diamond'];
 const MOB_GLYPH = ['blob', 'square', 'hex', 'star'];
 const UPGRADE_REVEAL_DELAY = 0.32;
+const HOOH_ARENA_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 310 });
+const HOOH_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 941 / 1672 });
 let dexPreviewSimulation = null;
 let pauseAfterDexRestore = false;
 
@@ -347,6 +350,10 @@ export function createGame (cc) {
             this.rayquazaArenaPromise = loadRayquazaArenaBackdrop(cc).then((assets) => {
                 this.rayquazaArena.setBackdrop(assets);
             }).catch((err) => console.warn('[rayquaza-map] using fallback arena ground:', err && err.message));
+            this.hoohArena = new WorldHoOhArena(cc, this.node);
+            this.hoohArenaPromise = loadHoOhArenaAssets(cc).then((assets) => {
+                this.hoohArena.setAssets(assets);
+            }).catch((err) => console.warn('[hooh-map] using fallback sky ground:', err && err.message));
 
             // The landmark lake uses the supplied, processed Lake.png tile textures.
             this.pond = new WorldPond(cc, this.world);
@@ -455,7 +462,8 @@ export function createGame (cc) {
             this.legendaryAttacks = new LegendaryAttackSystem();
             this.legendaryMap = { active: false, x: 0, y: 0, famIdx: -1, species: null,
                 mewtwoIntro: 0, mewtwoIntroDuration: 0, mewtwoRevert: 0,
-                lugiaIntro: 0, lugiaIntroDuration: 0 };
+                lugiaIntro: 0, lugiaIntroDuration: 0,
+                hoohIntro: 0, hoohIntroDuration: 0, hoohSpecial: createHoOhSpecialState() };
             this._trainerMegaAnnounced = false;
             this.blockTrainerShot = this.blockTrainerShot.bind(this);
             this.capture = new CaptureSystem(BALL, CATCH);
@@ -600,6 +608,9 @@ export function createGame (cc) {
             this.legendaryMap.mewtwoRevert = 0;
             this.legendaryMap.lugiaIntro = 0;
             this.legendaryMap.lugiaIntroDuration = 0;
+            this.legendaryMap.hoohIntro = 0;
+            this.legendaryMap.hoohIntroDuration = 0;
+            this.legendaryMap.hoohSpecial = createHoOhSpecialState();
             this.kingCounters = Object.create(null);
             this.kingGrants.length = 0;
             this._trainerMegaAnnounced = false;
@@ -969,10 +980,11 @@ export function createGame (cc) {
             const mewtwoEncounter = site.species === 'legend-mewtwo';
             const lugiaEncounter = site.species === 'legend-lugia';
             const rayquazaEncounter = site.species === 'legend-rayquaza';
+            const hoohEncounter = site.species === 'legend-hooh';
             this.legendaryMap.active = true;
-            this.legendaryMap.x = this.player.x + (mewtwoEncounter ? 170 : 0);
+            this.legendaryMap.x = this.player.x + (mewtwoEncounter ? 170 : hoohEncounter ? 150 : 0);
             this.legendaryMap.y = this.player.y + (mewtwoEncounter ? 75 : lugiaEncounter ? 130
-                : rayquazaEncounter ? 100 : 0);
+                : rayquazaEncounter ? 100 : hoohEncounter ? 55 : 0);
             this.legendaryMap.famIdx = famIdx;
             this.legendaryMap.species = site.species;
             this.legendaryMap.mewtwoIntro = mewtwoEncounter ? 3.6 : 0;
@@ -980,14 +992,19 @@ export function createGame (cc) {
             this.legendaryMap.mewtwoRevert = 0;
             this.legendaryMap.lugiaIntro = lugiaEncounter ? 3.7 : 0;
             this.legendaryMap.lugiaIntroDuration = this.legendaryMap.lugiaIntro;
+            this.legendaryMap.hoohIntro = hoohEncounter ? 2.4 : 0;
+            this.legendaryMap.hoohIntroDuration = this.legendaryMap.hoohIntro;
+            this.legendaryMap.hoohSpecial = createHoOhSpecialState();
             this.capture.clearInFlight();
             this.skills.reset();
             this.build.balls += 5;
             const bossX = mewtwoEncounter ? this.legendaryMap.x + 260
-                : lugiaEncounter ? this.legendaryMap.x : rayquazaEncounter ? this.legendaryMap.x + 64
+                : lugiaEncounter || hoohEncounter ? this.legendaryMap.x : rayquazaEncounter ? this.legendaryMap.x + 64
                     : this.player.x + 250;
             const bossY = mewtwoEncounter ? this.legendaryMap.y + 100
-                : lugiaEncounter ? this.legendaryMap.y + 150 : rayquazaEncounter ? this.legendaryMap.y + 110
+                    : lugiaEncounter ? this.legendaryMap.y + 150
+                    : rayquazaEncounter ? this.legendaryMap.y + 110
+                        : hoohEncounter ? this.legendaryMap.y + 40
                     : this.player.y + 24;
             const boss = this.enemies.spawn(bossX, bossY,
                 famIdx, 1, false, this.time / 60, 1, -1, BOSS.party.length, BOSS.hpMul, true);
@@ -1000,9 +1017,10 @@ export function createGame (cc) {
                 if (this.evolutionSfx) this.evolutionSfx.play('charge');
             }
             if (lugiaEncounter) this.enemies.intro[boss] = 1;
+            if (hoohEncounter) this.enemies.intro[boss] = 1;
             this.legendaryAttacks.start(rayquazaEncounter ? this.legendaryMap.x : this.enemies.x[boss],
                 rayquazaEncounter ? this.legendaryMap.y : this.enemies.y[boss], site.species);
-            if (!mewtwoEncounter && !lugiaEncounter) {
+            if (!mewtwoEncounter && !lugiaEncounter && !hoohEncounter) {
                 this.particleBursts.burst(site.species, this.enemies.x[boss], this.enemies.y[boss],
                     -Math.PI / 2, 'legendary-lair-entry');
             }
@@ -1023,7 +1041,8 @@ export function createGame (cc) {
             this.say(mewtwoEncounter
                 ? '超梦从四面八方汇聚能量 · MEGA进化即将开始'
                 : lugiaEncounter ? '海水翻涌 · 洛奇亚正在从瀑布中现身'
-                    : `进入${site.name}的神兽出没地！击败神兽后投球收服 · 已补充 5 球`, 5);
+                    : hoohEncounter ? '云海翻涌 · 凤王自高空飞降'
+                        : `进入${site.name}的神兽出没地！击败神兽后投球收服 · 已补充 5 球`, 5);
             return true;
         }
 
@@ -1065,6 +1084,22 @@ export function createGame (cc) {
                     this.say('MEGA超梦Y现身！战斗开始', 3.4);
                 }
             }
+            if (map.hoohIntro > 0) {
+                map.hoohIntro = Math.max(0, map.hoohIntro - dt);
+                if (map.hoohIntro === 0 && map.active && map.species === 'legend-hooh') {
+                    for (let i = 0; i < this.enemies.n; i++) {
+                        if (this.enemies.legendary[i] && this.enemies.fam[i] === map.famIdx) {
+                            this.enemies.intro[i] = 0;
+                            this.particleBursts.burst('legend-hooh', this.enemies.x[i], this.enemies.y[i],
+                                -Math.PI / 2, 'legendary-attack-impact');
+                            this.wave(this.enemies.x[i], this.enemies.y[i], 24, 164, 0.68, '#ffd36a');
+                            break;
+                        }
+                    }
+                    this.kick(0.24);
+                    this.say('凤王穿过云海降临！战斗开始', 3.4);
+                }
+            }
             if (map.mewtwoRevert > 0) map.mewtwoRevert = Math.max(0, map.mewtwoRevert - dt);
         }
 
@@ -1078,6 +1113,9 @@ export function createGame (cc) {
             this.legendaryMap.mewtwoRevert = 0;
             this.legendaryMap.lugiaIntro = 0;
             this.legendaryMap.lugiaIntroDuration = 0;
+            this.legendaryMap.hoohIntro = 0;
+            this.legendaryMap.hoohIntroDuration = 0;
+            this.legendaryMap.hoohSpecial = createHoOhSpecialState();
             this.legendaryAttacks.reset();
             this.clearEnemiesPreservingFieldProgress();
             this.capture.clearInFlight();
@@ -1473,6 +1511,9 @@ export function createGame (cc) {
             this.legendaryMap.mewtwoRevert = 0;
             this.legendaryMap.lugiaIntro = 0;
             this.legendaryMap.lugiaIntroDuration = 0;
+            this.legendaryMap.hoohIntro = 0;
+            this.legendaryMap.hoohIntroDuration = 0;
+            this.legendaryMap.hoohSpecial = createHoOhSpecialState();
             this.player.hp = this.player.maxhp;
             this.player.dead = false;
 
@@ -2587,7 +2628,8 @@ export function createGame (cc) {
                 const arenaBounds = this.legendaryMap.species === 'legend-mewtwo'
                     ? MEWTWO_ARENA_BOUNDS
                     : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_BOUNDS
-                        : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_BOUNDS : null;
+                        : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_BOUNDS
+                            : this.legendaryMap.species === 'legend-hooh' ? HOOH_ARENA_BOUNDS : null;
                 if (arenaBounds) {
                     const boundedX = Math.max(-arenaBounds.halfWidth, Math.min(arenaBounds.halfWidth, dx));
                     const boundedY = Math.max(-arenaBounds.halfHeight, Math.min(arenaBounds.halfHeight, dy));
@@ -2687,21 +2729,78 @@ export function createGame (cc) {
                 || (this.legendaryAttacks.wildBoss && wildBossIndex < 0)) {
                 this.legendaryAttacks.active = false;
             }
-            const bossAttackActive = this.legendaryMap.active
+            let bossAttackActive = this.legendaryMap.active
                 ? lairBossIndex >= 0 && !legendaryReady && this.legendaryMap.mewtwoIntro <= 0
-                    && this.legendaryMap.lugiaIntro <= 0
+                    && this.legendaryMap.lugiaIntro <= 0 && this.legendaryMap.hoohIntro <= 0
+                    && !this.legendaryMap.hoohSpecial.active
                 : this.legendaryAttacks.wildBoss && wildBossIndex >= 0 && !legendaryReady;
             const bossHpRatio = this.legendaryMap.active
                 ? (lairBossIndex >= 0 && this.enemies.maxhp[lairBossIndex] > 0
                     ? this.enemies.hp[lairBossIndex] / this.enemies.maxhp[lairBossIndex] : 1)
                 : wildBossIndex >= 0 ? this.enemies.hp[wildBossIndex] / this.enemies.maxhp[wildBossIndex] : 1;
-            if (bossAttackActive && bossHpRatio <= 0.5 && !this.legendaryAttacks.phaseTwoAnnounced) {
+            const hoohPhaseTrigger = this.legendaryMap.active && this.legendaryMap.species === 'legend-hooh'
+                && lairBossIndex >= 0 && !legendaryReady && this.legendaryMap.hoohIntro <= 0
+                && bossHpRatio <= 0.5 && !this.legendaryAttacks.phaseTwoAnnounced;
+            if ((bossAttackActive || hoohPhaseTrigger) && bossHpRatio <= 0.5
+                && !this.legendaryAttacks.phaseTwoAnnounced) {
                 this.legendaryAttacks.phaseTwoAnnounced = true;
                 const bossFamily = family(this.legendaryAttacks.family);
-                this.say(`${bossFamily ? bossFamily.name : '神兽'}进入第二阶段 · 下轮招式强化！`, 3.2);
+                if (hoohPhaseTrigger) {
+                    startHoOhSpecial(this.legendaryMap.hoohSpecial);
+                    this.enemies.invulnerable[lairBossIndex] = 1;
+                    this.legendaryAttacks.active = false;
+                    bossAttackActive = false;
+                    this.say('凤王腾空 · 神圣羽暴！躲开金色羽弹', 4.2);
+                } else this.say(`${bossFamily ? bossFamily.name : '神兽'}进入第二阶段 · 下轮招式强化！`, 3.2);
                 this.wave(legendaryX, legendaryY, 12, 126, 0.58,
                     ELEMENT[bossFamily && bossFamily.element] || WAVE_GOLD);
-                this.kick(0.16);
+                this.kick(hoohPhaseTrigger ? 0.3 : 0.16);
+            }
+            const hoohSpecial = this.legendaryMap.hoohSpecial;
+            if (this.legendaryMap.active && this.legendaryMap.species === 'legend-hooh'
+                && hoohSpecial.active) {
+                this.enemies.invulnerable[lairBossIndex] = 1;
+                const view = cc.view.getVisibleSize();
+                const arena = { x: this.legendaryMap.x, y: this.legendaryMap.y,
+                    halfWidth: HOOH_ARENA_BOUNDS.halfWidth, halfHeight: HOOH_ARENA_BOUNDS.halfHeight };
+                const viewport = { width: view.width / Math.max(0.01, this.cam.z),
+                    height: view.height / Math.max(0.01, this.cam.z) };
+                const phaseEvents = stepHoOhSpecial(hoohSpecial, dt, viewport, arena,
+                    { x: p.x, y: p.y, radius: PLAYER.radius });
+                for (const event of phaseEvents) {
+                    if (event.type === 'impact') {
+                        for (const strike of event.strikes) {
+                            this.particleBursts.burst('legend-hooh', strike.x, strike.y,
+                                -Math.PI / 2, 'legendary-attack-impact');
+                            this.wave(strike.x, strike.y, 8, 64, 0.38, '#ffb949');
+                        }
+                        if (event.hit) {
+                            const hpBefore = p.hp;
+                            const damage = Math.max(1, Math.round(this.combat.bite(minute, 0, 1, 1) * 1.2));
+                            if (p.hurt(damage, PLAYER.iFrame)) {
+                                this.logEvent('player.hit', { hpBefore: Math.round(hpBefore),
+                                    hpAfter: Math.round(p.hp), boss: true, legendary: true,
+                                    attack: '凤王·神圣羽暴' });
+                                this.wave(p.x, p.y, 10, 78, 0.34, '#ffcf64');
+                                this.kick(0.26);
+                                if (p.dead) this.logEvent('player.defeated', {
+                                    time: Math.round(this.time), legendary: true,
+                                    attack: '凤王·神圣羽暴',
+                                });
+                            }
+                        } else {
+                            this.logEvent('legendary.attack-dodged', {
+                                attack: '凤王·神圣羽暴', volley: event.volley + 1,
+                                x: Math.round(p.x), y: Math.round(p.y),
+                            });
+                        }
+                    } else if (event.type === 'complete') {
+                        if (lairBossIndex >= 0) this.enemies.invulnerable[lairBossIndex] = 0;
+                        this.wave(legendaryX, legendaryY, 22, 174, 0.64, '#ffd36a');
+                        this.kick(0.28);
+                        this.say('羽暴散去 · 凤王回到平台，可以攻击了', 3.4);
+                    }
+                }
             }
             const previousLegendaryPhase = this.legendaryAttacks.phase;
             const legendaryAttack = bossAttackActive
@@ -2860,11 +2959,13 @@ export function createGame (cc) {
             // buffered, because a buffered throw would land somewhere the crosshair no longer points.
             if (wants && this.repeat <= 0 && this.throwBall()) this.repeat = b.repeat;
 
-            // Legendary chambers are finite arenas, so lock the camera to show their walls.
+            // In normal play the hero stays centered. Mewtwo's finite chamber instead locks the
+            // camera to the room so the player can move within its visible walls.
             const fixedArenaSize = this.legendaryMap.species === 'legend-mewtwo'
                 ? MEWTWO_ARENA_SIZE
                 : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_SIZE
-                    : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_SIZE : null;
+                    : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_SIZE
+                        : this.legendaryMap.species === 'legend-hooh' ? HOOH_ARENA_SIZE : null;
             const fixedArenaCamera = this.legendaryMap.active && fixedArenaSize;
             this.cam.x = fixedArenaCamera ? this.legendaryMap.x : p.x;
             this.cam.y = fixedArenaCamera ? this.legendaryMap.y : p.y;
@@ -2893,9 +2994,11 @@ export function createGame (cc) {
             if (this.legendaryMap.active) {
                 if (this.legendaryMap.species === 'legend-mewtwo'
                     || this.legendaryMap.species === 'legend-lugia'
-                    || this.legendaryMap.species === 'legend-rayquaza') {
+                    || this.legendaryMap.species === 'legend-rayquaza'
+                    || this.legendaryMap.species === 'legend-hooh') {
                     const arenaGround = this.legendaryMap.species === 'legend-lugia' ? '#101f32'
-                        : this.legendaryMap.species === 'legend-rayquaza' ? '#182943' : '#19233a';
+                        : this.legendaryMap.species === 'legend-rayquaza' ? '#182943'
+                            : this.legendaryMap.species === 'legend-hooh' ? '#68aaf1' : '#19233a';
                     g.fillColor = this.pal.get(arenaGround);
                     g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
                     g.fill();
@@ -3429,6 +3532,67 @@ export function createGame (cc) {
                 }
             }
 
+            const hoohSpecial = this.legendaryMap.hoohSpecial;
+            if (this.legendaryMap.active && this.legendaryMap.species === 'legend-hooh'
+                && hoohSpecial.active && (hoohSpecial.phase === 'warning' || hoohSpecial.phase === 'fall')) {
+                const falling = hoohSpecial.phase === 'fall';
+                const pulse = 0.78 + 0.22 * Math.sin(this.wall * 15);
+                const fallProgress = falling
+                    ? 1 - hoohSpecial.timer / Math.max(0.01, hoohSpecial.phaseDuration) : 0;
+                const view = cc.view.getVisibleSize();
+                const topY = this.cam.y + view.height / Math.max(0.01, this.cam.z) * 0.5 + 48;
+                for (let index = 0; index < hoohSpecial.strikes.length; index++) {
+                    const strike = hoohSpecial.strikes[index];
+                    const radius = 35 + pulse * 7;
+                    g.fillColor = this.pal.get('#f5a93e', falling ? 66 : Math.round(38 + pulse * 36));
+                    g.circle(strike.x, strike.y, radius);
+                    g.fill();
+                    g.strokeColor = this.pal.get('#fff0b0', Math.round(205 + pulse * 50));
+                    g.lineWidth = 4;
+                    g.circle(strike.x, strike.y, radius * 0.73);
+                    g.stroke();
+                    g.strokeColor = this.pal.get('#ffcf5b', Math.round(190 + pulse * 60));
+                    g.lineWidth = 4;
+                    for (let ray = 0; ray < 8; ray++) {
+                        const angle = ray * TAU / 8 + this.wall * 0.18;
+                        const inner = radius * 0.94;
+                        const outer = radius * (1.18 + 0.12 * pulse);
+                        g.moveTo(strike.x + Math.cos(angle) * inner,
+                            strike.y + Math.sin(angle) * inner);
+                        g.lineTo(strike.x + Math.cos(angle) * outer,
+                            strike.y + Math.sin(angle) * outer);
+                    }
+                    g.stroke();
+                    g.fillColor = this.pal.get('#fff9df', 255);
+                    g.circle(strike.x, strike.y, 5 + pulse * 2);
+                    g.fill();
+
+                    if (falling) {
+                        const x = strike.x + Math.sin(this.wall * 12 + index) * 9 * (1 - fallProgress);
+                        const y = topY + (strike.y - topY) * fallProgress;
+                        const angle = -Math.PI / 2 + Math.sin(this.wall * 8 + index) * 0.09;
+                        const dx = Math.cos(angle), dy = Math.sin(angle);
+                        const nx = -dy, ny = dx;
+                        g.fillColor = this.pal.get('#f6a23d', 250);
+                        g.moveTo(x - dx * 14 - nx * 5, y - dy * 14 - ny * 5);
+                        g.lineTo(x - dx * 4 - nx * 10, y - dy * 4 - ny * 10);
+                        g.lineTo(x + dx * 16, y + dy * 16);
+                        g.lineTo(x - dx * 2 + nx * 9, y - dy * 2 + ny * 9);
+                        g.lineTo(x - dx * 14 + nx * 5, y - dy * 14 + ny * 5);
+                        g.close();
+                        g.fill();
+                        g.strokeColor = this.pal.get('#fff6c4', 255);
+                        g.lineWidth = 3;
+                        g.moveTo(x - dx * 11, y - dy * 11);
+                        g.lineTo(x + dx * 11, y + dy * 11);
+                        g.stroke();
+                        g.fillColor = this.pal.get('#fff4b2', 125);
+                        g.circle(x - dx * 19, y - dy * 19, 9);
+                        g.fill();
+                    }
+                }
+            }
+
             this.drawLegendaryCompanionWarnings(g);
 
             // Every width below is multiplied by cam.z (1.2) and then by the canvas downscale (measured
@@ -3678,19 +3842,82 @@ export function createGame (cc) {
                         : BOSS_SPECIES.key) : trainerForm ? trainerForm.icon
                         : iconKey(FAMILIES[e.fam[i]] && FAMILIES[e.fam[i]].id, e.tier[i]);
                 const wildShinyIcon = !bo && !trainer && e.shiny[i] && iconBase ? shinyKey(iconBase) : null;
-                const icon = this.icons
-                    ? (wildShinyIcon && this.atlas.glyphs[wildShinyIcon] ? wildShinyIcon : iconBase)
-                    : null;
+                const iconCandidate = wildShinyIcon && this.atlas.glyphs[wildShinyIcon] ? wildShinyIcon : iconBase;
+                const icon = this.icons && iconCandidate && this.atlas.glyphs[iconCandidate] ? iconCandidate : null;
                 const scale = (icon ? Math.max(e.r[i] / 24, formMin(e.tier[i]) / 48) : e.r[i] / 24)
                     * (e.wildBoss[i] ? 1.14 : 1)
                     * (trainerMega ? 1.16 : 1);
-                const body = icon ? (e.shiny[i] ? ICON_TINT : bo ? HORDE_TINT_BOSS : trainer ? '#e7a1a1' : el ? HORDE_TINT_ELITE : HORDE_TINT)
+                const body = icon ? (e.shiny[i] ? ICON_TINT
+                    : bo && enemyFamily && enemyFamily.id === 'legend-hooh' ? '#fff4d6'
+                        : bo ? HORDE_TINT_BOSS : trainer ? '#e7a1a1' : el ? HORDE_TINT_ELITE : HORDE_TINT)
                     : (trainer ? '#bd4c5a' : el || bo ? COL.enemyElite : COL.enemy);
                 const bob = Math.sin(this.time * 7 + i * 1.3) * (bo ? 0.6 : el ? 1.2 : 2);
                 let drawY = e.y[i] + bob;
                 const trainerMegaOutline = trainerMega && drawMegaFormOutline(b, this.pal,
                     this.atlas.glyphs, trainerForm, icon, e.x[i], e.y[i] + bob, scale,
                     scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), this.wall, i);
+                const hoohEncounter = bo && e.legendary[i] && enemyFamily && enemyFamily.id === 'legend-hooh';
+                const hoohSpecial = this.legendaryMap.hoohSpecial;
+                if (hoohEncounter && e.intro[i] && this.legendaryMap.hoohIntro > 0) {
+                    const duration = this.legendaryMap.hoohIntroDuration || 2.4;
+                    const progress = Math.max(0, Math.min(1, 1 - this.legendaryMap.hoohIntro / duration));
+                    const eased = progress * progress * (3 - 2 * progress);
+                    drawY += 218 * (1 - eased);
+                    b.draw('aura', e.x[i], drawY, scale * 3.0, scale * 2.1, 0,
+                        this.pal.get('#ffd579', Math.round(38 + progress * 66)));
+                    for (let mote = 0; mote < 5; mote++) {
+                        const t = (progress * 1.3 + mote / 5) % 1;
+                        const angle = mote * TAU / 5 + progress * 1.8;
+                        const reach = scale * (1.45 - t * 0.35);
+                        b.draw(mote % 2 ? 'feather' : 'star',
+                            e.x[i] + Math.cos(angle) * reach,
+                            drawY + Math.sin(angle) * reach,
+                            mote % 2 ? scale * 0.43 : 0.3 + progress * 0.12,
+                            mote % 2 ? scale * 0.19 : 0.3 + progress * 0.12,
+                            angle, this.pal.get(mote % 2 ? '#ffe5a0' : '#fff8cf', Math.round(165 * (1 - t))));
+                    }
+                } else if (hoohEncounter && hoohSpecial.active) {
+                    const lift = 164;
+                    if (hoohSpecial.phase === 'lift') {
+                        const progress = 1 - hoohSpecial.timer / hoohSpecial.phaseDuration;
+                        drawY += lift * Math.max(0, Math.min(1, progress));
+                    } else if (hoohSpecial.phase === 'return') {
+                        const progress = 1 - hoohSpecial.timer / hoohSpecial.phaseDuration;
+                        drawY += lift * (1 - Math.max(0, Math.min(1, progress)));
+                    } else {
+                        drawY += lift + Math.sin(this.wall * 7) * 7;
+                    }
+                    if (hoohSpecial.phase === 'warning' || hoohSpecial.phase === 'fall'
+                        || hoohSpecial.phase === 'pause') {
+                        const breath = 1 + 0.06 * Math.sin(this.wall * 8);
+                        b.draw('aura', e.x[i], drawY, scale * 3.65 * breath,
+                            scale * 2.5 * breath, 0, this.pal.get('#ffca5d', 92));
+                        const wingRootY = drawY + scale * 0.11;
+                        for (const side of [-1, 1]) {
+                            const rootX = e.x[i] + side * scale * 0.28;
+                            for (let feather = 0; feather < 7; feather++) {
+                                const t = feather / 6;
+                                const rightAngle = -0.24 + t * 0.91;
+                                const angle = side > 0 ? rightAngle : Math.PI - rightAngle;
+                                const length = scale * (1.08 + t * 0.46);
+                                const centerX = rootX + Math.cos(angle) * length * 0.48;
+                                const centerY = wingRootY + Math.sin(angle) * length * 0.48;
+                                const tint = feather % 3 === 0 ? '#fff2bf'
+                                    : feather % 2 ? '#ffd36b' : '#f39b43';
+                                b.draw('feather', centerX, centerY,
+                                    scale * (1.22 + t * 0.2), scale * 0.29, angle,
+                                    this.pal.get(tint, 222));
+                            }
+                        }
+                        for (let spark = 0; spark < 9; spark++) {
+                            const angle = this.wall * 0.72 + spark * TAU / 9;
+                            const reach = scale * (2.05 + 0.15 * Math.sin(this.wall * 5 + spark));
+                            b.draw('star', e.x[i] + Math.cos(angle) * reach,
+                                drawY + Math.sin(angle) * reach, 0.26, 0.26, angle,
+                                this.pal.get('#fff1b8', 212));
+                        }
+                    }
+                }
                 if (mewtwoEncounter && icon) {
                     const introDuration = this.legendaryMap.mewtwoIntroDuration || 3.6;
                     const charge = e.intro[i]
@@ -3788,23 +4015,27 @@ export function createGame (cc) {
                     // which is the read the ball's clang has to agree with (§9.5's shape rule).
                     // With the icon atlas in, the BOSS is 班基拉斯: a species nothing else in the horde
                     // wears, so the mark is redundant and the ring/bar carry the claim instead.
-                    if (!icon) b.draw('cross', e.x[i], e.y[i] + bob, scale * 0.78, scale * 0.78, 0,
+                    const bossVisualY = hoohEncounter ? drawY : e.y[i];
+                    if (!icon) b.draw('cross', e.x[i], bossVisualY, scale * 0.78, scale * 0.78, 0,
                         this.pal.get(lit ? COL.ink : COL.gold, 235));
-                    b.draw('ring', e.x[i], e.y[i], scale * 1.16, scale * 1.16, 0, this.pal.get(COL.ink, 210));
-                    if (e.legendary[i] || e.wildBoss[i]) {
+                    if (!hoohEncounter) {
+                        b.draw('ring', e.x[i], bossVisualY, scale * 1.16, scale * 1.16, 0,
+                            this.pal.get(COL.ink, 210));
+                    }
+                    if ((e.legendary[i] || e.wildBoss[i]) && !hoohEncounter) {
                         const pulse = 1 + 0.08 * Math.sin(this.wall * 5);
                         const color = ELEMENT[FAMILIES[e.fam[i]].element];
                         const ready = e.legendaryReady[i] || e.wildBossReady[i];
-                        b.draw('aura', e.x[i], e.y[i], scale * (e.wildBoss[i] ? 2.8 + pulse : 2.0 + pulse),
+                        b.draw('aura', e.x[i], bossVisualY, scale * (e.wildBoss[i] ? 2.8 + pulse : 2.0 + pulse),
                             scale * (e.wildBoss[i] ? 2.8 + pulse : 2.0 + pulse), 0,
                             this.pal.get(color, ready ? 175 : (e.wildBoss[i] ? 125 : 75)));
                         if (e.wildBoss[i]) {
                             // Double element-colored beacon lets a roaming sub-legendary stand out
                             // from the horde before its dash warning starts.
-                            b.draw('ring', e.x[i], e.y[i], scale * (1.72 + pulse * 0.08),
+                            b.draw('ring', e.x[i], bossVisualY, scale * (1.72 + pulse * 0.08),
                                 scale * (1.72 + pulse * 0.08), -this.wall * 0.45,
                                 this.pal.get(color, ready ? 245 : 225));
-                            b.draw('ring', e.x[i], e.y[i], scale * (2.05 + pulse * 0.12),
+                            b.draw('ring', e.x[i], bossVisualY, scale * (2.05 + pulse * 0.12),
                                 scale * (2.05 + pulse * 0.12), this.wall * 0.3,
                                 this.pal.get(COL.gold, ready ? 230 : 175));
                         }
@@ -3813,7 +4044,7 @@ export function createGame (cc) {
                     // the screen bar tracks exact HP while this one keeps the target tied to its body.
                     const f = Math.max(0, e.hp[i] / e.maxhp[i]);
                     const bw = e.r[i] * 2.4;
-                    const by = e.y[i] + e.r[i] + 20;
+                    const by = bossVisualY + e.r[i] + 20;
                     b.draw('square', e.x[i], by, bw / 48, 10 / 48, 0, this.pal.get(COL.ink, 205));
                     b.draw('square', e.x[i] - bw * (1 - f) / 2, by, bw * f / 48, 6.5 / 48, 0,
                         this.pal.get(COL.gold, 255));
@@ -3822,7 +4053,7 @@ export function createGame (cc) {
                         // dodge window drawn as an object. It is gold so it reads with the 晋升 glow family
                         // and against the ink of the boss's own ring.
                         const k = Math.max(0, e.btm[i]) / BOSS.windup;
-                        b.draw('ring', e.x[i], e.y[i], scale * (1.3 + 3.4 * k), scale * (1.3 + 3.4 * k), 0,
+                        b.draw('ring', e.x[i], bossVisualY, scale * (1.3 + 3.4 * k), scale * (1.3 + 3.4 * k), 0,
                             this.pal.get(COL.gold, 90 + Math.round(150 * (1 - k))));
                     }
                 } else if (el) {
@@ -4461,6 +4692,9 @@ export function createGame (cc) {
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-lugia');
             this.rayquazaArena.update(this.cam, this.legendaryMap,
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-rayquaza');
+            this.hoohArena.update(this.cam, this.legendaryMap,
+                this.legendaryMap.active && this.legendaryMap.species === 'legend-hooh', dt,
+                this.legendaryMap.hoohSpecial.active ? 9 : 1);
             this.pond.setActive(!this.legendaryMap.active && !this.trainerBoss.active);
             this.flora.update(this.cam, floraView.width, floraView.height,
                 !this.legendaryMap.active && !this.trainerBoss.active);
@@ -4571,13 +4805,18 @@ export function createGame (cc) {
                 const ready = index >= 0 && this.enemies.legendaryReady[index];
                 const mewtwo = index >= 0 && FAMILIES[this.enemies.fam[index]].id === 'legend-mewtwo';
                 const lugia = index >= 0 && FAMILIES[this.enemies.fam[index]].id === 'legend-lugia';
-                const intro = (mewtwo || lugia) && this.enemies.intro[index];
+                const hooh = index >= 0 && FAMILIES[this.enemies.fam[index]].id === 'legend-hooh';
+                const intro = (mewtwo || lugia || hooh) && this.enemies.intro[index];
+                const hoohSpecial = hooh && this.legendaryMap.hoohSpecial.active
+                    ? this.legendaryMap.hoohSpecial : null;
                 const warning = this.legendaryAttacks.active && this.legendaryAttacks.phase === 'warning'
                     && !ready && !intro;
                 const detail = ready ? '虚弱 · 可投球收服'
-                    : intro ? (lugia ? '海水聚能 · 洛奇亚现身中' : '四方能量汇聚 · MEGA进化中')
+                    : intro ? (lugia ? '海水聚能 · 洛奇亚现身中'
+                        : hooh ? '云海翻涌 · 凤王自高空飞降' : '四方能量汇聚 · MEGA进化中')
+                    : hoohSpecial ? '无效 · 凤王腾空施放神圣羽暴 · 躲避金色羽弹'
                     : warning ? `${this.legendaryAttacks.label}范围已标出 · ${Math.max(0, this.legendaryAttacks.timeLeft).toFixed(1)}秒后攻击`
-                        : this.legendaryAttacks.phase === 'impact'
+                    : this.legendaryAttacks.phase === 'impact'
                             ? (this.legendaryAttacks.type === 'tsunami'
                                 ? '海啸扫过 · 留在蓝色安全窄道内' : `${this.legendaryAttacks.label}冲击中 · 立即避开预警区域`)
                         : '神兽 · 击败后可捕捉';
@@ -4586,7 +4825,7 @@ export function createGame (cc) {
                     : '神兽',
                     index >= 0 ? this.enemies.hp[index] : 0,
                     index >= 0 ? this.enemies.maxhp[index] : 0,
-                    detail, 1);
+                    detail, 1, hooh ? 150 : 0);
             } else {
                 let wildBossIndex = -1;
                 for (let i = 0; i < this.enemies.n; i++) {

@@ -36,6 +36,7 @@ export class EnemySystem {
         this.wildBossLife = new Float32Array(m);
         this.legendary = new Uint8Array(m);
         this.legendaryReady = new Uint8Array(m);
+        this.invulnerable = new Uint8Array(m);
         this.intro = new Uint8Array(m);
         this.trainer = new Uint8Array(m);
         this.trainerSlot = new Int8Array(m);
@@ -169,7 +170,7 @@ export class EnemySystem {
         const fields = [
             'x', 'y', 'vx', 'vy', 'hp', 'maxhp', 'r', 'fam', 'tier', 'elite', 'shiny', 'boss',
             'wildBoss', 'wildBossReady', 'wildBossLife',
-            'legendary', 'legendaryReady', 'intro', 'trainer', 'trainerSlot', 'bph', 'btm', 'weaken',
+            'legendary', 'legendaryReady', 'invulnerable', 'intro', 'trainer', 'trainerSlot', 'bph', 'btm', 'weaken',
             'root', 'flash', 'dead',
             'arenaAngle', 'arenaLayer', 'arenaAssigned',
         ];
@@ -223,6 +224,7 @@ export class EnemySystem {
         this.wildBossLife[i] = wildBoss ? WILD_BOSS.lifetime : 0;
         this.legendary[i] = legendary ? 1 : 0;
         this.legendaryReady[i] = 0;
+        this.invulnerable[i] = 0;
         this.intro[i] = 0;
         this.trainer[i] = trainer ? 1 : 0;
         this.trainerSlot[i] = trainer ? trainerSlot : -1;
@@ -443,6 +445,7 @@ export class EnemySystem {
                 this.wildBossLife[n] = this.wildBossLife[i];
                 this.legendary[n] = this.legendary[i];
                 this.legendaryReady[n] = this.legendaryReady[i];
+                this.invulnerable[n] = this.invulnerable[i];
                 this.intro[n] = this.intro[i];
                 this.trainer[n] = this.trainer[i];
                 this.trainerSlot[n] = this.trainerSlot[i];
@@ -467,6 +470,7 @@ export class EnemySystem {
     hurt (i, amount) {
         if (this.dead[i]) return false;
         if (this.intro[i]) return false;
+        if (this.invulnerable[i]) return false;
         // A live capture lock lets the player line up a ball without the party finishing that target first.
         if (i === this.aimedCaptureTarget) return false;
         if (this.wildBossReady[i]) return false;
