@@ -53,7 +53,7 @@
     .bar-sigil { position:relative; display:grid; place-items:center; height:20px; color:var(--deep); font-size:14px; text-shadow:0 1px #fff; }
     .bar-sigil::before,.bar-sigil::after { content:''; position:absolute; width:7px; height:7px; border:1px solid var(--accent); transform:rotate(45deg); opacity:.7; }
     .bar-sigil::before { left:1px; }.bar-sigil::after { right:1px; }
-    .hp-track { position:relative; height:16px; overflow:hidden; border:2px solid var(--deep); border-radius:6px 9px 6px 9px; background:linear-gradient(180deg,#53616a,#35434e); box-shadow:inset 0 2px 3px #151d25aa,0 1px 0 #fff; }
+    .hp-track { position:relative; height:21px; overflow:hidden; border:2px solid var(--deep); border-radius:6px 9px 6px 9px; background:linear-gradient(180deg,#53616a,#35434e); box-shadow:inset 0 2px 3px #151d25aa,0 1px 0 #fff; }
     .hp-fill { position:absolute; inset:1px auto 1px 1px; width:68%; border-radius:3px 7px 3px 7px; background:linear-gradient(180deg,#fff7c2 0%,var(--bright) 28%,var(--accent) 100%); box-shadow:0 0 9px var(--halo); transition:width .22s ease-out; }
     .hp-fill::before { content:''; position:absolute; inset:0; opacity:.38; background:repeating-linear-gradient(135deg,#fff8 0 3px,transparent 3px 8px); }
     .hp-fill::after { content:''; position:absolute; top:1px; right:2px; bottom:1px; width:4px; background:#fff5d9; box-shadow:0 0 7px #fff7; }
@@ -63,7 +63,7 @@
     .boss-card.critical { border-color:#df493d; box-shadow:0 0 0 1px #df493d55,0 3px 0 #3c394033; }
     .bar-notches { position:absolute; inset:0; display:flex; justify-content:space-evenly; pointer-events:none; }
     .bar-notches i { width:1px; height:100%; background:#17273377; box-shadow:1px 0 #ffffff36; }
-    .bar-end { width:26px; height:26px; display:grid; place-items:center; color:var(--deep); border:1.5px solid var(--accent); background:#fff5da; transform:rotate(45deg); border-radius:6px; }
+    .bar-end { width:30px; height:30px; display:grid; place-items:center; color:var(--deep); border:1.5px solid var(--accent); background:#fff5da; transform:rotate(45deg); border-radius:6px; }
     .bar-end span { transform:rotate(-45deg); font-size:12px; }
     .hud-foot { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:5px; color:#748187; font:9px/1.3 system-ui,sans-serif; }
     .phase { display:inline-flex; align-items:center; gap:5px; color:var(--deep); }
@@ -95,7 +95,7 @@
     .card-name strong { display:block; font-size:13px; }
     .card-name small { display:block; margin-top:3px; color:#748187; font:9px/1.3 system-ui,sans-serif; }
     .card-pct { color:var(--deep); font:700 13px/1 system-ui,sans-serif; font-variant-numeric:tabular-nums; }
-    .mini-track { position:relative; display:block; width:calc(100% - 44px); height:10px; margin:9px 0 6px 44px; overflow:hidden; border:1px solid var(--deep); border-radius:4px 7px 4px 7px; background:#414e57; }
+    .mini-track { position:relative; display:block; width:calc(100% - 44px); height:13px; margin:9px 0 6px 44px; overflow:hidden; border:1px solid var(--deep); border-radius:4px 7px 4px 7px; background:#414e57; }
     .mini-fill { position:absolute; display:block; inset:0 auto 0 0; width:68%; border-radius:inherit; background:linear-gradient(180deg,#fff8c9,var(--bright) 35%,var(--accent)); transition:width .22s ease-out; }
     .card-trait { margin-left:44px; color:var(--deep); font:9px/1.3 system-ui,sans-serif; }
     /* Identity comes from the icon, frame silhouette and fill pattern; the HP reading stays in one place. */
@@ -126,6 +126,85 @@
     .theme-arceus .hp-track,.theme-arceus .mini-track { border-radius:10px; box-shadow:inset 0 0 0 1px #ffeaae88,0 0 0 1px #96752d; }
     .theme-arceus .hp-fill,.theme-arceus .mini-fill { background-image:repeating-linear-gradient(90deg,transparent 0 30px,#88652655 30px 32px),linear-gradient(180deg,#fffce0,var(--bright) 33%,var(--accent)); }
     .theme-arceus .bar-end { border-radius:50%; box-shadow:0 0 0 3px var(--halo); }
+    /* These silhouettes are the identity: crystal, tide, feather, scale, fin, stone, clock, rift and halo. */
+    .theme-mewtwo .hp-track,.theme-mewtwo .mini-track { clip-path:polygon(0 50%,5% 0,17% 0,22% 19%,78% 19%,83% 0,95% 0,100% 50%,95% 100%,83% 100%,78% 81%,22% 81%,17% 100%,5% 100%); border-radius:0; }
+    .theme-mewtwo .hp-fill,.theme-mewtwo .mini-fill { clip-path:none; background-image:repeating-linear-gradient(45deg,transparent 0 14px,#71449d44 14px 16px),linear-gradient(180deg,#fff0ff,var(--bright) 35%,var(--accent)); }
+    .theme-mewtwo .bar-sigil { border:2px solid var(--accent); border-radius:50%; background:radial-gradient(circle,#fff 0 18%,var(--halo) 20% 58%,transparent 60%); }
+    .theme-mewtwo .bar-end { transform:none; clip-path:polygon(50% 0,88% 22%,100% 50%,88% 78%,50% 100%,12% 78%,0 50%,12% 22%); border:0; }
+    .theme-lugia .hp-track,.theme-lugia .mini-track { clip-path:polygon(0 30%,5% 9%,10% 30%,15% 9%,20% 30%,25% 9%,30% 30%,35% 9%,40% 30%,45% 9%,50% 30%,55% 9%,60% 30%,65% 9%,70% 30%,75% 9%,80% 30%,85% 9%,90% 30%,95% 9%,100% 30%,100% 70%,95% 91%,90% 70%,85% 91%,80% 70%,75% 91%,70% 70%,65% 91%,60% 70%,55% 91%,50% 70%,45% 91%,40% 70%,35% 91%,30% 70%,25% 91%,20% 70%,15% 91%,10% 70%,5% 91%,0 70%); border:0; border-radius:0; box-shadow:0 0 0 2px var(--deep),0 0 8px var(--halo); }
+    .theme-lugia .hp-fill,.theme-lugia .mini-fill { clip-path:none; background-image:repeating-linear-gradient(180deg,transparent 0 5px,#efffff55 5px 7px,transparent 7px 10px),linear-gradient(180deg,#efffff,var(--bright) 48%,var(--accent)); }
+    .theme-lugia .bar-sigil { border-radius:55% 45% 65% 35%; border:1px solid var(--accent); background:linear-gradient(145deg,#fff,var(--halo)); }
+    .theme-lugia .bar-sigil::before { width:20px;height:6px;left:9px;border-radius:50%;border-width:1px 0 0;transform:rotate(-18deg); }
+    .theme-lugia .bar-sigil::after { width:17px;height:5px;right:8px;border-radius:50%;border-width:0 0 1px;transform:rotate(14deg); }
+    .theme-lugia .bar-end { transform:none; border-radius:50% 50% 62% 38%; box-shadow:inset 0 -5px 0 var(--halo); }
+    .theme-hooh .hp-track,.theme-hooh .mini-track { clip-path:polygon(0 50%,4% 27%,10% 38%,15% 0,24% 31%,31% 3%,40% 32%,48% 0,57% 32%,66% 3%,75% 31%,84% 0,90% 38%,96% 27%,100% 50%,96% 73%,90% 62%,84% 100%,75% 69%,66% 97%,57% 68%,48% 100%,40% 68%,31% 97%,24% 69%,15% 100%,10% 62%,4% 73%); border:0; border-radius:0; box-shadow:0 0 0 2px var(--deep),0 0 10px var(--halo); }
+    .theme-hooh .hp-fill,.theme-hooh .mini-fill { clip-path:none; background-image:repeating-linear-gradient(100deg,transparent 0 22px,#a54c3244 22px 24px),linear-gradient(180deg,#fff8d4,var(--bright) 37%,var(--accent)); }
+    .theme-hooh .bar-sigil { clip-path:polygon(48% 0,60% 30%,100% 12%,76% 48%,96% 62%,62% 68%,51% 100%,37% 70%,3% 80%,25% 52%,0 33%,39% 39%); background:linear-gradient(145deg,#fff1b2,var(--accent)); }
+    .theme-hooh .bar-sigil::before,.theme-hooh .bar-sigil::after { display:none; }
+    .theme-hooh .bar-end { transform:none; border:0; clip-path:polygon(48% 0,62% 27%,100% 10%,76% 48%,98% 63%,62% 70%,50% 100%,37% 72%,2% 83%,25% 53%,0 31%,39% 39%); background:linear-gradient(145deg,#fff1b2,var(--accent)); }
+    .theme-rayquaza .hp-track,.theme-rayquaza .mini-track { clip-path:polygon(0 50%,4% 8%,9% 50%,14% 8%,19% 50%,24% 8%,29% 50%,34% 8%,39% 50%,44% 8%,49% 50%,54% 8%,59% 50%,64% 8%,69% 50%,74% 8%,79% 50%,84% 8%,89% 50%,94% 8%,100% 50%,94% 92%,89% 50%,84% 92%,79% 50%,74% 92%,69% 50%,64% 92%,59% 50%,54% 92%,49% 50%,44% 92%,39% 50%,34% 92%,29% 50%,24% 92%,19% 50%,14% 92%,9% 50%,4% 92%); border:0; border-radius:0; box-shadow:0 0 0 2px var(--deep); }
+    .theme-rayquaza .hp-fill,.theme-rayquaza .mini-fill { clip-path:none; background-image:repeating-linear-gradient(90deg,transparent 0 16px,#194d4355 16px 19px),linear-gradient(180deg,#e5ffd1,var(--bright) 30%,var(--accent)); }
+    .theme-rayquaza .bar-sigil { border:2px solid var(--accent); border-radius:50% 50% 38% 62%; background:repeating-linear-gradient(135deg,var(--halo) 0 4px,transparent 4px 7px); }
+    .theme-rayquaza .bar-end { transform:none; clip-path:polygon(0 28%,72% 28%,100% 0,86% 50%,100% 100%,72% 72%,0 72%,20% 50%); border:0; }
+    .theme-kyogre .hp-track,.theme-kyogre .mini-track { clip-path:polygon(0 50%,8% 18%,14% 32%,19% 0,28% 21%,72% 21%,81% 0,86% 32%,92% 18%,100% 50%,92% 82%,86% 68%,81% 100%,72% 79%,28% 79%,19% 100%,14% 68%,8% 82%); border:0; border-radius:0; box-shadow:0 0 0 2px var(--deep),0 0 11px var(--halo); }
+    .theme-kyogre .hp-fill,.theme-kyogre .mini-fill { clip-path:none; background-image:repeating-linear-gradient(180deg,transparent 0 4px,#effaff55 4px 6px,transparent 6px 10px),linear-gradient(180deg,#d9f6ff,var(--bright) 45%,var(--accent)); }
+    .theme-kyogre .bar-sigil { border-radius:50%; border:2px solid var(--accent); background:radial-gradient(ellipse at 50% 72%,var(--accent) 0 14%,transparent 16%),linear-gradient(180deg,transparent 45%,var(--halo) 46%); }
+    .theme-kyogre .bar-sigil::before { width:23px;height:8px;left:6px;border-radius:50%;border-width:1px 0 0;transform:rotate(-22deg); }
+    .theme-kyogre .bar-sigil::after { width:23px;height:8px;right:6px;border-radius:50%;border-width:0 0 1px;transform:rotate(20deg); }
+    .theme-kyogre .bar-end { transform:none; clip-path:polygon(50% 0,72% 34%,100% 45%,72% 55%,50% 100%,28% 55%,0 45%,28% 34%); border:0; }
+    .theme-groudon .hp-track,.theme-groudon .mini-track { clip-path:polygon(0 26%,7% 3%,15% 25%,23% 0,32% 25%,40% 11%,49% 27%,58% 0,66% 24%,76% 5%,84% 25%,93% 0,100% 28%,96% 72%,89% 100%,80% 77%,72% 100%,61% 75%,51% 100%,40% 77%,31% 100%,21% 75%,12% 100%,5% 72%); border:0; border-radius:0; box-shadow:0 0 0 2px var(--deep); }
+    .theme-groudon .hp-fill,.theme-groudon .mini-fill { clip-path:none; background-image:repeating-linear-gradient(145deg,transparent 0 18px,#713c3155 18px 21px,transparent 21px 33px),linear-gradient(180deg,#ffd790,var(--bright) 35%,var(--accent)); }
+    .theme-groudon .bar-sigil { clip-path:polygon(13% 0,83% 4%,100% 36%,84% 53%,92% 100%,42% 87%,0 64%,19% 45%); background:linear-gradient(145deg,#ffd48b,var(--accent)); }
+    .theme-groudon .bar-sigil::before,.theme-groudon .bar-sigil::after { display:none; }
+    .theme-groudon .bar-end { transform:none; clip-path:polygon(18% 0,85% 12%,100% 56%,77% 100%,18% 89%,0 45%); border:0; background:linear-gradient(145deg,#ffd48b,var(--accent)); }
+    .theme-dialga .hp-track,.theme-dialga .mini-track { clip-path:polygon(0 20%,3% 20%,3% 0,97% 0,97% 20%,100% 20%,100% 80%,97% 80%,97% 100%,3% 100%,3% 80%,0 80%); border-radius:0; }
+    .theme-dialga .hp-fill,.theme-dialga .mini-fill { clip-path:none; background-image:repeating-linear-gradient(90deg,transparent 0 22px,#315b8266 22px 24px),linear-gradient(180deg,#ecffff,var(--bright) 33%,var(--accent)); }
+    .theme-dialga .bar-sigil { border:2px solid var(--accent); border-radius:50%; background:repeating-conic-gradient(from 0deg,var(--halo) 0 8deg,transparent 8deg 30deg); }
+    .theme-dialga .bar-sigil::before { width:2px;height:11px;left:18px;top:4px;border:0;background:var(--deep);transform:rotate(22deg); }
+    .theme-dialga .bar-sigil::after { width:8px;height:2px;right:8px;top:17px;border:0;background:var(--deep);transform:none; }
+    .theme-dialga .bar-end { transform:rotate(45deg) scale(.82); border-radius:2px; box-shadow:inset 0 0 0 3px var(--halo); }
+    .theme-palkia .hp-track,.theme-palkia .mini-track { clip-path:polygon(0 50%,6% 0,16% 20%,84% 20%,94% 0,100% 50%,94% 100%,84% 80%,16% 80%,6% 100%); border:0; border-radius:0; box-shadow:0 0 0 2px var(--deep),0 0 0 4px #fff5d977; }
+    .theme-palkia .hp-fill,.theme-palkia .mini-fill { clip-path:none; background-image:repeating-linear-gradient(135deg,transparent 0 12px,#714a9f55 12px 15px,transparent 15px 25px),linear-gradient(180deg,#fff0ff,var(--bright) 34%,var(--accent)); }
+    .theme-palkia .bar-sigil { border:2px solid var(--accent); transform:rotate(45deg) scale(.74); background:linear-gradient(135deg,#fff,var(--halo)); }
+    .theme-palkia .bar-end { border-radius:2px; box-shadow:inset 0 0 0 3px var(--halo),0 0 0 2px var(--accent); }
+    .theme-arceus .hp-track,.theme-arceus .mini-track { clip-path:polygon(0 50%,3% 16%,8% 0,92% 0,97% 16%,100% 50%,97% 84%,92% 100%,8% 100%,3% 84%); border:0; border-radius:0; box-shadow:0 0 0 2px var(--deep),0 0 0 4px #fff6d8; }
+    .theme-arceus .hp-fill,.theme-arceus .mini-fill { clip-path:none; background-image:repeating-linear-gradient(90deg,transparent 0 30px,#88652655 30px 32px),linear-gradient(180deg,#fffce0,var(--bright) 33%,var(--accent)); }
+    .theme-arceus .bar-sigil { border:2px solid var(--accent); border-radius:50%; box-shadow:0 0 0 3px var(--halo),inset 0 0 0 3px #fff; }
+    .theme-arceus .bar-sigil::before,.theme-arceus .bar-sigil::after { width:5px;height:5px;border-radius:50%; }
+    .theme-arceus .bar-end { border:2px solid var(--accent); background:#fff9df; }
+    .theme-mewtwo .card-icon { clip-path:polygon(50% 0,94% 22%,100% 50%,94% 78%,50% 100%,6% 78%,0 50%,6% 22%); }
+    .theme-lugia .card-icon { border-radius:52% 48% 68% 32%; }
+    .theme-hooh .card-icon { border-radius:8px 15px 8px 15px; box-shadow:inset 0 -4px 0 var(--halo); }
+    .theme-rayquaza .card-icon { border-radius:50%; box-shadow:inset 0 0 0 3px var(--halo),0 0 0 1px var(--accent); }
+    .theme-kyogre .card-icon { border-radius:50%; box-shadow:inset 0 -5px 0 var(--halo); }
+    .theme-groudon .card-icon { clip-path:polygon(12% 0,88% 5%,100% 38%,86% 100%,13% 88%,0 40%); }
+    .theme-dialga .card-icon { border-radius:4px; box-shadow:inset 0 0 0 2px var(--halo); }
+    .theme-palkia .card-icon { clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); }
+    .theme-arceus .card-icon { border-radius:50%; box-shadow:0 0 0 2px #fff,inset 0 0 0 2px var(--accent); }
+    .theme-mewtwo .hp-track,.theme-mewtwo .mini-track { clip-path:none; border-radius:7px; box-shadow:0 0 0 2px var(--deep),0 0 0 5px var(--halo),inset 0 0 0 2px #f5e5ff66; }
+    .theme-mewtwo .bar-end { clip-path:none; border:1px solid var(--accent); border-radius:50%; box-shadow:0 0 0 3px var(--halo); }
+    .theme-hooh .hp-track,.theme-hooh .mini-track { clip-path:polygon(0 34%,4% 0,96% 0,100% 34%,97% 50%,100% 66%,96% 100%,4% 100%,0 66%,3% 50%); box-shadow:0 0 0 2px var(--deep),0 0 8px var(--halo); }
+    .theme-hooh .bar-end { clip-path:polygon(50% 0,68% 24%,100% 20%,79% 49%,96% 80%,60% 69%,50% 100%,39% 69%,4% 80%,21% 49%,0 20%,32% 24%); }
+    /* Refined frame contours keep the gauge readable while each species keeps a distinct build. */
+    .bar-notches { display:none; }
+    .theme-mewtwo .hp-track,.theme-mewtwo .mini-track { clip-path:polygon(0 50%,5% 10%,16% 10%,22% 0,78% 0,84% 10%,95% 10%,100% 50%,95% 90%,84% 90%,78% 100%,22% 100%,16% 90%,5% 90%); box-shadow:0 0 0 2px var(--deep),0 0 9px var(--halo); }
+    .theme-lugia .hp-track,.theme-lugia .mini-track { clip-path:none; border-radius:50% 8px 50% 8px; box-shadow:0 0 0 2px var(--deep),inset 0 0 0 2px #e9fcff77,0 0 9px var(--halo); }
+    .theme-hooh .hp-track,.theme-hooh .mini-track { clip-path:polygon(0 50%,4% 22%,9% 32%,13% 0,21% 20%,27% 4%,36% 22%,45% 0,55% 22%,64% 4%,73% 20%,81% 0,87% 32%,96% 22%,100% 50%,96% 78%,87% 68%,81% 100%,73% 80%,64% 96%,55% 78%,45% 100%,36% 78%,27% 96%,21% 80%,13% 100%,9% 68%,4% 78%); box-shadow:0 0 0 2px var(--deep),0 0 9px var(--halo); }
+    .theme-rayquaza .hp-track,.theme-rayquaza .mini-track { clip-path:none; border-radius:7px; box-shadow:0 0 0 2px var(--deep),inset 0 0 0 2px #d5ffe366; }
+    .theme-kyogre .hp-track,.theme-kyogre .mini-track { clip-path:none; border-radius:50%; box-shadow:0 0 0 2px var(--deep),inset 0 0 0 2px #d8f5ff77,0 0 10px var(--halo); }
+    .theme-groudon .hp-track,.theme-groudon .mini-track { clip-path:polygon(0 23%,5% 0,17% 0,21% 10%,79% 10%,84% 0,96% 0,100% 23%,96% 50%,100% 77%,96% 100%,84% 100%,79% 90%,21% 90%,17% 100%,5% 100%,0 77%,4% 50%); box-shadow:0 0 0 2px var(--deep); }
+    .theme-dialga .hp-track,.theme-dialga .mini-track { clip-path:polygon(0 18%,4% 18%,4% 0,96% 0,96% 18%,100% 18%,100% 82%,96% 82%,96% 100%,4% 100%,4% 82%,0 82%); box-shadow:0 0 0 2px var(--deep),inset 0 0 0 2px #ecffff66; }
+    .theme-palkia .hp-track,.theme-palkia .mini-track { clip-path:polygon(0 50%,5% 8%,14% 8%,20% 20%,80% 20%,86% 8%,95% 8%,100% 50%,95% 92%,86% 92%,80% 80%,20% 80%,14% 92%,5% 92%); box-shadow:0 0 0 2px var(--deep),0 0 0 4px #fff5d977; }
+    .theme-arceus .hp-track,.theme-arceus .mini-track { clip-path:none; border-radius:50%; box-shadow:0 0 0 2px var(--deep),0 0 0 4px #fff6d8,inset 0 0 0 2px #fff6cc88; }
+    .theme-rayquaza .hp-fill,.theme-rayquaza .mini-fill { background-image:repeating-linear-gradient(90deg,transparent 0 17px,#194d4355 17px 20px),linear-gradient(180deg,#e5ffd1,var(--bright) 30%,var(--accent)); }
+    .theme-dialga .hp-fill,.theme-dialga .mini-fill { background-image:repeating-linear-gradient(90deg,transparent 0 26px,#315b8266 26px 28px),linear-gradient(180deg,#ecffff,var(--bright) 33%,var(--accent)); }
+    .theme-arceus .bar-end { border-radius:50%; box-shadow:0 0 0 3px var(--halo),0 0 0 5px #fff8dc; }
+    /* Ho-Oh's wings frame the gauge; keep the measured HP band calm and continuous. */
+    .theme-hooh .hp-track,.theme-hooh .mini-track { clip-path:polygon(0 50%,3% 24%,8% 8%,12% 25%,88% 25%,92% 8%,97% 24%,100% 50%,97% 76%,92% 92%,88% 75%,12% 75%,8% 92%,3% 76%); border:0; border-radius:0; box-shadow:0 0 0 2px var(--deep),0 0 9px var(--halo); }
+    .theme-hooh .hp-fill,.theme-hooh .mini-fill { background-image:linear-gradient(180deg,#fff8d4,var(--bright) 38%,var(--accent)); }
+    .theme-hooh .hp-fill::before,.theme-hooh .mini-fill::before { opacity:.18; background:repeating-linear-gradient(105deg,transparent 0 17px,#fff8 17px 19px,transparent 19px 31px); }
+    .theme-hooh .bar-end { width:30px; height:27px; transform:none; border:0; border-radius:0; clip-path:polygon(0 50%,21% 34%,34% 9%,47% 31%,53% 31%,66% 9%,79% 34%,100% 50%,79% 66%,66% 91%,53% 69%,47% 69%,34% 91%,21% 66%); background:linear-gradient(145deg,#fff2b2,var(--accent)); }
+    .theme-hooh .bar-end span { font-size:10px; }
     .detail-grid { display:grid; grid-template-columns:1.2fr .8fr; gap:12px; margin-top:16px; }
     .detail { padding:14px 16px; border:1px solid #dacdb3; border-radius:10px; background:#fff8e9; box-shadow:0 2px 0 #d7cbb6; }
     .detail h3 { margin:0 0 7px; font-size:12px; }
@@ -203,15 +282,15 @@
   </div>
   <script>
     const bosses = [
-      { id:'mewtwo', name:'超梦', file:'MEWTWO', title:'超能次元', sigil:'Ψ', end:'◇', trait:'念力晶核 · 紫色相位线', text:'念力晶核与切角血槽强调超能力的压迫感；紫色相位纹随生命条缩短，数字位置保持稳定。' },
-      { id:'lugia', name:'洛奇亚', file:'LUGIA', title:'海神气旋', sigil:'≋', end:'≈', trait:'深海回旋 · 双层浪边', text:'双层浪边与冷白浪纹表现海神气旋；水蓝填充更贴近洛奇亚，血量边界仍保持明确。' },
-      { id:'hooh', name:'凤王', file:'HOOH', title:'虹色之翼', sigil:'✦', end:'✦', trait:'羽焰收口 · 金红羽纹', text:'羽焰形收口与金红色槽体呼应虹色之翼；血量读数仍保持清晰，较低血量时以更深的赤色提示危险。' },
-      { id:'rayquaza', name:'烈空坐', file:'RAYQUAZA', title:'天空之柱', sigil:'⌁', end:'⌁', trait:'龙鳞分节 · 翡翠鳞纹', text:'鳞片般的等距分节让血条像一截盘旋的龙躯；祖母绿与金线呼应烈空坐的身体纹样。' },
-      { id:'kyogre', name:'盖欧卡', file:'KYOGRE', title:'海之霸主', sigil:'〰', end:'〰', trait:'潮汐浪沿 · 海蓝波纹', text:'宽圆浪沿和连续潮纹给盖欧卡带来厚重水压感；避免堆叠水花，确保剩余比例一眼可读。' },
-      { id:'groudon', name:'固拉多', file:'GROUDON', title:'大地熔炉', sigil:'ϟ', end:'◆', trait:'熔岩裂面 · 岩层斜切', text:'硬折角、岩层斜切和熔岩橙红构成固拉多的厚重感；裂纹仅做槽内纹理，不会造成血量断读。' },
-      { id:'dialga', name:'帝牙卢卡', file:'DIALGA', title:'时间之龙', sigil:'⌛', end:'◷', trait:'时序刻度 · 钢蓝晶面', text:'钢蓝晶面搭配规律时序刻度，让帝牙卢卡的专属感来自时间感而非额外粒子；刻度不冒充阶段分段。' },
-      { id:'palkia', name:'帕路奇亚', file:'PALKIA', title:'空间裂隙', sigil:'◇', end:'◈', trait:'空间切角 · 紫晶折线', text:'切角与紫晶折线像空间被划开，边缘装饰收在血槽外，避免干扰实际剩余血量。' },
-      { id:'arceus', name:'阿尔宙斯', file:'ARCEUS', title:'创世之环', sigil:'◎', end:'◎', trait:'金环徽记 · 象牙金纹', text:'象牙金槽与圆环徽记呈现创世神的庄严感；纹样保持稀疏，让它显得特殊但不喧宾夺主。' },
+      { id:'mewtwo', name:'超梦', file:'MEWTWO', title:'超能次元', sigil:'Ψ', end:'◇', trait:'双层念力场 · 晶核两端', text:'双层外轨和悬浮晶核把超梦的精神力场做成结构；内槽保持平直，超能纹理不遮挡血量边界。' },
+      { id:'lugia', name:'洛奇亚', file:'LUGIA', title:'海神气旋', sigil:'≋', end:'≈', trait:'弧形浪沿 · 潮汐内纹', text:'两侧弧浪托住细长水槽，内侧用平行潮线表现气旋；波纹围着血量走，不把血槽切成断续小段。' },
+      { id:'hooh', name:'凤王', file:'HOOH', title:'虹色之翼', sigil:'✦', end:'✦', trait:'羽翼肩框 · 虹色羽纹', text:'两端羽翼肩线向外舒展，少量羽纹轻扫过槽面；金红血量带保持连续，不再切成尖齿碎片。' },
+      { id:'rayquaza', name:'烈空坐', file:'RAYQUAZA', title:'天空之柱', sigil:'⌁', end:'⌁', trait:'龙躯鳞节 · 连续鳞片模块', text:'连续短鳞片像盘绕龙躯的护甲，端部延伸为分叉尾形；外轮廓仍稳定，避免做成普通绿色进度条。' },
+      { id:'kyogre', name:'盖欧卡', file:'KYOGRE', title:'海之霸主', sigil:'〰', end:'〰', trait:'鲸背椭圆框 · 双鳍封口', text:'厚实的水滴椭圆槽配双鳍端饰，顶底双层潮纹强调深海压迫感，与洛奇亚的细浪长框拉开轮廓差异。' },
+      { id:'groudon', name:'固拉多', file:'GROUDON', title:'大地熔炉', sigil:'ϟ', end:'◆', trait:'断层岩甲框 · 熔岩裂隙', text:'四角像岩甲板片错接，填充带内留有发光裂隙；硬边和厚暗框传达重量，不用尖刺破坏读数。' },
+      { id:'dialga', name:'帝牙卢卡', file:'DIALGA', title:'时间之龙', sigil:'⌛', end:'◷', trait:'时序方框 · 表盘刻度', text:'阶梯状钢制表框、两端表盘和精确刻线突出时间主题；刻度只做外框装饰，不代表额外阶段。' },
+      { id:'palkia', name:'帕路奇亚', file:'PALKIA', title:'空间裂隙', sigil:'◇', end:'◈', trait:'空间裂隙框 · 菱晶端角', text:'两端菱晶像撕开的空间门，双层边缘让血槽悬在裂隙中央；内槽不弯曲，低血量仍能准确判断。' },
+      { id:'arceus', name:'阿尔宙斯', file:'ARCEUS', title:'创世之环', sigil:'◎', end:'◎', trait:'神圣光轮 · 金环内衬', text:'血槽被完整的象牙金双环托住，圆形徽记和两侧光点呈现祭坛感；装饰保持稀疏，压住画面重心。' },
     ];
     const slider = document.getElementById('hpSlider');
     const heroHud = document.getElementById('heroHud');

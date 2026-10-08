@@ -184,13 +184,25 @@
       transform-origin: center;
     }
     .trainer {
-      left: calc(50% - 24px);
-      top: 69%;
+      left: calc(38% - 24px);
+      top: 47%;
       width: 48px;
       height: 48px;
       background: url('../../assets/player/NPC_198_Lucas.png') left top / 192px 192px no-repeat;
       transform: scale(1.05);
       filter: drop-shadow(0 2px 1px #382c28aa);
+    }
+    .trainer-shadow {
+      position: absolute;
+      z-index: 4;
+      left: 38%;
+      top: 57.5%;
+      width: 24px;
+      height: 7px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: #352d2a88;
+      filter: blur(2px);
     }
     .nameplate {
       position: absolute;
@@ -392,6 +404,7 @@
           <div class="boss-hud"><span>凤王 · BOSS</span><div class="hp-track"><i></i></div></div>
           <div class="flight-trails" aria-hidden="true"><i class="wind-streak"></i><i class="wind-streak"></i><i class="wind-streak"></i><i class="wind-streak"></i></div>
           <div class="shadow"></div>
+          <div class="trainer-shadow" aria-hidden="true"></div>
           <div class="actor hooh" role="img" aria-label="凤王"></div>
           <div class="actor trainer" role="img" aria-label="训练家"></div>
           <div class="impact-pixels" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
