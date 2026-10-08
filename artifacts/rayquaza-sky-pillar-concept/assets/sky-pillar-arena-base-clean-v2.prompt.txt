@@ -1,0 +1,10 @@
+Use case: stylized-concept
+Asset type: 16:9 top-down game map background for a Rayquaza boss arena
+Input image: Image 1 is the edit target; preserve its room layout and visual landmarks, but remove the appearance of a photographed or digitally filtered handheld screen.
+Primary request: Re-render this Sky Pillar summit room as a clean, polished pixel-art game map background. Keep it clearly an indoor stone chamber, not an outdoor floating ruin.
+Composition: overhead orthographic view; broad uncluttered central battle floor; light gray-blue boulder and pillar motifs arranged in orderly groups around the perimeter; narrow warm tan and muted gold threshold along the south edge with a centered dark doorway.
+Style/medium: crisp 16-bit-era game pixel art, intentionally clustered square pixels, clean readable tile shapes, simple restrained shading, limited palette, designed as a native game background.
+Color palette: clear blue and indigo stone floor, pale cool-gray rocks, subdued tan-gold threshold.
+Materials/textures: broad stone tiles with clear but sparse grout lines; lightly varied tile colors, no dense microtexture; rocks use a few large pixel clusters and simple highlights.
+Constraints: preserve the top-down room, blue stone floor, edge-arranged pale rock motifs, open center, and southern centered doorway. Change only the rendering treatment and simplify surface texture. Keep edges sharp and pixel-based.
+Avoid: CRT or handheld-screen simulation, scanlines, RGB subpixels, moiré, display pixel grid overlay, dithering noise, sensor grain, bloom haze, blur, vignette, physical device bezel, screenshot artifacts, text, UI, characters, clouds, outdoor sky, floating islands, circular altar, water, trees, or extra architecture.
