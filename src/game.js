@@ -12,7 +12,7 @@ import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaB
 import { WorldFlora } from './world-flora.js';
 import { WorldTrees } from './world-trees.js';
 import { WorldPond } from './world-pond.js';
-import { WorldMewtwoArena } from './world-mewtwo-arena.js';
+import { WorldMewtwoArena, MEWTWO_ARENA_BOUNDS, MEWTWO_ARENA_SIZE } from './world-mewtwo-arena.js';
 import { drawWorldGround } from './world-ground.js';
 import { createWorldLayout, inPondClearing } from './world-map-layout.js';
 import { MEGA_FORMS, MEGA_BY_ID, megaFormForSegment } from './mega.js';
@@ -949,19 +949,21 @@ export function createGame (cc) {
                 return false;
             }
             this.clearEnemiesPreservingFieldProgress();
+            const mewtwoEncounter = site.species === 'legend-mewtwo';
             this.legendaryMap.active = true;
-            this.legendaryMap.x = this.player.x;
-            this.legendaryMap.y = this.player.y;
+            this.legendaryMap.x = this.player.x + (mewtwoEncounter ? 170 : 0);
+            this.legendaryMap.y = this.player.y + (mewtwoEncounter ? 75 : 0);
             this.legendaryMap.famIdx = famIdx;
             this.legendaryMap.species = site.species;
-            const mewtwoEncounter = site.species === 'legend-mewtwo';
             this.legendaryMap.mewtwoIntro = mewtwoEncounter ? 3.6 : 0;
             this.legendaryMap.mewtwoIntroDuration = this.legendaryMap.mewtwoIntro;
             this.legendaryMap.mewtwoRevert = 0;
             this.capture.clearInFlight();
             this.skills.reset();
             this.build.balls += 5;
-            const boss = this.enemies.spawn(this.player.x + 250, this.player.y + 24,
+            const bossX = mewtwoEncounter ? this.legendaryMap.x + 260 : this.player.x + 250;
+            const bossY = mewtwoEncounter ? this.legendaryMap.y + 100 : this.player.y + 24;
+            const boss = this.enemies.spawn(bossX, bossY,
                 famIdx, 1, false, this.time / 60, 1, -1, BOSS.party.length, BOSS.hpMul, true);
             const hpScale = 12 + Math.min(12, site.number * 1.4);
             this.enemies.maxhp[boss] *= hpScale;
@@ -2529,12 +2531,24 @@ export function createGame (cc) {
             if (this.legendaryMap.active) {
                 const dx = p.x - this.legendaryMap.x;
                 const dy = p.y - this.legendaryMap.y;
-                const d = Math.hypot(dx, dy);
-                const limit = 410;
-                if (d > limit) {
-                    p.x = this.legendaryMap.x + dx / d * limit;
-                    p.y = this.legendaryMap.y + dy / d * limit;
-                    p.vx = p.vy = 0;
+                if (this.legendaryMap.species === 'legend-mewtwo') {
+                    const boundedX = Math.max(-MEWTWO_ARENA_BOUNDS.halfWidth,
+                        Math.min(MEWTWO_ARENA_BOUNDS.halfWidth, dx));
+                    const boundedY = Math.max(-MEWTWO_ARENA_BOUNDS.halfHeight,
+                        Math.min(MEWTWO_ARENA_BOUNDS.halfHeight, dy));
+                    if (boundedX !== dx || boundedY !== dy) {
+                        p.x = this.legendaryMap.x + boundedX;
+                        p.y = this.legendaryMap.y + boundedY;
+                        p.vx = p.vy = 0;
+                    }
+                } else {
+                    const d = Math.hypot(dx, dy);
+                    const limit = 410;
+                    if (d > limit) {
+                        p.x = this.legendaryMap.x + dx / d * limit;
+                        p.y = this.legendaryMap.y + dy / d * limit;
+                        p.vx = p.vy = 0;
+                    }
                 }
             }
             this.chain.update(dt, p.x, p.y, Math.min(1, p.speed / p.maxSpeed));
@@ -2786,13 +2800,20 @@ export function createGame (cc) {
             // buffered, because a buffered throw would land somewhere the crosshair no longer points.
             if (wants && this.repeat <= 0 && this.throwBall()) this.repeat = b.repeat;
 
-            // The player is the fixed visual anchor: predictive lead/smoothing lets the hero drift
-            // away from the viewport center at high speed, leaving the trailing Pokémon even farther
-            // behind. Keep the camera focus exactly on the hero after movement resolves.
-            this.cam.x = p.x;
-            this.cam.y = p.y;
-            const kz = 1 - Math.exp(-3 * dt);
-            this.cam.z += (CHAIN.zoom(this.chain.nCount) - this.cam.z) * kz;
+            // In normal play the hero stays centered. Mewtwo's finite chamber instead locks the
+            // camera to the room so the player can move within its visible walls.
+            const fixedMewtwoCamera = this.legendaryMap.active
+                && this.legendaryMap.species === 'legend-mewtwo';
+            this.cam.x = fixedMewtwoCamera ? this.legendaryMap.x : p.x;
+            this.cam.y = fixedMewtwoCamera ? this.legendaryMap.y : p.y;
+            if (fixedMewtwoCamera) {
+                const visible = cc.view.getVisibleSize();
+                this.cam.z = Math.min(visible.width / MEWTWO_ARENA_SIZE.width,
+                    visible.height / MEWTWO_ARENA_SIZE.height) * 0.92;
+            } else {
+                const kz = 1 - Math.exp(-3 * dt);
+                this.cam.z += (CHAIN.zoom(this.chain.nCount) - this.cam.z) * kz;
+            }
             this.stepWaves(dt);
             if (this.toast.t > 0) this.toast.t -= dt;
             this.time += dt;
@@ -4331,7 +4352,7 @@ export function createGame (cc) {
             this.world.setPosition(-this.cam.x * z + sx / z, -this.cam.y * z + sy / z, 0);
             this.world.setScale(z, z, 1);
             const floraView = cc.view.getVisibleSize();
-            this.mewtwoArena.update(floraView,
+            this.mewtwoArena.update(this.cam, this.legendaryMap,
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-mewtwo');
             this.pond.setActive(!this.legendaryMap.active && !this.trainerBoss.active);
             this.flora.update(this.cam, floraView.width, floraView.height,

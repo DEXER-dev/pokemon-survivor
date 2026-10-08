@@ -1,4 +1,8 @@
-/** Screen-covering Cerulean Cave backdrop, kept between the ground and world actors. */
+export const MEWTWO_ARENA_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 286 });
+
+export const MEWTWO_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 941 / 1672 });
+
+/** Finite Cerulean Cave chamber, rendered in screen space from its world position. */
 export class WorldMewtwoArena {
     constructor (cc, gameRoot) {
         this.cc = cc;
@@ -27,21 +31,16 @@ export class WorldMewtwoArena {
         this.sprite.spriteFrame = frame;
     }
 
-    update (visibleSize, enabled) {
+    update (camera, center, enabled) {
         const active = !!enabled && !!this.frame;
         this.node.active = active;
         if (!active) return;
 
-        const coverWidth = Math.max(1, visibleSize.width) * 1.08;
-        const coverHeight = Math.max(1, visibleSize.height) * 1.08;
+        const zoom = Math.max(0.01, camera.z || 1);
         const aspect = this.imageWidth / Math.max(1, this.imageHeight);
-        let width = coverWidth;
-        let height = width / aspect;
-        if (height < coverHeight) {
-            height = coverHeight;
-            width = height * aspect;
-        }
+        const width = MEWTWO_ARENA_SIZE.width * zoom;
+        const height = width / aspect;
         this.transform.setContentSize(width, height);
-        this.node.setPosition(0, 0, 0);
+        this.node.setPosition((center.x - camera.x) * zoom, (center.y - camera.y) * zoom, 0);
     }
 }
