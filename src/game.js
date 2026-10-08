@@ -8,12 +8,13 @@ import {
     PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, WILD_BOSSES, family,
 } from './config.js';
 import { SpriteBatch, Palette } from './batch.js';
-import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLugiaArenaBackdrop, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
+import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLugiaArenaBackdrop, loadRayquazaArenaBackdrop, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
 import { WorldFlora } from './world-flora.js';
 import { WorldTrees } from './world-trees.js';
 import { WorldPond } from './world-pond.js';
 import { WorldMewtwoArena, WorldLugiaArena, MEWTWO_ARENA_BOUNDS, MEWTWO_ARENA_SIZE,
-    LUGIA_ARENA_BOUNDS, LUGIA_ARENA_SIZE } from './world-mewtwo-arena.js';
+    LUGIA_ARENA_BOUNDS, LUGIA_ARENA_SIZE, WorldRayquazaArena,
+    RAYQUAZA_ARENA_BOUNDS, RAYQUAZA_ARENA_SIZE } from './world-mewtwo-arena.js';
 import { drawWorldGround } from './world-ground.js';
 import { createWorldLayout, inPondClearing } from './world-map-layout.js';
 import { MEGA_FORMS, MEGA_BY_ID, megaFormForSegment } from './mega.js';
@@ -342,6 +343,10 @@ export function createGame (cc) {
             this.lugiaArenaPromise = loadLugiaArenaBackdrop(cc).then((assets) => {
                 this.lugiaArena.setBackdrop(assets);
             }).catch((err) => console.warn('[lugia-map] using fallback cave ground:', err && err.message));
+            this.rayquazaArena = new WorldRayquazaArena(cc, this.node);
+            this.rayquazaArenaPromise = loadRayquazaArenaBackdrop(cc).then((assets) => {
+                this.rayquazaArena.setBackdrop(assets);
+            }).catch((err) => console.warn('[rayquaza-map] using fallback arena ground:', err && err.message));
 
             // The landmark lake uses the supplied, processed Lake.png tile textures.
             this.pond = new WorldPond(cc, this.world);
@@ -963,9 +968,11 @@ export function createGame (cc) {
             this.clearEnemiesPreservingFieldProgress();
             const mewtwoEncounter = site.species === 'legend-mewtwo';
             const lugiaEncounter = site.species === 'legend-lugia';
+            const rayquazaEncounter = site.species === 'legend-rayquaza';
             this.legendaryMap.active = true;
             this.legendaryMap.x = this.player.x + (mewtwoEncounter ? 170 : 0);
-            this.legendaryMap.y = this.player.y + (mewtwoEncounter ? 75 : lugiaEncounter ? 130 : 0);
+            this.legendaryMap.y = this.player.y + (mewtwoEncounter ? 75 : lugiaEncounter ? 130
+                : rayquazaEncounter ? 100 : 0);
             this.legendaryMap.famIdx = famIdx;
             this.legendaryMap.species = site.species;
             this.legendaryMap.mewtwoIntro = mewtwoEncounter ? 3.6 : 0;
@@ -977,9 +984,11 @@ export function createGame (cc) {
             this.skills.reset();
             this.build.balls += 5;
             const bossX = mewtwoEncounter ? this.legendaryMap.x + 260
-                : lugiaEncounter ? this.legendaryMap.x : this.player.x + 250;
+                : lugiaEncounter ? this.legendaryMap.x : rayquazaEncounter ? this.legendaryMap.x + 64
+                    : this.player.x + 250;
             const bossY = mewtwoEncounter ? this.legendaryMap.y + 100
-                : lugiaEncounter ? this.legendaryMap.y + 150 : this.player.y + 24;
+                : lugiaEncounter ? this.legendaryMap.y + 150 : rayquazaEncounter ? this.legendaryMap.y + 110
+                    : this.player.y + 24;
             const boss = this.enemies.spawn(bossX, bossY,
                 famIdx, 1, false, this.time / 60, 1, -1, BOSS.party.length, BOSS.hpMul, true);
             const hpScale = 12 + Math.min(12, site.number * 1.4);
@@ -2576,7 +2585,8 @@ export function createGame (cc) {
                 const dy = p.y - this.legendaryMap.y;
                 const arenaBounds = this.legendaryMap.species === 'legend-mewtwo'
                     ? MEWTWO_ARENA_BOUNDS
-                    : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_BOUNDS : null;
+                    : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_BOUNDS
+                        : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_BOUNDS : null;
                 if (arenaBounds) {
                     const boundedX = Math.max(-arenaBounds.halfWidth, Math.min(arenaBounds.halfWidth, dx));
                     const boundedY = Math.max(-arenaBounds.halfHeight, Math.min(arenaBounds.halfHeight, dy));
@@ -2848,7 +2858,8 @@ export function createGame (cc) {
             // Legendary chambers are finite arenas, so lock the camera to show their walls.
             const fixedArenaSize = this.legendaryMap.species === 'legend-mewtwo'
                 ? MEWTWO_ARENA_SIZE
-                : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_SIZE : null;
+                : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_SIZE
+                    : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_SIZE : null;
             const fixedArenaCamera = this.legendaryMap.active && fixedArenaSize;
             this.cam.x = fixedArenaCamera ? this.legendaryMap.x : p.x;
             this.cam.y = fixedArenaCamera ? this.legendaryMap.y : p.y;
@@ -4441,6 +4452,8 @@ export function createGame (cc) {
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-mewtwo');
             this.lugiaArena.update(this.cam, this.legendaryMap,
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-lugia');
+            this.rayquazaArena.update(this.cam, this.legendaryMap,
+                this.legendaryMap.active && this.legendaryMap.species === 'legend-rayquaza');
             this.pond.setActive(!this.legendaryMap.active && !this.trainerBoss.active);
             this.flora.update(this.cam, floraView.width, floraView.height,
                 !this.legendaryMap.active && !this.trainerBoss.active);

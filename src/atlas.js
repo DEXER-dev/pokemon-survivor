@@ -596,6 +596,18 @@ export async function loadLugiaArenaBackdrop (cc) {
     return { frame, width: image.width, height: image.height };
 }
 
+/** Sky Pillar summit backdrop used by Rayquaza's dedicated legendary battle. */
+export async function loadRayquazaArenaBackdrop (cc) {
+    const image = await loadPng('assets/maps/sky-pillar-rayquaza-arena.png');
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    const frame = cc.SpriteFrame.createWithImage(canvas);
+    if (frame.texture && typeof frame.texture.setFilters === 'function') frame.texture.setFilters(1, 1);
+    return { frame, width: image.width, height: image.height };
+}
+
 /** Source-resolution Kanto tree families, with crisp pixel edges. */
 export async function loadTreeAtlas (cc) {
     const image = await loadPng('assets/tilesets/KANTO50S_TREE_FAMILIES.png');

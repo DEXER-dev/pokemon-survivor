@@ -3,6 +3,8 @@ export const MEWTWO_ARENA_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 2
 export const MEWTWO_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 941 / 1672 });
 export const LUGIA_ARENA_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 345 });
 export const LUGIA_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 1024 / 1536 });
+export const RAYQUAZA_ARENA_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 310 });
+export const RAYQUAZA_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 941 / 1672 });
 const ARENA_WORLD_WIDTH = 1200;
 
 /** Shared finite-room renderer; each legendary still owns a distinct map image and bounds. */
@@ -59,5 +61,12 @@ export class WorldMewtwoArena extends WorldArenaBackdrop {
 export class WorldLugiaArena extends WorldArenaBackdrop {
     constructor (cc, gameRoot) {
         super(cc, gameRoot, 'LugiaWhirlIslandsBackdrop');
+    }
+}
+
+/** Finite Sky Pillar summit room for Rayquaza's legendary encounter. */
+export class WorldRayquazaArena extends WorldArenaBackdrop {
+    constructor (cc, gameRoot) {
+        super(cc, gameRoot, 'RayquazaSkyPillarBackdrop');
     }
 }
