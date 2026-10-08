@@ -8,11 +8,12 @@ import {
     PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, WILD_BOSSES, family,
 } from './config.js';
 import { SpriteBatch, Palette } from './batch.js';
-import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
+import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLugiaArenaBackdrop, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
 import { WorldFlora } from './world-flora.js';
 import { WorldTrees } from './world-trees.js';
 import { WorldPond } from './world-pond.js';
-import { WorldMewtwoArena, MEWTWO_ARENA_BOUNDS, MEWTWO_ARENA_SIZE } from './world-mewtwo-arena.js';
+import { WorldMewtwoArena, WorldLugiaArena, MEWTWO_ARENA_BOUNDS, MEWTWO_ARENA_SIZE,
+    LUGIA_ARENA_BOUNDS, LUGIA_ARENA_SIZE } from './world-mewtwo-arena.js';
 import { drawWorldGround } from './world-ground.js';
 import { createWorldLayout, inPondClearing } from './world-map-layout.js';
 import { MEGA_FORMS, MEGA_BY_ID, megaFormForSegment } from './mega.js';
@@ -337,6 +338,10 @@ export function createGame (cc) {
             this.mewtwoArenaPromise = loadMewtwoArenaBackdrop(cc).then((assets) => {
                 this.mewtwoArena.setBackdrop(assets);
             }).catch((err) => console.warn('[mewtwo-map] using fallback cave ground:', err && err.message));
+            this.lugiaArena = new WorldLugiaArena(cc, this.node);
+            this.lugiaArenaPromise = loadLugiaArenaBackdrop(cc).then((assets) => {
+                this.lugiaArena.setBackdrop(assets);
+            }).catch((err) => console.warn('[lugia-map] using fallback cave ground:', err && err.message));
 
             // The landmark lake uses the supplied, processed Lake.png tile textures.
             this.pond = new WorldPond(cc, this.world);
@@ -950,9 +955,10 @@ export function createGame (cc) {
             }
             this.clearEnemiesPreservingFieldProgress();
             const mewtwoEncounter = site.species === 'legend-mewtwo';
+            const lugiaEncounter = site.species === 'legend-lugia';
             this.legendaryMap.active = true;
             this.legendaryMap.x = this.player.x + (mewtwoEncounter ? 170 : 0);
-            this.legendaryMap.y = this.player.y + (mewtwoEncounter ? 75 : 0);
+            this.legendaryMap.y = this.player.y + (mewtwoEncounter ? 75 : lugiaEncounter ? 130 : 0);
             this.legendaryMap.famIdx = famIdx;
             this.legendaryMap.species = site.species;
             this.legendaryMap.mewtwoIntro = mewtwoEncounter ? 3.6 : 0;
@@ -961,8 +967,10 @@ export function createGame (cc) {
             this.capture.clearInFlight();
             this.skills.reset();
             this.build.balls += 5;
-            const bossX = mewtwoEncounter ? this.legendaryMap.x + 260 : this.player.x + 250;
-            const bossY = mewtwoEncounter ? this.legendaryMap.y + 100 : this.player.y + 24;
+            const bossX = mewtwoEncounter ? this.legendaryMap.x + 260
+                : lugiaEncounter ? this.legendaryMap.x : this.player.x + 250;
+            const bossY = mewtwoEncounter ? this.legendaryMap.y + 100
+                : lugiaEncounter ? this.legendaryMap.y + 150 : this.player.y + 24;
             const boss = this.enemies.spawn(bossX, bossY,
                 famIdx, 1, false, this.time / 60, 1, -1, BOSS.party.length, BOSS.hpMul, true);
             const hpScale = 12 + Math.min(12, site.number * 1.4);
@@ -2531,11 +2539,12 @@ export function createGame (cc) {
             if (this.legendaryMap.active) {
                 const dx = p.x - this.legendaryMap.x;
                 const dy = p.y - this.legendaryMap.y;
-                if (this.legendaryMap.species === 'legend-mewtwo') {
-                    const boundedX = Math.max(-MEWTWO_ARENA_BOUNDS.halfWidth,
-                        Math.min(MEWTWO_ARENA_BOUNDS.halfWidth, dx));
-                    const boundedY = Math.max(-MEWTWO_ARENA_BOUNDS.halfHeight,
-                        Math.min(MEWTWO_ARENA_BOUNDS.halfHeight, dy));
+                const arenaBounds = this.legendaryMap.species === 'legend-mewtwo'
+                    ? MEWTWO_ARENA_BOUNDS
+                    : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_BOUNDS : null;
+                if (arenaBounds) {
+                    const boundedX = Math.max(-arenaBounds.halfWidth, Math.min(arenaBounds.halfWidth, dx));
+                    const boundedY = Math.max(-arenaBounds.halfHeight, Math.min(arenaBounds.halfHeight, dy));
                     if (boundedX !== dx || boundedY !== dy) {
                         p.x = this.legendaryMap.x + boundedX;
                         p.y = this.legendaryMap.y + boundedY;
@@ -2800,16 +2809,17 @@ export function createGame (cc) {
             // buffered, because a buffered throw would land somewhere the crosshair no longer points.
             if (wants && this.repeat <= 0 && this.throwBall()) this.repeat = b.repeat;
 
-            // In normal play the hero stays centered. Mewtwo's finite chamber instead locks the
-            // camera to the room so the player can move within its visible walls.
-            const fixedMewtwoCamera = this.legendaryMap.active
-                && this.legendaryMap.species === 'legend-mewtwo';
-            this.cam.x = fixedMewtwoCamera ? this.legendaryMap.x : p.x;
-            this.cam.y = fixedMewtwoCamera ? this.legendaryMap.y : p.y;
-            if (fixedMewtwoCamera) {
+            // Legendary chambers are finite arenas, so lock the camera to show their walls.
+            const fixedArenaSize = this.legendaryMap.species === 'legend-mewtwo'
+                ? MEWTWO_ARENA_SIZE
+                : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_SIZE : null;
+            const fixedArenaCamera = this.legendaryMap.active && fixedArenaSize;
+            this.cam.x = fixedArenaCamera ? this.legendaryMap.x : p.x;
+            this.cam.y = fixedArenaCamera ? this.legendaryMap.y : p.y;
+            if (fixedArenaCamera) {
                 const visible = cc.view.getVisibleSize();
-                this.cam.z = Math.min(visible.width / MEWTWO_ARENA_SIZE.width,
-                    visible.height / MEWTWO_ARENA_SIZE.height) * 0.92;
+                this.cam.z = Math.min(visible.width / fixedArenaSize.width,
+                    visible.height / fixedArenaSize.height) * 0.92;
             } else {
                 const kz = 1 - Math.exp(-3 * dt);
                 this.cam.z += (CHAIN.zoom(this.chain.nCount) - this.cam.z) * kz;
@@ -2829,8 +2839,10 @@ export function createGame (cc) {
             const halfH = Math.max(VIEW.H, visible.height) / 2;
             g.clear();
             if (this.legendaryMap.active) {
-                if (this.legendaryMap.species === 'legend-mewtwo') {
-                    g.fillColor = this.pal.get('#19233a');
+                if (this.legendaryMap.species === 'legend-mewtwo'
+                    || this.legendaryMap.species === 'legend-lugia') {
+                    g.fillColor = this.pal.get(this.legendaryMap.species === 'legend-lugia'
+                        ? '#101f32' : '#19233a');
                     g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
                     g.fill();
                     return;
@@ -4354,6 +4366,8 @@ export function createGame (cc) {
             const floraView = cc.view.getVisibleSize();
             this.mewtwoArena.update(this.cam, this.legendaryMap,
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-mewtwo');
+            this.lugiaArena.update(this.cam, this.legendaryMap,
+                this.legendaryMap.active && this.legendaryMap.species === 'legend-lugia');
             this.pond.setActive(!this.legendaryMap.active && !this.trainerBoss.active);
             this.flora.update(this.cam, floraView.width, floraView.height,
                 !this.legendaryMap.active && !this.trainerBoss.active);

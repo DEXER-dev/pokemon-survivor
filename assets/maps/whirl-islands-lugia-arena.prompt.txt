@@ -1,0 +1,14 @@
+Generated original environment background for the Lugia legendary battle.
+
+Visual target:
+- A finite, enclosed Whirl Islands deep-cave chamber, shown from a high top-down game-map view.
+- A broad waterfall drops from the far wall into a clear blue basin in the upper third.
+- The lower half stays open, dry, and low contrast for combat movement and sprite readability.
+- Continuous dark rock walls form a readable perimeter; the fitted room leaves a dark outer margin.
+- Cool navy/slate rock, cyan water, crisp stepped pixel clusters, no characters, text, UI, scanlines,
+  or copied game screenshot.
+
+Provenance: generated with OpenAI image generation on 2026-10-08. Original scene based on the
+Whirl Islands B3F waterfall basin depiction and encounter sequence documented at:
+https://bulbapedia.bulbagarden.net/wiki/Appendix:HeartGold_and_SoulSilver_walkthrough/Section_14
+The game screenshot is used only as a location reference; this project asset is newly generated.
