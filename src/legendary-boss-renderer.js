@@ -108,8 +108,8 @@ function drawRayquazaAttack (batch, pal, attack, wall, progress, impact, draw) {
     const eased = 1 - (1 - progress) * (1 - progress);
     const headX = sourceX + dx * eased;
     const headY = sourceY + dy * eased + Math.sin(progress * Math.PI) * 26;
-    const trailAngle = attack.moveIndex === 1 && attack.areas[0]
-        ? attack.areas[0].angle : direction;
+    // The Rayquaza icon's native heading points left; rotate that heading onto its actual lunge direction.
+    const trailAngle = direction - Math.PI;
     const sprite = batch.glyphs?.RAYQUAZA ? 'RAYQUAZA' : 'dragon';
     for (let ghost = 3; ghost >= 0; ghost--) {
         const t = Math.max(0, eased - ghost * 0.13);
