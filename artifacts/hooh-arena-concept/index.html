@@ -141,6 +141,16 @@
       from { transform: translate3d(18px, -4px, 0); }
       to { transform: translate3d(-28px, 4px, 0); }
     }
+    @keyframes cloud-gale-right {
+      from { transform: translate3d(-112px, 8px, 0) scale(.98); }
+      52% { transform: translate3d(6px, -10px, 0) scale(1.035); }
+      to { transform: translate3d(112px, 5px, 0) scale(1); }
+    }
+    @keyframes cloud-gale-left {
+      from { transform: translate3d(112px, -7px, 0) scale(1); }
+      48% { transform: translate3d(-8px, 10px, 0) scale(1.035); }
+      to { transform: translate3d(-112px, -4px, 0) scale(.98); }
+    }
     .scene { z-index: 2; object-fit: cover; }
     .stage.motion-off .cloud {
       animation: none;
@@ -203,7 +213,14 @@
     .m7 { --x: 13%; --y: 61%; --size: 5px; --duration: 10s; --delay: -8s; }
     .m8 { --x: 88%; --y: 45%; --size: 5px; --duration: 9s; --delay: -3s; }
     .stage.special-phase .cloud {
-      filter: drop-shadow(0 4px 5px #e7a93966) brightness(1.1) saturate(1.1);
+      animation-duration: 24s;
+      animation-timing-function: linear;
+      filter: drop-shadow(0 7px 7px #f1bd5c77) brightness(1.18) saturate(1.2);
+    }
+    .stage.special-phase .cloud:nth-child(odd) { --cloud-motion: cloud-gale-right; }
+    .stage.special-phase .cloud:nth-child(even) { --cloud-motion: cloud-gale-left; }
+    .stage.special-phase .cloud:nth-child(3n) {
+      filter: drop-shadow(0 9px 8px #f1bd5c88) brightness(1.24) saturate(1.28);
     }
     .stage.special-phase .sky-base {
       filter: brightness(1.16) saturate(1.28);
@@ -220,41 +237,45 @@
       position: absolute;
       z-index: 4;
       left: 50%;
-      top: 0;
-      width: 86%;
-      height: 70%;
+      top: 11%;
+      width: 46%;
+      height: 36%;
       opacity: 0;
       pointer-events: none;
-      clip-path: polygon(50% 34%,0 0,100% 0);
+      clip-path: ellipse(50% 50% at 50% 50%);
       transform: translateX(-50%) scale(.82);
-      transform-origin: 50% 31%;
+      transform-origin: 50% 50%;
       mix-blend-mode: screen;
-      background: repeating-conic-gradient(from -118deg at 50% 34%, #fff8dc14 0deg 5deg, #fff5c9b3 5.4deg 6.5deg, #ffc85b55 6.5deg 11deg);
-      filter: drop-shadow(0 0 10px #ffe18b66);
+      background:
+        radial-gradient(ellipse at 50% 50%, #fffbe7a6 0%, #ffe18b70 16%, #ffc65024 44%, transparent 73%),
+        repeating-conic-gradient(from -8deg at 50% 50%, transparent 0deg 13deg, #fff9dfaa 14deg 15deg, #ffd16a36 16deg 19deg, transparent 20deg 29deg);
+      filter: drop-shadow(0 0 12px #ffe18b88);
     }
     .stage.special-phase .divine-fan { animation: divine-fan-open 1.35s ease-in-out infinite alternate; }
     @keyframes divine-fan-open {
-      from { opacity: .42; transform: translateX(-50%) scale(.88) skewX(-1deg); }
-      to { opacity: .95; transform: translateX(-50%) scale(1.04) skewX(1deg); }
+      from { opacity: .28; transform: translateX(-50%) scale(.82); }
+      to { opacity: .64; transform: translateX(-50%) scale(1.04); }
     }
     .divine-wing {
       --mirror: 1;
       position: absolute;
       z-index: 4;
-      top: 18%;
+      top: 14%;
       left: 16%;
       width: 34%;
-      height: 34%;
+      height: 18%;
       opacity: 0;
       pointer-events: none;
-      clip-path: polygon(100% 100%,82% 88%,70% 92%,58% 75%,45% 82%,34% 67%,22% 75%,12% 50%,0 0,31% 25%,48% 35%,60% 51%,79% 63%);
+      clip-path: polygon(100% 88%,88% 81%,78% 84%,65% 69%,54% 77%,42% 59%,29% 68%,17% 43%,0 0,30% 17%,48% 27%,62% 43%,79% 54%);
       transform: scaleX(var(--mirror)) scale(.72);
-      transform-origin: 100% 100%;
-      background: linear-gradient(140deg,#fffdecf0 0%,#ffe673e8 23%,#ffa943d9 52%,#e05f3ab3 76%,#b4473300 100%);
-      filter: drop-shadow(0 0 8px #ffe27b) drop-shadow(0 0 20px #f37a3988);
+      transform-origin: 100% 88%;
+      background:
+        repeating-linear-gradient(158deg,transparent 0 9px,#fffce39c 10px 11px,transparent 12px 18px),
+        linear-gradient(145deg,#fff6c5 0%,#ffe88a 30%,#ffc353 62%,#f17a43 100%);
+      filter: drop-shadow(0 0 9px #fff2a8) drop-shadow(0 0 22px #f37a39aa);
     }
-    .divine-wing.right { --mirror: -1; left: 50%; }
-    .stage.special-phase .divine-wing { animation: divine-wing-bloom 1.15s cubic-bezier(.16,.78,.3,1) both, divine-wing-breath 1.55s ease-in-out 1.15s infinite alternate; }
+    .divine-wing.right { --mirror: -1; left: 50%; transform-origin: 0% 88%; }
+    .stage.special-phase .divine-wing { animation: divine-wing-bloom .78s cubic-bezier(.16,.78,.3,1) .28s both, divine-wing-breath 1.55s ease-in-out 1.06s infinite alternate; }
     @keyframes divine-wing-bloom {
       0% { opacity: 0; transform: scaleX(var(--mirror)) scale(.48) translateY(16px); }
       100% { opacity: .88; transform: scaleX(var(--mirror)) scale(1); }
@@ -749,7 +770,7 @@
           <div class="boss-hud">
             <div class="boss-hud-row"><span>凤王 · BOSS</span><span class="boss-state" id="boss-state">战斗中</span></div>
             <div class="hp-track"><i id="boss-hp"></i></div>
-            <div class="cloud-speed">神圣羽暴 · 云海疾涌 ×6</div>
+      <div class="cloud-speed">神圣羽暴 · 云海疾涌 ×9</div>
           </div>
           <div class="flight-trails" aria-hidden="true"><i class="wind-streak"></i><i class="wind-streak"></i><i class="wind-streak"></i><i class="wind-streak"></i></div>
           <div class="shadow"></div>
@@ -767,7 +788,7 @@
         <aside class="side">
           <section class="card"><h3>场地布局</h3><p>战斗平台下方露出格窗立面、承重梁柱和层叠瓦檐；这些塔身结构作为背景，不侵入平台的走位空间。</p></section>
           <section class="card"><h3>云海与天光</h3><p>十二朵独立像素云以大小、明暗和速度形成层次，环绕铃之塔缓慢漂浮；晨光从云隙透出，让场景重新有云上圣境的氛围。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
-          <section class="card"><h3>半血特技 · 神圣羽暴</h3><p>凤王降至半血后冲上高空并暂时免疫伤害，扇形圣光与盘旋羽焰随之铺开，十二朵背云六倍疾涌。三轮金羽先预告落点，再连续砸向平台；玩家可用方向键、WASD 或触屏点按、拖动躲避。羽暴收束后凤王落回平台并恢复可攻击。</p></section>
+          <section class="card"><h3>半血特技 · 神圣羽暴</h3><p>凤王降至半血后冲上高空并暂时免疫伤害，扇形圣光与盘旋羽焰随之铺开，十二朵背云九倍疾涌。三轮金羽先预告落点，再连续砸向平台；玩家可用方向键、WASD 或触屏点按、拖动躲避。羽暴收束后凤王落回平台并恢复可攻击。</p></section>
           <section class="card"><h3>战斗可读性</h3><p>危险落点先以金色星芒闪烁预警，再由羽弹垂直落下并炸出羽火；保留明显空隙供玩家走位。下方塔身只承担地标识别，不参与角色走位。</p></section>
           <section class="card"><h3>设计依据</h3><p>借用铃之塔与凤王的城都意象，重做成适配本游戏俯视战斗的原创场景；玩家与凤王用现有游戏素材展示。</p></section>
         </aside>
@@ -940,7 +961,7 @@
       specialButton.textContent = '特技演出中…';
       specialButton.setAttribute('aria-pressed', 'true');
       lockSceneControls(true);
-      rampCloudSpeed(6, 1050);
+      rampCloudSpeed(9, 800);
       await wait(720);
       if (token !== phaseToken) return;
       stage.classList.add('boss-airborne');
