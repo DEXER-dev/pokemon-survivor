@@ -2887,9 +2887,11 @@ export function createGame (cc) {
             g.clear();
             if (this.legendaryMap.active) {
                 if (this.legendaryMap.species === 'legend-mewtwo'
-                    || this.legendaryMap.species === 'legend-lugia') {
-                    g.fillColor = this.pal.get(this.legendaryMap.species === 'legend-lugia'
-                        ? '#101f32' : '#19233a');
+                    || this.legendaryMap.species === 'legend-lugia'
+                    || this.legendaryMap.species === 'legend-rayquaza') {
+                    const arenaGround = this.legendaryMap.species === 'legend-lugia' ? '#101f32'
+                        : this.legendaryMap.species === 'legend-rayquaza' ? '#182943' : '#19233a';
+                    g.fillColor = this.pal.get(arenaGround);
                     g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
                     g.fill();
                     return;
