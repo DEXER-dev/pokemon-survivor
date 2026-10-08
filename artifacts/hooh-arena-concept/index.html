@@ -90,41 +90,33 @@
       aspect-ratio: 1674 / 940;
       border: 3px solid #493b32;
       border-radius: 13px;
-      background: #88735d;
+      background: #68aaf1;
       box-shadow: inset 0 0 0 2px #e0bc75;
     }
-    .scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .clouds { position: absolute; z-index: 1; inset: 0; overflow: hidden; pointer-events: none; }
-    .cloud-puff {
+    .sky-base, .sky-texture, .cloud-bank, .scene {
       position: absolute;
-      height: 9%;
-      opacity: .8;
-      image-rendering: pixelated;
-      filter: drop-shadow(0 2px 0 #345c8750);
-      background: linear-gradient(180deg,#ffffff 0 30%,#d8eeff 31% 52%,#94c5ed 53% 79%,#5d94c3 80%);
-      clip-path: polygon(0 68%,7% 68%,7% 47%,19% 47%,19% 27%,33% 27%,33% 10%,47% 10%,47% 0,60% 0,60% 18%,75% 18%,75% 38%,91% 38%,91% 58%,100% 58%,100% 90%,94% 90%,94% 100%,5% 100%,5% 84%,0 84%);
-      animation: cloud-drift var(--drift-time,36s) ease-in-out var(--drift-delay,0s) infinite alternate;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
     }
-    .cloud-puff::after {
-      content: '';
-      position: absolute;
-      left: 37%;
-      top: 16%;
-      width: 22%;
-      height: 15%;
-      background: #fff;
-      clip-path: polygon(0 100%,0 45%,30% 45%,30% 0,78% 0,78% 45%,100% 45%,100% 100%);
-      opacity: .82;
+    .sky-base { z-index: 0; background: linear-gradient(180deg, #5eabfc 0%, #74b7f2 58%, #7ab9ea 100%); }
+    .sky-texture { z-index: 0; object-fit: cover; }
+    .cloud-bank {
+      z-index: 1;
+      --cloud-drift-x: clamp(22px, 5vw, 60px);
+      animation: cloud-bank-drift 10s ease-in-out infinite alternate;
+      will-change: transform;
     }
-    .cloud-puff.alt { clip-path: polygon(0 64%,12% 64%,12% 40%,25% 40%,25% 17%,42% 17%,42% 0,58% 0,58% 23%,76% 23%,76% 43%,91% 43%,91% 61%,100% 61%,100% 91%,95% 91%,95% 100%,4% 100%,4% 83%,0 83%); }
-    .cloud-left-high { left: 0; top: 24%; width: 6%; height: 9%; --drift-from:-32px; --drift-to:32px; --drift-time:7s; --drift-delay:-2s; opacity:.86; }
-    .cloud-right-high { right: 0; top: 27%; width: 6%; height: 9%; --drift-from:32px; --drift-to:-32px; --drift-time:8s; --drift-delay:-4s; opacity:.82; }
-    .cloud-left-mid { left: 0; top: 44%; width: 6%; height: 8%; --drift-from:-28px; --drift-to:28px; --drift-time:9s; --drift-delay:-6s; opacity:.68; }
-    .cloud-right-mid { right: 0; top: 47%; width: 6%; height: 8%; --drift-from:28px; --drift-to:-28px; --drift-time:7.5s; --drift-delay:-3s; opacity:.72; }
-    @keyframes cloud-drift { from { transform: translate3d(var(--drift-from,-14px),1px,0); } to { transform: translate3d(var(--drift-to,14px),-1px,0); } }
+    .cloud-bank, .scene { object-fit: cover; }
+    .scene { z-index: 2; }
+    @keyframes cloud-bank-drift {
+      from { transform: translate3d(calc(0px - var(--cloud-drift-x)), -5px, 0); }
+      to { transform: translate3d(var(--cloud-drift-x), 5px, 0); }
+    }
     .shade {
       position: absolute;
-      z-index: 1;
+      z-index: 3;
       inset: 0;
       pointer-events: none;
       background: linear-gradient(180deg, #fff2cf0a 0%, #6b4a3212 58%, #362b2942 100%);
@@ -133,7 +125,7 @@
     .stage.light-off .shade { opacity: 0; }
     .sunbeam {
       position: absolute;
-      z-index: 2;
+      z-index: 4;
       inset: -34% -10% 0 4%;
       pointer-events: none;
       opacity: .3;
@@ -142,7 +134,7 @@
       transition: opacity .25s;
     }
     .stage.light-off .sunbeam { opacity: 0; }
-    .motes { position: absolute; z-index: 3; inset: 0; overflow: hidden; pointer-events: none; }
+    .motes { position: absolute; z-index: 5; inset: 0; overflow: hidden; pointer-events: none; }
     .mote {
       position: absolute;
       left: var(--x);
@@ -177,7 +169,8 @@
     .m6 { --x: 73%; --y: 52%; --size: 5px; --duration: 11s; --delay: -5s; }
     .m7 { --x: 13%; --y: 61%; --size: 5px; --duration: 10s; --delay: -8s; }
     .m8 { --x: 88%; --y: 45%; --size: 5px; --duration: 9s; --delay: -3s; }
-    .stage.motion-off .motes, .stage.motion-off .clouds, .stage.clean .actor, .stage.clean .shadow, .stage.clean .badge { display: none; }
+    .stage.motion-off .motes, .stage.clean .actor, .stage.clean .shadow, .stage.clean .badge { display: none; }
+    .stage.motion-off .cloud-bank { animation: none; }
     .badge, .hint {
       position: absolute;
       z-index: 5;
@@ -411,7 +404,7 @@
     </header>
     <section class="body">
       <div class="lead">
-        <div><h2>铃之塔顶层 · 云上屋脊</h2><p>保留塔顶外部战斗平台，并让下方几层飞檐与木构楼身进入画面；云海退到远处，明确这是一座向下延伸的高塔。</p></div>
+        <div><h2>铃之塔顶层 · 云上屋脊</h2><p>塔身和蓝天保持固定，只让原底图里的云块在塔后缓慢飘动；下方飞檐与木构楼身清晰可见。</p></div>
         <div class="controls">
           <button id="encounter" type="button" aria-pressed="true">遭遇构图</button>
           <button id="clean" type="button" aria-pressed="false">纯场地</button>
@@ -422,11 +415,10 @@
       </div>
       <div class="layout">
         <div id="stage" class="stage">
-          <img class="scene" src="assets/hooh-arena-base.png?v=exterior-tower-v4" alt="铃之塔顶层外部平台与下方塔身概念底图">
-          <div class="clouds" aria-hidden="true">
-            <i class="cloud-puff cloud-left-high"></i><i class="cloud-puff alt cloud-right-high"></i>
-            <i class="cloud-puff alt cloud-left-mid"></i><i class="cloud-puff cloud-right-mid"></i>
-          </div>
+          <div class="sky-base" aria-hidden="true"></div>
+          <img class="sky-texture" src="assets/hooh-sky-underlay.webp?v=cloud-pixels-v2" alt="" aria-hidden="true">
+          <img class="cloud-bank" src="assets/hooh-cloud-layer.webp?v=cloud-pixels-v2" alt="" aria-hidden="true">
+          <img class="scene" src="assets/hooh-tower-foreground.webp?v=cloud-pixels-v2" alt="铃之塔顶层外部平台与下方塔身">
           <div class="shade"></div><div class="sunbeam"></div>
           <div class="motes" aria-hidden="true">
             <i class="mote m1"></i><i class="mote m2"></i><i class="mote feather m3"></i><i class="mote m4"></i>
@@ -444,7 +436,7 @@
         </div>
         <aside class="side">
           <section class="card"><h3>场地布局</h3><p>战斗平台下方露出格窗立面、承重梁柱和层叠瓦檐；这些塔身结构作为背景，不侵入平台的走位空间。</p></section>
-          <section class="card"><h3>光色方向</h3><p>云层只在塔身两侧缓慢漂移，微弱分层制造高空纵深；中间屋脊与凤王保持清晰。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
+          <section class="card"><h3>光色方向</h3><p>只移动原底图里的白色云团与蓝灰阴影，蓝天和铃之塔固定；云始终在塔后，不会压住屋脊或角色。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
           <section class="card"><h3>战斗可读性</h3><p>开阔的顶层屋脊提供环绕走位空间；下方塔身只承担地标识别，实装时不参与角色走位。</p></section>
           <section class="card"><h3>设计依据</h3><p>借用铃之塔与凤王的城都意象，重做成适配本游戏俯视战斗的原创场景；玩家与凤王用现有游戏素材展示。</p></section>
         </aside>
