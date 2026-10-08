@@ -2,6 +2,12 @@
 export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-08',
+        category: '战斗音效',
+        title: '裂空座出场加入云风音效',
+        description: '进入裂空座的神兽出没地时播放云幕散开的短风掠声；静音测试参数照常生效。',
+    },
+    {
+        date: '2026-10-08',
         category: '下载渠道',
         title: '首页新增 Windows EXE 与 Android APK 下载',
         description: '电脑端下载安装程序，Android 手机直接下载 APK；最新版安装包由 GitHub Releases 自动构建并更新。',
