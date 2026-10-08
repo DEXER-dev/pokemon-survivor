@@ -206,7 +206,87 @@
       filter: drop-shadow(0 4px 5px #e7a93966) brightness(1.1) saturate(1.1);
     }
     .stage.special-phase .sky-base {
-      filter: brightness(1.08) saturate(1.12);
+      filter: brightness(1.16) saturate(1.28);
+    }
+    .stage.special-phase .shade {
+      opacity: .84;
+      background: radial-gradient(ellipse at 50% 34%, transparent 8%, #b56f2a22 56%, #39272272 100%);
+    }
+    .stage.special-phase .mote {
+      animation-duration: 2.6s;
+      filter: drop-shadow(0 0 4px #ffd45b);
+    }
+    .divine-fan {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      top: 0;
+      width: 86%;
+      height: 70%;
+      opacity: 0;
+      pointer-events: none;
+      clip-path: polygon(50% 34%,0 0,100% 0);
+      transform: translateX(-50%) scale(.82);
+      transform-origin: 50% 31%;
+      mix-blend-mode: screen;
+      background: repeating-conic-gradient(from -118deg at 50% 34%, #fff8dc14 0deg 5deg, #fff5c9b3 5.4deg 6.5deg, #ffc85b55 6.5deg 11deg);
+      filter: drop-shadow(0 0 10px #ffe18b66);
+    }
+    .stage.special-phase .divine-fan { animation: divine-fan-open 1.35s ease-in-out infinite alternate; }
+    @keyframes divine-fan-open {
+      from { opacity: .42; transform: translateX(-50%) scale(.88) skewX(-1deg); }
+      to { opacity: .95; transform: translateX(-50%) scale(1.04) skewX(1deg); }
+    }
+    .divine-wing {
+      --mirror: 1;
+      position: absolute;
+      z-index: 4;
+      top: 18%;
+      left: 16%;
+      width: 34%;
+      height: 34%;
+      opacity: 0;
+      pointer-events: none;
+      clip-path: polygon(100% 100%,82% 88%,70% 92%,58% 75%,45% 82%,34% 67%,22% 75%,12% 50%,0 0,31% 25%,48% 35%,60% 51%,79% 63%);
+      transform: scaleX(var(--mirror)) scale(.72);
+      transform-origin: 100% 100%;
+      background: linear-gradient(140deg,#fffdecf0 0%,#ffe673e8 23%,#ffa943d9 52%,#e05f3ab3 76%,#b4473300 100%);
+      filter: drop-shadow(0 0 8px #ffe27b) drop-shadow(0 0 20px #f37a3988);
+    }
+    .divine-wing.right { --mirror: -1; left: 50%; }
+    .stage.special-phase .divine-wing { animation: divine-wing-bloom 1.15s cubic-bezier(.16,.78,.3,1) both, divine-wing-breath 1.55s ease-in-out 1.15s infinite alternate; }
+    @keyframes divine-wing-bloom {
+      0% { opacity: 0; transform: scaleX(var(--mirror)) scale(.48) translateY(16px); }
+      100% { opacity: .88; transform: scaleX(var(--mirror)) scale(1); }
+    }
+    @keyframes divine-wing-breath {
+      from { opacity: .62; }
+      to { opacity: .92; }
+    }
+    .plume {
+      position: absolute;
+      z-index: 5;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .plume-feather {
+      position: absolute;
+      left: 50%;
+      top: 43%;
+      width: 12px;
+      height: 24px;
+      opacity: 0;
+      clip-path: polygon(50% 0,100% 32%,70% 39%,83% 70%,50% 100%,28% 70%,0 52%,34% 34%);
+      background: linear-gradient(135deg,#fff9d7 0 22%,#ffd45b 23% 49%,#f17b3e 50% 77%,#a94338 78%);
+      filter: drop-shadow(0 0 5px #ffcf4d);
+      animation: plume-lift var(--duration) ease-out var(--delay) infinite;
+    }
+    @keyframes plume-lift {
+      0% { opacity: 0; transform: translate(-50%,-50%) scale(.35) rotate(-28deg); }
+      20% { opacity: .94; }
+      72% { opacity: .82; transform: translate(calc(-50% + var(--mid-x)),calc(-50% + var(--mid-y))) scale(.86) rotate(115deg); }
+      100% { opacity: 0; transform: translate(calc(-50% + var(--drift-x)),calc(-50% + var(--rise-y))) scale(.58) rotate(var(--spin)); }
     }
     .stage.motion-off .motes, .stage.clean .actor, .stage.clean .shadow, .stage.clean .badge { display: none; }
     .badge, .hint {
@@ -409,11 +489,17 @@
     .stage.arrival .hooh { filter: drop-shadow(0 0 14px #ffc556); }
     .stage.battle-active .hooh { animation: hooh-hover 2.7s ease-in-out infinite; }
     .stage.special-phase .hooh {
-      --flight-rise-negative: clamp(-92px, -12vw, -48px);
-      filter: drop-shadow(0 0 7px #fff1ae) drop-shadow(0 0 17px #ffb72e);
+      --flight-height: clamp(48px, 12vw, 92px);
+      --flight-top: calc(43% - 32px - var(--flight-height));
+      filter: drop-shadow(0 0 9px #fff8cf) drop-shadow(0 0 24px #ffb72e) drop-shadow(0 0 43px #e786247a);
       animation: hooh-liftoff .72s cubic-bezier(.2,.9,.25,1) both;
     }
     .stage.special-phase.boss-airborne .hooh { animation: hooh-special-hover .72s ease-in-out infinite alternate; }
+    .stage.special-return .hooh {
+      --flight-height: clamp(48px, 12vw, 92px);
+      --flight-top: calc(43% - 32px - var(--flight-height));
+      animation: hooh-return .62s cubic-bezier(.18,.72,.26,1) both;
+    }
     .stage.special-phase .shadow { opacity: .38; width: 56px; filter: blur(5px); }
     .stage.special-phase.boss-airborne .shadow { opacity: .2; width: 42px; filter: blur(6px); }
     .stage.special-phase .nameplate { display: none; }
@@ -437,13 +523,19 @@
       100% { opacity: .32; transform: translate(-50%,0) scaleX(1); }
     }
     @keyframes hooh-liftoff {
-      0% { opacity: 1; transform: translateY(0) scale(1.7); }
-      14% { transform: translateY(7px) scale(1.72); }
-      100% { transform: translateY(var(--flight-rise-negative)) scale(1.8); }
+      0% { opacity: 1; top: calc(43% - 32px); transform: scale(1.7); }
+      14% { top: calc(43% - 32px + 7px); transform: scale(1.72); }
+      100% { top: var(--flight-top); transform: scale(1.8); }
     }
     @keyframes hooh-special-hover {
-      from { transform: translateY(calc(var(--flight-rise-negative) + 5px)) scale(1.78); }
-      to { transform: translateY(calc(var(--flight-rise-negative) - 5px)) scale(1.82); }
+      from { top: calc(var(--flight-top) + 5px); transform: scale(1.78); }
+      to { top: calc(var(--flight-top) - 5px); transform: scale(1.82); }
+    }
+    @keyframes hooh-return {
+      0% { top: var(--flight-top); transform: scale(1.8); }
+      70% { top: calc(43% - 32px + 8px); transform: scale(1.74); }
+      84% { top: calc(43% - 32px - 4px); transform: scale(1.72); }
+      100% { top: calc(43% - 32px); transform: scale(1.7); }
     }
     .phase-toast {
       position: absolute;
@@ -470,29 +562,42 @@
       left: var(--x);
       top: var(--y);
       display: grid;
-      width: 23px;
-      height: 23px;
+      width: 34px;
+      height: 34px;
       place-items: center;
       color: #fff8da;
-      background: #d7872eb8;
-      border: 1px solid #ffefb8;
-      clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%);
-      box-shadow: 0 0 12px #ffca58;
-      font: 700 11px/1 system-ui, sans-serif;
+      background: radial-gradient(circle,#fffbe6 0 10%,#ffd56b 12% 20%,#e8793199 22% 50%,#9d472433 52%);
+      clip-path: polygon(50% 0,59% 29%,78% 9%,72% 36%,100% 32%,81% 50%,100% 68%,72% 64%,78% 91%,59% 71%,50% 100%,41% 71%,22% 91%,28% 64%,0 68%,19% 50%,0 32%,28% 36%,22% 9%,41% 29%);
+      filter: drop-shadow(0 0 8px #ffe789) drop-shadow(0 0 17px #ff9a38);
+      font: 700 13px/1 system-ui, sans-serif;
       transform: translate(-50%,-50%);
-      animation: warning-pulse .36s ease-in-out infinite alternate;
+      animation: warning-pulse .34s ease-in-out infinite alternate;
     }
-    @keyframes warning-pulse { to { opacity: .6; scale: .76; filter: brightness(1.5); } }
+    .impact-warning::before, .impact-warning::after {
+      content: "";
+      position: absolute;
+      inset: -8px 15px;
+      background: linear-gradient(180deg,transparent,#fff3b8dd,transparent);
+      opacity: .8;
+    }
+    .impact-warning::after { transform: rotate(90deg); }
+    .stage.special-impact { animation: sacred-impact-jolt .22s steps(2,end); }
+    @keyframes sacred-impact-jolt {
+      25% { transform: translate(-2px,1px); }
+      50% { transform: translate(2px,-1px); }
+      75% { transform: translate(-1px,0); }
+    }
+    @keyframes warning-pulse { to { opacity: .56; scale: .78; filter: brightness(1.55) drop-shadow(0 0 12px #ffb644); } }
     .feather-shot {
       position: absolute;
       left: var(--x);
       top: -8%;
-      width: 11px;
-      height: 23px;
+      width: 15px;
+      height: 31px;
       border: 1px solid #fff4bd;
       border-radius: 75% 8% 70% 12%;
       background: linear-gradient(155deg,#fffbe0 0 18%,#ffdb68 19% 42%,#f88e38 43% 72%,#bd513c 73% 100%);
-      box-shadow: 0 0 7px #ffe071, 0 0 14px #ff9d3c99;
+      box-shadow: 0 0 8px #fff0a5, 0 0 18px #ff9d3ce6, 0 0 30px #ef552a66;
       image-rendering: pixelated;
       transform: translate(-50%,0) rotate(16deg);
       animation: feather-fall .62s cubic-bezier(.18,.54,.48,1) both;
@@ -500,22 +605,32 @@
     .feather-shot::after {
       content: "";
       position: absolute;
-      left: 4px;
+      left: 6px;
       top: 4px;
-      width: 1px;
-      height: 17px;
+      width: 2px;
+      height: 23px;
       background: #fff4d4;
       box-shadow: 0 0 5px #fff1c7;
+    }
+    .feather-shot::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: -18px;
+      width: 6px;
+      height: 22px;
+      background: linear-gradient(180deg,transparent,#fff1acb8);
+      filter: blur(2px);
     }
     .feather-impact {
       position: absolute;
       left: var(--x);
       top: var(--y);
-      width: 27px;
-      height: 27px;
-      clip-path: polygon(50% 0,64% 34%,100% 50%,64% 64%,50% 100%,36% 64%,0 50%,36% 36%);
-      background: #fff5b3;
-      filter: drop-shadow(0 0 6px #ff9c33);
+      width: 42px;
+      height: 42px;
+      clip-path: polygon(50% 0,58% 35%,82% 10%,69% 40%,100% 50%,68% 59%,90% 87%,59% 68%,50% 100%,41% 68%,11% 89%,32% 58%,0 50%,32% 41%,11% 12%,41% 33%);
+      background: radial-gradient(circle,#fffde2 0 13%,#ffe47c 16% 30%,#ff9f3cb5 34% 53%,#d8542c00 75%);
+      filter: drop-shadow(0 0 10px #ffdf67) drop-shadow(0 0 17px #ed7439aa);
       opacity: 0;
       transform: translate(-50%,-50%) scale(.2);
       animation: feather-impact .28s steps(4,end) both;
@@ -549,9 +664,7 @@
     .stage.special-phase { border-color: #edcf79; touch-action: none; }
     .stage.player-hit { border-color: #f46f51; box-shadow: inset 0 0 0 2px #ffe2b455, 0 0 12px #f16b4b66; }
     .stage.player-hit .trainer { filter: drop-shadow(0 0 7px #ff513b) brightness(1.35); animation: trainer-hit .24s steps(2,end); }
-    .stage.player-hit { animation: hit-flash .24s steps(2,end); }
     @keyframes trainer-hit { 50% { opacity: .55; } }
-    @keyframes hit-flash { 50% { border-color: #ff5b3f; } }
     .controls button:disabled { opacity: .55; cursor: wait; }
     @keyframes hooh-hover { 50% { transform: translateY(-5px) scale(1.73); } }
     .side { display: grid; align-content: start; gap: 10px; }
@@ -628,11 +741,15 @@
             <i class="mote m1"></i><i class="mote m2"></i><i class="mote feather m3"></i><i class="mote m4"></i>
             <i class="mote m5"></i><i class="mote feather m6"></i><i class="mote m7"></i><i class="mote m8"></i>
           </div>
+          <div class="divine-fan" aria-hidden="true"></div>
+          <div class="divine-wing" aria-hidden="true"></div>
+          <div class="divine-wing right" aria-hidden="true"></div>
+          <div class="plume" id="plume" aria-hidden="true"></div>
           <div class="badge">铃之塔 · 顶层屋脊</div><div class="hint">凤王 · BOSS遭遇</div>
           <div class="boss-hud">
             <div class="boss-hud-row"><span>凤王 · BOSS</span><span class="boss-state" id="boss-state">战斗中</span></div>
             <div class="hp-track"><i id="boss-hp"></i></div>
-            <div class="cloud-speed">神圣羽暴 · 云海加速 ×4</div>
+            <div class="cloud-speed">神圣羽暴 · 云海疾涌 ×6</div>
           </div>
           <div class="flight-trails" aria-hidden="true"><i class="wind-streak"></i><i class="wind-streak"></i><i class="wind-streak"></i><i class="wind-streak"></i></div>
           <div class="shadow"></div>
@@ -650,8 +767,8 @@
         <aside class="side">
           <section class="card"><h3>场地布局</h3><p>战斗平台下方露出格窗立面、承重梁柱和层叠瓦檐；这些塔身结构作为背景，不侵入平台的走位空间。</p></section>
           <section class="card"><h3>云海与天光</h3><p>十二朵独立像素云以大小、明暗和速度形成层次，环绕铃之塔缓慢漂浮；晨光从云隙透出，让场景重新有云上圣境的氛围。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
-          <section class="card"><h3>半血特技 · 神圣羽暴</h3><p>凤王降至半血后短暂升空蓄力并进入无敌，十二朵背云加速涌动。三轮金羽先落下预警标记，再砸向平台；玩家可用方向键、WASD 或点击平台躲避。特技结束后凤王恢复可攻击状态。</p></section>
-          <section class="card"><h3>战斗可读性</h3><p>危险落点先以金色菱形闪烁预警，再由羽弹垂直落下；保留明显空隙供玩家走位。下方塔身只承担地标识别，不参与角色走位。</p></section>
+          <section class="card"><h3>半血特技 · 神圣羽暴</h3><p>凤王降至半血后冲上高空并暂时免疫伤害，扇形圣光与盘旋羽焰随之铺开，十二朵背云六倍疾涌。三轮金羽先预告落点，再连续砸向平台；玩家可用方向键、WASD 或触屏点按、拖动躲避。羽暴收束后凤王落回平台并恢复可攻击。</p></section>
+          <section class="card"><h3>战斗可读性</h3><p>危险落点先以金色星芒闪烁预警，再由羽弹垂直落下并炸出羽火；保留明显空隙供玩家走位。下方塔身只承担地标识别，不参与角色走位。</p></section>
           <section class="card"><h3>设计依据</h3><p>借用铃之塔与凤王的城都意象，重做成适配本游戏俯视战斗的原创场景；玩家与凤王用现有游戏素材展示。</p></section>
         </aside>
       </div>
@@ -665,6 +782,7 @@
     const trainer = stage.querySelector('.trainer');
     const trainerShadow = stage.querySelector('.trainer-shadow');
     const barrage = document.getElementById('barrage');
+    const plume = document.getElementById('plume');
     const clouds = [...stage.querySelectorAll('.cloud')];
     let arrivalTimer;
     let phaseActive = false;
@@ -758,6 +876,24 @@
       barrage.append(impact);
       window.setTimeout(() => impact.remove(), 350);
     }
+    function makePlume() {
+      plume.replaceChildren();
+      for (let index = 0; index < 24; index += 1) {
+        const lane = (index % 12) - 5.5;
+        const feather = document.createElement('i');
+        const driftX = lane * 22 + ((index * 7) % 17) - 8;
+        const riseY = -(76 + (5.5 - Math.abs(lane)) * 12 + (index % 4) * 14);
+        feather.className = 'plume-feather';
+        feather.style.setProperty('--drift-x', `${driftX}px`);
+        feather.style.setProperty('--rise-y', `${riseY}px`);
+        feather.style.setProperty('--mid-x', `${driftX * 0.68}px`);
+        feather.style.setProperty('--mid-y', `${riseY * 0.68}px`);
+        feather.style.setProperty('--duration', `${1.35 + (index % 5) * 0.18}s`);
+        feather.style.setProperty('--delay', `${-((index % 8) * 0.2)}s`);
+        feather.style.setProperty('--spin', `${index % 2 ? 245 : -220}deg`);
+        plume.append(feather);
+      }
+    }
     function registerHit() {
       stage.classList.remove('player-hit');
       void stage.offsetWidth;
@@ -777,6 +913,10 @@
       points.forEach(makeFeather);
       await wait(620);
       points.forEach(makeImpact);
+      stage.classList.remove('special-impact');
+      void stage.offsetWidth;
+      stage.classList.add('special-impact');
+      window.setTimeout(() => stage.classList.remove('special-impact'), 260);
       const hit = playerInDanger(points);
       if (hit) registerHit();
       return hit;
@@ -787,8 +927,9 @@
       const token = ++phaseToken;
       let hits = 0;
       barrage.replaceChildren();
+      makePlume();
       showHearts(hits);
-      stage.classList.remove('clean', 'phase-complete', 'player-hit');
+      stage.classList.remove('clean', 'phase-complete', 'player-hit', 'special-impact');
       stage.classList.add('battle-active', 'special-phase');
       document.getElementById('encounter').setAttribute('aria-pressed', 'true');
       document.getElementById('clean').setAttribute('aria-pressed', 'false');
@@ -799,7 +940,7 @@
       specialButton.textContent = '特技演出中…';
       specialButton.setAttribute('aria-pressed', 'true');
       lockSceneControls(true);
-      rampCloudSpeed(4, 1000);
+      rampCloudSpeed(6, 1050);
       await wait(720);
       if (token !== phaseToken) return;
       stage.classList.add('boss-airborne');
@@ -824,16 +965,21 @@
       }
 
       barrage.replaceChildren();
+      plume.replaceChildren();
       stage.classList.remove('special-phase', 'boss-airborne', 'player-hit');
-      stage.classList.add('phase-complete');
-      document.getElementById('boss-state').textContent = '可攻击';
-      document.getElementById('phase-toast').textContent = hits === 0 ? '羽暴结束 · 完美闪避' : `羽暴结束 · 命中 ${hits} 次`;
-      specialButton.textContent = '重播半血特技';
-      specialButton.setAttribute('aria-pressed', 'false');
+      stage.classList.add('special-return', 'phase-complete');
+      document.getElementById('boss-state').textContent = '降落中';
+      document.getElementById('phase-toast').textContent = hits === 0 ? '羽暴收束 · 凤王回返' : `羽暴收束 · 命中 ${hits} 次`;
       phaseActive = false;
       pressedKeys.clear();
       pointerId = null;
       rampCloudSpeed(1, 1300);
+      await wait(620);
+      if (token !== phaseToken) return;
+      stage.classList.remove('special-return');
+      document.getElementById('boss-state').textContent = '可攻击';
+      specialButton.textContent = '重播半血特技';
+      specialButton.setAttribute('aria-pressed', 'false');
       lockSceneControls(false);
       window.setTimeout(() => stage.classList.remove('phase-complete'), 2200);
     }
@@ -920,7 +1066,7 @@
       window.setTimeout(() => arrivalButton.click(), 350);
     }
     if (previewParams.get('autoplay-special') === '1') {
-      window.setTimeout(() => specialButton.click(), 550);
+      window.setTimeout(() => specialButton.click(), 250);
     }
   </script>
 </body>
