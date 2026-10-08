@@ -108,15 +108,12 @@
       z-index: 2;
       inset: -34% -10% 0 4%;
       pointer-events: none;
-      opacity: .46;
-      background: linear-gradient(106deg, transparent 39%, #fff0bf0a 43%, #fff2c73d 48%, #fff7da12 51%, transparent 57%);
+      opacity: .3;
+      background: radial-gradient(ellipse at 18% 18%, #fff0bf30 0, #fff2c70e 22%, transparent 46%);
       mix-blend-mode: screen;
-      transform: translateX(-8%);
-      animation: beam-drift 12s ease-in-out infinite alternate;
       transition: opacity .25s;
     }
     .stage.light-off .sunbeam { opacity: 0; }
-    @keyframes beam-drift { to { transform: translateX(8%); } }
     .motes { position: absolute; z-index: 3; inset: 0; overflow: hidden; pointer-events: none; }
     .mote {
       position: absolute;
@@ -124,19 +121,18 @@
       top: var(--y);
       width: var(--size);
       height: var(--size);
-      border-radius: 50%;
+      border-radius: 0;
       background: #ffe6a2;
-      box-shadow: 0 0 7px 2px #ffbd5b88;
       opacity: 0;
-      animation: mote-rise var(--duration) linear infinite;
+      image-rendering: pixelated;
+      animation: mote-rise var(--duration) steps(8,end) infinite;
       animation-delay: var(--delay);
     }
     .mote.feather {
       width: 6px;
-      height: 12px;
-      border-radius: 90% 10% 80% 20%;
-      background: linear-gradient(135deg, #ffe69d, #e96539 76%);
-      box-shadow: 0 0 6px #ffb65b77;
+      height: 9px;
+      clip-path: polygon(50% 0,100% 38%,58% 100%,0 55%);
+      background: linear-gradient(135deg, #ffe69d 0 40%, #e96539 41% 76%, #9a5537 77%);
       transform: rotate(28deg);
     }
     @keyframes mote-rise {
@@ -312,7 +308,7 @@
       </div>
       <div class="layout">
         <div id="stage" class="stage">
-          <img class="scene" src="assets/hooh-arena-base.png" alt="铃之塔顶层开阔战斗平台概念底图">
+          <img class="scene" src="assets/hooh-arena-base.png?v=pixel-v3" alt="铃之塔顶层像素风开阔战斗平台概念底图">
           <div class="shade"></div><div class="sunbeam"></div>
           <div class="motes" aria-hidden="true">
             <i class="mote m1"></i><i class="mote m2"></i><i class="mote feather m3"></i><i class="mote m4"></i>
