@@ -14,3 +14,5 @@
 ## 图片来源记录
 
 干净像素质感的背景是基于上面的原作画面参考生成的概念底图；玩家与裂空座采用项目现有精灵素材做构图展示。最初带有过密屏幕纹理的版本保留为 `assets/sky-pillar-arena-base.png`，预览页现使用 `assets/sky-pillar-arena-base-clean-v2.png`。
+
+开场云层使用本项目概念用的透明像素云素材 `assets/rayquaza-cloud-banks.png`，两侧云团分别裁切显示并向外拨开；不再用规则椭圆和模糊渐变来拼云。
