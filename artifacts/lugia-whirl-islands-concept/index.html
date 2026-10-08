@@ -27,7 +27,7 @@
   <main class="frame">
     <header class="header"><div class="brand"><div class="sigil" aria-hidden="true">≈</div><div><div class="eyebrow">LEGENDARY ARENA · LUGIA</div><h1>漩涡岛瀑布洞窟 · 战斗地图</h1></div></div><span class="status">场景概念预览 · 3:2</span></header>
     <section class="body">
-      <div class="lead"><div><h2>瀑布后的静谧战场</h2><p>参照漩涡岛深处的瀑布洞窟构图：水池与瀑布占据后方，前景保留开阔岩地供玩家战斗和走位。</p></div><div class="controls"><button id="encounter" aria-pressed="true">遭遇构图</button><button id="clean" aria-pressed="false">只看场地</button><button id="motion" aria-pressed="true">环境微动：开</button><button id="light" aria-pressed="true">洞窟光影：开</button><button id="opening">播放开场演出</button></div></div>
+      <div class="lead"><div><h2>瀑布后的静谧战场</h2><p>参照漩涡岛深处的瀑布洞窟构图：水池与瀑布占据后方，前景保留开阔岩地供玩家战斗和走位。</p></div><div class="controls"><button id="encounter" aria-pressed="true">遭遇构图</button><button id="clean" aria-pressed="false">只看场地</button><button id="motion" aria-pressed="true">环境微动：开</button><button id="light" aria-pressed="true">洞窟光影：开</button><button id="sound" aria-pressed="true">音效：开</button><button id="opening">播放开场演出</button></div></div>
       <div class="layout">
         <div class="stage motion-on" id="stage">
           <img class="scene" src="../../assets/maps/whirl-islands-lugia-arena.png" alt="漩涡岛瀑布洞窟战斗地图">
@@ -47,13 +47,19 @@
       <div class="foot"><span>场景参考：<a href="https://bulbapedia.bulbagarden.net/wiki/Appendix:HeartGold_and_SoulSilver_walkthrough/Section_14" target="_blank" rel="noreferrer"><strong>漩涡岛流程资料</strong></a></span><span>交互式预览 · 地图素材与游戏实装一致</span></div>
     </section>
   </main>
+  <div class="audio-bank" aria-hidden="true"><audio id="cave-water" src="assets/sfx/cave-water.mp3" preload="none"></audio><audio id="water-whoosh" src="assets/sfx/water-emerge-whoosh.mp3" preload="none"></audio><audio id="water-splash" src="assets/sfx/water-splash.mp3" preload="none"></audio></div>
   <script>
     const stage=document.getElementById('stage');
     for(const [id,clean] of [['encounter',false],['clean',true]])document.getElementById(id).addEventListener('click',()=>{stage.classList.toggle('clean',clean);document.getElementById('encounter').setAttribute('aria-pressed',String(!clean));document.getElementById('clean').setAttribute('aria-pressed',String(clean))});
     for(const [id,cls,label] of [['motion','motion-on','环境微动'],['light','light-off','洞窟光影']])document.getElementById(id).addEventListener('click',e=>{const enabled=cls==='motion-on'?stage.classList.toggle(cls):stage.classList.toggle(cls)===false;e.currentTarget.setAttribute('aria-pressed',String(enabled));e.currentTarget.textContent=`${label}：${enabled?'开':'关'}`});
-    const opening=document.getElementById('opening'),hint=document.querySelector('.hint');let openingTimers=[];
+    const opening=document.getElementById('opening'),hint=document.querySelector('.hint'),soundButton=document.getElementById('sound');let openingTimers=[];
+    const audio={bed:document.getElementById('cave-water'),rise:document.getElementById('water-whoosh'),splash:document.getElementById('water-splash')};const query=new URLSearchParams(location.search);let soundOn=!query.has('mute');
+    const syncSoundButton=()=>{soundButton.setAttribute('aria-pressed',String(soundOn));soundButton.textContent=`音效：${soundOn?'开':'关'}`};
+    function stopSfx(){for(const clip of Object.values(audio)){clip.pause();clip.currentTime=0}}
+    function playSfx(clip,volume){if(!soundOn)return;clip.pause();clip.currentTime=0;clip.volume=volume;const promise=clip.play();if(promise&&promise.catch)promise.catch(()=>{hint.textContent='浏览器拦截了自动声音；点击“重播开场演出”可启用音效'});}
     const particles=document.querySelector('.intro-particles');for(let i=0;i<32;i++){const p=document.createElement('i');p.className='intro-particle';const angle=(i/32)*Math.PI*2;const rx=15+((i*7)%6),ry=8+((i*11)%5);p.style.setProperty('--sx',(50+Math.cos(angle)*rx)+'%');p.style.setProperty('--sy',(34+Math.sin(angle)*ry)+'%');p.style.setProperty('--size',(3+(i%3))+'px');p.style.setProperty('--delay',((i%8)*.075)+'s');particles.appendChild(p)}
-    opening.addEventListener('click',()=>{openingTimers.forEach(clearTimeout);openingTimers=[];stage.classList.remove('opening');void stage.offsetWidth;stage.classList.add('opening');opening.textContent='瀑布静下来…';opening.disabled=true;hint.textContent='瀑布的水声渐弱…';openingTimers.push(setTimeout(()=>{opening.textContent='水池聚集能量…';hint.textContent='池心水光正在汇聚'},650));openingTimers.push(setTimeout(()=>{opening.textContent='洛奇亚现身！';hint.textContent='洛奇亚从水池中升起！'},2250));openingTimers.push(setTimeout(()=>{opening.textContent='战斗开始';hint.textContent='洛奇亚 · BOSS战斗开始'},3650));openingTimers.push(setTimeout(()=>{stage.classList.remove('opening');opening.textContent='重播开场演出';opening.disabled=false},4700))});
+    soundButton.addEventListener('click',()=>{soundOn=!soundOn;syncSoundButton();if(!soundOn)stopSfx()});syncSoundButton();
+    opening.addEventListener('click',()=>{openingTimers.forEach(clearTimeout);openingTimers=[];stopSfx();stage.classList.remove('opening');void stage.offsetWidth;stage.classList.add('opening');opening.textContent='瀑布静下来…';opening.disabled=true;hint.textContent='瀑布的水声渐弱…';playSfx(audio.bed,.16);openingTimers.push(setTimeout(()=>{opening.textContent='水池聚集能量…';hint.textContent='池心水光正在汇聚';playSfx(audio.rise,.3)},650));openingTimers.push(setTimeout(()=>{opening.textContent='洛奇亚现身！';hint.textContent='洛奇亚从水池中升起！';playSfx(audio.splash,.48)},2250));openingTimers.push(setTimeout(()=>{opening.textContent='战斗开始';hint.textContent='洛奇亚 · BOSS战斗开始'},3650));openingTimers.push(setTimeout(()=>{stage.classList.remove('opening');opening.textContent='重播开场演出';opening.disabled=false;stopSfx()},4700))});
     if(new URLSearchParams(location.search).get('autoplay')==='1')setTimeout(()=>opening.click(),450);
     if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){stage.classList.remove('motion-on');const b=document.getElementById('motion');b.setAttribute('aria-pressed','false');b.textContent='环境微动：关'}
   </script>
