@@ -572,6 +572,18 @@ export async function loadPondAtlas () {
     return { waterCore, shoreEdge };
 }
 
+/** Painterly Cerulean Cave arena backdrop used by Mewtwo's dedicated lair battle. */
+export async function loadMewtwoArenaBackdrop (cc) {
+    const image = await loadPng('assets/maps/cerulean-cave-arena.png');
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    const frame = cc.SpriteFrame.createWithImage(canvas);
+    if (frame.texture && typeof frame.texture.setFilters === 'function') frame.texture.setFilters(1, 1);
+    return { frame, width: image.width, height: image.height };
+}
+
 /** Source-resolution Kanto tree families, with crisp pixel edges. */
 export async function loadTreeAtlas (cc) {
     const image = await loadPng('assets/tilesets/KANTO50S_TREE_FAMILIES.png');

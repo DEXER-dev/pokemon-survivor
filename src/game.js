@@ -8,10 +8,11 @@ import {
     PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, WILD_BOSSES, family,
 } from './config.js';
 import { SpriteBatch, Palette } from './batch.js';
-import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
+import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
 import { WorldFlora } from './world-flora.js';
 import { WorldTrees } from './world-trees.js';
 import { WorldPond } from './world-pond.js';
+import { WorldMewtwoArena } from './world-mewtwo-arena.js';
 import { drawWorldGround } from './world-ground.js';
 import { createWorldLayout, inPondClearing } from './world-map-layout.js';
 import { MEGA_FORMS, MEGA_BY_ID, megaFormForSegment } from './mega.js';
@@ -331,6 +332,11 @@ export function createGame (cc) {
             this.world = new cc.Node('World');
             this.world.layer = cc.Layers.Enum.UI_2D;
             this.node.addChild(this.world);
+
+            this.mewtwoArena = new WorldMewtwoArena(cc, this.world);
+            this.mewtwoArenaPromise = loadMewtwoArenaBackdrop(cc).then((assets) => {
+                this.mewtwoArena.setBackdrop(assets);
+            }).catch((err) => console.warn('[mewtwo-map] using fallback cave ground:', err && err.message));
 
             // The landmark lake uses the supplied, processed Lake.png tile textures.
             this.pond = new WorldPond(cc, this.world);
@@ -2799,6 +2805,13 @@ export function createGame (cc) {
             const halfH = Math.max(VIEW.H, visible.height) / 2;
             g.clear();
             if (this.legendaryMap.active) {
+                const lairFamily = FAMILIES[this.legendaryMap.famIdx];
+                if (lairFamily && lairFamily.id === 'legend-mewtwo') {
+                    g.fillColor = this.pal.get('#19233a');
+                    g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
+                    g.fill();
+                    return;
+                }
                 g.fillColor = this.pal.get('#17192b');
                 g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
                 g.fill();
@@ -4316,6 +4329,9 @@ export function createGame (cc) {
             this.world.setPosition(-this.cam.x * z + sx / z, -this.cam.y * z + sy / z, 0);
             this.world.setScale(z, z, 1);
             const floraView = cc.view.getVisibleSize();
+            const mapFamily = FAMILIES[this.legendaryMap.famIdx];
+            this.mewtwoArena.update(this.cam, floraView,
+                this.legendaryMap.active && mapFamily && mapFamily.id === 'legend-mewtwo');
             this.pond.setActive(!this.legendaryMap.active && !this.trainerBoss.active);
             this.flora.update(this.cam, floraView.width, floraView.height,
                 !this.legendaryMap.active && !this.trainerBoss.active);
