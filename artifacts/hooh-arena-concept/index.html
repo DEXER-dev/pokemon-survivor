@@ -409,9 +409,9 @@
     .stage.arrival .hooh { filter: drop-shadow(0 0 14px #ffc556); }
     .stage.battle-active .hooh { animation: hooh-hover 2.7s ease-in-out infinite; }
     .stage.special-phase .hooh {
-      --flight-rise-negative: clamp(-78px, -10vw, -44px);
+      --flight-rise-negative: clamp(-92px, -12vw, -48px);
       filter: drop-shadow(0 0 7px #fff1ae) drop-shadow(0 0 17px #ffb72e);
-      animation: hooh-liftoff .9s cubic-bezier(.18,.72,.26,1) both;
+      animation: hooh-liftoff .72s cubic-bezier(.2,.9,.25,1) both;
     }
     .stage.special-phase.boss-airborne .hooh { animation: hooh-special-hover .72s ease-in-out infinite alternate; }
     .stage.special-phase .shadow { opacity: .38; width: 56px; filter: blur(5px); }
@@ -438,7 +438,7 @@
     }
     @keyframes hooh-liftoff {
       0% { opacity: 1; transform: translateY(0) scale(1.7); }
-      30% { transform: translateY(10px) scale(1.72); }
+      14% { transform: translateY(7px) scale(1.72); }
       100% { transform: translateY(var(--flight-rise-negative)) scale(1.8); }
     }
     @keyframes hooh-special-hover {
@@ -800,7 +800,7 @@
       specialButton.setAttribute('aria-pressed', 'true');
       lockSceneControls(true);
       rampCloudSpeed(4, 1000);
-      await wait(900);
+      await wait(720);
       if (token !== phaseToken) return;
       stage.classList.add('boss-airborne');
 
