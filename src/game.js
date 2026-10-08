@@ -333,7 +333,7 @@ export function createGame (cc) {
             this.world.layer = cc.Layers.Enum.UI_2D;
             this.node.addChild(this.world);
 
-            this.mewtwoArena = new WorldMewtwoArena(cc, this.world);
+            this.mewtwoArena = new WorldMewtwoArena(cc, this.node);
             this.mewtwoArenaPromise = loadMewtwoArenaBackdrop(cc).then((assets) => {
                 this.mewtwoArena.setBackdrop(assets);
             }).catch((err) => console.warn('[mewtwo-map] using fallback cave ground:', err && err.message));
@@ -443,7 +443,7 @@ export function createGame (cc) {
             this.trainerBoss = new TrainerBossSystem();
             this.legendaryLairs = new LegendaryLairs(LEGENDARY_BOSSES);
             this.legendaryAttacks = new LegendaryAttackSystem();
-            this.legendaryMap = { active: false, x: 0, y: 0, famIdx: -1,
+            this.legendaryMap = { active: false, x: 0, y: 0, famIdx: -1, species: null,
                 mewtwoIntro: 0, mewtwoIntroDuration: 0, mewtwoRevert: 0 };
             this._trainerMegaAnnounced = false;
             this.blockTrainerShot = this.blockTrainerShot.bind(this);
@@ -953,6 +953,7 @@ export function createGame (cc) {
             this.legendaryMap.x = this.player.x;
             this.legendaryMap.y = this.player.y;
             this.legendaryMap.famIdx = famIdx;
+            this.legendaryMap.species = site.species;
             const mewtwoEncounter = site.species === 'legend-mewtwo';
             this.legendaryMap.mewtwoIntro = mewtwoEncounter ? 3.6 : 0;
             this.legendaryMap.mewtwoIntroDuration = this.legendaryMap.mewtwoIntro;
@@ -1020,6 +1021,7 @@ export function createGame (cc) {
             this.legendaryLairs.completeActive();
             this.legendaryMap.active = false;
             this.legendaryMap.famIdx = -1;
+            this.legendaryMap.species = null;
             this.legendaryMap.mewtwoIntro = 0;
             this.legendaryMap.mewtwoIntroDuration = 0;
             this.legendaryMap.mewtwoRevert = 0;
@@ -1412,6 +1414,7 @@ export function createGame (cc) {
             this.legendaryAttacks.reset();
             this.legendaryMap.active = false;
             this.legendaryMap.famIdx = -1;
+            this.legendaryMap.species = null;
             this.legendaryMap.mewtwoIntro = 0;
             this.legendaryMap.mewtwoIntroDuration = 0;
             this.legendaryMap.mewtwoRevert = 0;
@@ -2805,8 +2808,7 @@ export function createGame (cc) {
             const halfH = Math.max(VIEW.H, visible.height) / 2;
             g.clear();
             if (this.legendaryMap.active) {
-                const lairFamily = FAMILIES[this.legendaryMap.famIdx];
-                if (lairFamily && lairFamily.id === 'legend-mewtwo') {
+                if (this.legendaryMap.species === 'legend-mewtwo') {
                     g.fillColor = this.pal.get('#19233a');
                     g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
                     g.fill();
@@ -4329,9 +4331,8 @@ export function createGame (cc) {
             this.world.setPosition(-this.cam.x * z + sx / z, -this.cam.y * z + sy / z, 0);
             this.world.setScale(z, z, 1);
             const floraView = cc.view.getVisibleSize();
-            const mapFamily = FAMILIES[this.legendaryMap.famIdx];
-            this.mewtwoArena.update(this.cam, floraView,
-                this.legendaryMap.active && mapFamily && mapFamily.id === 'legend-mewtwo');
+            this.mewtwoArena.update(floraView,
+                this.legendaryMap.active && this.legendaryMap.species === 'legend-mewtwo');
             this.pond.setActive(!this.legendaryMap.active && !this.trainerBoss.active);
             this.flora.update(this.cam, floraView.width, floraView.height,
                 !this.legendaryMap.active && !this.trainerBoss.active);
