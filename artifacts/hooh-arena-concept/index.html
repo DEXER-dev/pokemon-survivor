@@ -94,6 +94,34 @@
       box-shadow: inset 0 0 0 2px #e0bc75;
     }
     .scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .clouds { position: absolute; z-index: 1; inset: 0; overflow: hidden; pointer-events: none; }
+    .cloud-puff {
+      position: absolute;
+      height: 9%;
+      opacity: .64;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 2px 0 #345c8750);
+      background: linear-gradient(180deg,#f7fcff 0 30%,#e3f1fb 31% 52%,#a8cce8 53% 79%,#78a8d2 80%);
+      clip-path: polygon(0 68%,7% 68%,7% 47%,19% 47%,19% 27%,33% 27%,33% 10%,47% 10%,47% 0,60% 0,60% 18%,75% 18%,75% 38%,91% 38%,91% 58%,100% 58%,100% 90%,94% 90%,94% 100%,5% 100%,5% 84%,0 84%);
+      animation: cloud-drift var(--drift-time,36s) ease-in-out var(--drift-delay,0s) infinite alternate;
+    }
+    .cloud-puff::after {
+      content: '';
+      position: absolute;
+      left: 37%;
+      top: 16%;
+      width: 22%;
+      height: 15%;
+      background: #fff;
+      clip-path: polygon(0 100%,0 45%,30% 45%,30% 0,78% 0,78% 45%,100% 45%,100% 100%);
+      opacity: .82;
+    }
+    .cloud-puff.alt { clip-path: polygon(0 64%,12% 64%,12% 40%,25% 40%,25% 17%,42% 17%,42% 0,58% 0,58% 23%,76% 23%,76% 43%,91% 43%,91% 61%,100% 61%,100% 91%,95% 91%,95% 100%,4% 100%,4% 83%,0 83%); }
+    .cloud-left-high { left: 0; top: 24%; width: 10%; height: 9%; --drift-from:-9px; --drift-to:9px; --drift-time:30s; --drift-delay:-17s; opacity:.72; }
+    .cloud-right-high { right: 0; top: 27%; width: 10%; height: 9%; --drift-from:9px; --drift-to:-9px; --drift-time:34s; --drift-delay:-31s; opacity:.68; }
+    .cloud-left-mid { left: 0; top: 44%; width: 10%; height: 8%; --drift-from:-8px; --drift-to:8px; --drift-time:26s; --drift-delay:-9s; opacity:.5; }
+    .cloud-right-mid { right: 0; top: 47%; width: 10%; height: 8%; --drift-from:8px; --drift-to:-8px; --drift-time:31s; --drift-delay:-24s; opacity:.52; }
+    @keyframes cloud-drift { from { transform: translate3d(var(--drift-from,-14px),1px,0); } to { transform: translate3d(var(--drift-to,14px),-1px,0); } }
     .shade {
       position: absolute;
       z-index: 1;
@@ -149,7 +177,7 @@
     .m6 { --x: 73%; --y: 52%; --size: 5px; --duration: 11s; --delay: -5s; }
     .m7 { --x: 13%; --y: 61%; --size: 5px; --duration: 10s; --delay: -8s; }
     .m8 { --x: 88%; --y: 45%; --size: 5px; --duration: 9s; --delay: -3s; }
-    .stage.motion-off .motes, .stage.clean .actor, .stage.clean .shadow, .stage.clean .badge { display: none; }
+    .stage.motion-off .motes, .stage.motion-off .clouds, .stage.clean .actor, .stage.clean .shadow, .stage.clean .badge { display: none; }
     .badge, .hint {
       position: absolute;
       z-index: 5;
@@ -395,6 +423,10 @@
       <div class="layout">
         <div id="stage" class="stage">
           <img class="scene" src="assets/hooh-arena-base.png?v=exterior-tower-v4" alt="铃之塔顶层外部平台与下方塔身概念底图">
+          <div class="clouds" aria-hidden="true">
+            <i class="cloud-puff cloud-left-high"></i><i class="cloud-puff alt cloud-right-high"></i>
+            <i class="cloud-puff alt cloud-left-mid"></i><i class="cloud-puff cloud-right-mid"></i>
+          </div>
           <div class="shade"></div><div class="sunbeam"></div>
           <div class="motes" aria-hidden="true">
             <i class="mote m1"></i><i class="mote m2"></i><i class="mote feather m3"></i><i class="mote m4"></i>
@@ -412,7 +444,7 @@
         </div>
         <aside class="side">
           <section class="card"><h3>场地布局</h3><p>战斗平台下方露出格窗立面、承重梁柱和层叠瓦檐；这些塔身结构作为背景，不侵入平台的走位空间。</p></section>
-          <section class="card"><h3>光色方向</h3><p>天空只留在塔身两侧的远景；以朱红木构、深色瓦檐和暖色平台形成层次，让场景重心落在塔上。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
+          <section class="card"><h3>光色方向</h3><p>云层只在塔身两侧缓慢漂移，微弱分层制造高空纵深；中间屋脊与凤王保持清晰。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
           <section class="card"><h3>战斗可读性</h3><p>开阔的顶层屋脊提供环绕走位空间；下方塔身只承担地标识别，实装时不参与角色走位。</p></section>
           <section class="card"><h3>设计依据</h3><p>借用铃之塔与凤王的城都意象，重做成适配本游戏俯视战斗的原创场景；玩家与凤王用现有游戏素材展示。</p></section>
         </aside>
@@ -468,7 +500,7 @@
         arrivalButton.setAttribute('aria-pressed', 'false');
       }, 2700);
     });
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches && previewParams.get('motion') !== 'full') {
       stage.classList.add('motion-off');
       document.getElementById('motion').setAttribute('aria-pressed', 'false');
       document.getElementById('motion').textContent = '环境微动：关';
