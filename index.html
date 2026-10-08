@@ -222,6 +222,19 @@
       box-shadow: 0 7px 0 #a96b39, 0 16px 30px rgba(255,180,78,.28); }
     #startAdventure:active { transform: translateY(3px); box-shadow: 0 2px 0 #a96b39; }
     #startAdventure:focus-visible { outline: 3px solid #fff; outline-offset: 5px; }
+    .debug-boss-tools { width: min(100%, 390px); margin: 16px auto 0; padding: 12px;
+      box-sizing: border-box; border: 1px dashed rgba(255,190,126,.62); border-radius: 12px;
+      background: rgba(42,22,36,.72); text-align: left; }
+    .debug-boss-tools[hidden] { display: none; }
+    .debug-boss-tools label { display: block; margin-bottom: 7px; color: #ffd0a8;
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+    .debug-boss-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+    .debug-boss-row select, .debug-boss-row button { min-height: 40px; border: 1px solid rgba(255,214,170,.36);
+      border-radius: 9px; color: #f9efff; background: #282237; font: inherit; font-size: 12px; }
+    .debug-boss-row select { min-width: 0; padding: 0 9px; }
+    .debug-boss-row button { padding: 0 13px; color: #281b20; background: linear-gradient(#ffd79c, #f4aa61);
+      font-weight: 900; cursor: pointer; }
+    .debug-boss-note { margin: 7px 0 0; color: #d6b8ba; font-size: 10px; line-height: 1.35; }
     .title-aux-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
       margin: 10px auto 0; max-width: 100%; }
     .title-aux-links .dex-title-link { display: inline-flex; align-items: center; justify-content: center;
@@ -391,6 +404,14 @@
           </div>
           <p class="trainer-current" id="trainerCurrent" aria-live="polite"></p>
           <button id="startAdventure" type="button" autofocus>开始冒险 <span aria-hidden="true">➜</span></button>
+          <section class="debug-boss-tools" id="debugBossTools" aria-label="调试 BOSS 快速入口" hidden>
+            <label for="debugBossSelect">DEBUG · 快速进入 BOSS 战</label>
+            <div class="debug-boss-row">
+              <select id="debugBossSelect" aria-label="选择测试 BOSS"></select>
+              <button id="debugBossStart" type="button">直接开战</button>
+            </div>
+            <p class="debug-boss-note">仅带有 <code>?debug</code> 参数时显示；会从当前所选初始宝可梦直接开始测试战斗。</p>
+          </section>
           <div class="title-download-links" aria-label="游戏客户端下载">
             <a class="title-download-link" href="https://github.com/DEXER-dev/pokemon-survivor/releases/latest/download/pokemon-survivor-setup.exe" download>
               <span class="title-download-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></span>

@@ -5,7 +5,7 @@
  */
 import {
     VIEW, PPM, PLAYER, CHAIN, COL, ELEMENT, FAMILIES, SIM, ENEMY, BALL, CATCH, EXP, MAX_BODY_R,
-    PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, family,
+    PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, WILD_BOSSES, family,
 } from './config.js';
 import { SpriteBatch, Palette } from './batch.js';
 import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
@@ -1388,6 +1388,63 @@ export function createGame (cc) {
             }
             else return;
             this.kick(0.12);
+        }
+
+        /** Start a selected boss directly from the title debug panel; normal runs never expose this path. */
+        debugStartBoss (id) {
+            if (!SIM.debugKeys) return false;
+            const trainerMatch = /^trainer:(\d+)$/.exec(id || '');
+            const selectedFamily = FAMILIES.find((entry) => entry.id === id);
+            if (trainerMatch) {
+                if (!BOSS.encounters[Number(trainerMatch[1])]) return false;
+            } else if (!selectedFamily || (!LEGENDARY_BOSSES.includes(selectedFamily)
+                && !WILD_BOSSES.includes(selectedFamily))) return false;
+            const p = this.player;
+            this.clearEnemiesPreservingFieldProgress();
+            this.trainerBoss.reset(this.enemies);
+            this.legendaryLairs.reset();
+            this.legendaryAttacks.reset();
+            this.legendaryMap.active = false;
+            this.legendaryMap.famIdx = -1;
+            this.legendaryMap.mewtwoIntro = 0;
+            this.legendaryMap.mewtwoIntroDuration = 0;
+            this.legendaryMap.mewtwoRevert = 0;
+            this.player.hp = this.player.maxhp;
+            this.player.dead = false;
+
+            if (trainerMatch) {
+                const encounterIndex = Number(trainerMatch[1]);
+                this.trainerBoss.start(this.enemies, p.x, p.y, this.time / 60, this.cam.z, encounterIndex);
+                this.setMusicMode('trainer');
+                this._trainerMegaAnnounced = false;
+                const trainerName = this.trainerBoss.encounter.name;
+                const team = this.trainerBoss.party.map((member) => displayName(member.fam, member.tier));
+                this.trainerTransition.play(trainerName, team.join('、'));
+                this.say(`DEBUG · ${trainerName} BOSS 战`, 4);
+                this.kick(0.18);
+            } else {
+                const familyIndex = FAMILIES.indexOf(selectedFamily);
+                const bossFamily = selectedFamily;
+                if (LEGENDARY_BOSSES.includes(bossFamily)) {
+                    const site = { id: 'debug-legendary-lair', number: 1, species: bossFamily.id,
+                        name: bossFamily.name, x: p.x, y: p.y, complete: false };
+                    this.legendaryLairs.sites.push(site);
+                    if (!this.enterLegendaryLair()) return false;
+                    this.setMusicMode('legendary');
+                    this.say(`DEBUG · ${bossFamily.name} 神兽战`, 4);
+                } else {
+                    const index = this.enemies.spawn(p.x + 250, p.y + 24, familyIndex, 1,
+                        false, this.time / 60, 0, -1, 1, 1, false, 0, true);
+                    this.legendaryAttacks.start(this.enemies.x[index], this.enemies.y[index], bossFamily.id,
+                        { wildBoss: true });
+                    this.setMusicMode('legendary');
+                    this.say(`DEBUG · 野外强敌「${bossFamily.name}」`, 4);
+                }
+                this.kick(0.16);
+            }
+            this.input.blockFireUntilRelease();
+            this.logEvent('debug.boss-started', { id });
+            return true;
         }
 
         /**

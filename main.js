@@ -3,7 +3,7 @@
  * material and every visual are constructed in code. See docs/游戏设计方案.md §10.5.
  */
 import { installBuiltin2DMaterials } from './builtin-materials.js';
-import { VIEW, COL, CHAIN, SIM } from './src/config.js';
+import { VIEW, COL, CHAIN, SIM, BOSS, LEGENDARY_BOSSES, WILD_BOSSES } from './src/config.js';
 import { hexToRgb } from './src/batch.js';
 import { preloadImages } from './src/atlas.js';
 import { createGame } from './src/game.js';
@@ -177,6 +177,26 @@ try {
       cc.director.runScene(buildScene());
       const titleScreen = document.getElementById('titleScreen');
       const startButton = document.getElementById('startAdventure');
+      const debugBossTools = document.getElementById('debugBossTools');
+      const debugBossSelect = document.getElementById('debugBossSelect');
+      const debugBossStart = document.getElementById('debugBossStart');
+      if (SIM.debugKeys) {
+        debugBossTools.hidden = false;
+        const debugBossChoices = [
+          ...BOSS.encounters.map((encounter, index) => ({
+            id: `trainer:${index}`, label: `训练家 BOSS · ${encounter.name}`,
+          })),
+          ...LEGENDARY_BOSSES.map((boss) => ({ id: boss.id, label: `神兽地点 · ${boss.name}` })),
+          ...WILD_BOSSES.map((boss) => ({ id: boss.id, label: `野外强敌 · ${boss.name}` })),
+        ];
+        for (const choice of debugBossChoices) {
+          const option = document.createElement('option');
+          option.value = choice.id;
+          option.textContent = choice.label;
+          debugBossSelect.append(option);
+        }
+        debugBossSelect.value = 'legend-mewtwo';
+      }
       const updateLogDialog = document.getElementById('updateLogDialog');
       const updateLogOpen = document.getElementById('updateLogOpen');
       const updateLogClose = document.getElementById('updateLogClose');
@@ -385,10 +405,11 @@ try {
         }
       };
       titleScreen.addEventListener('pointerdown', beginTitleMusic, { capture: true });
-      const startAdventure = async () => {
+      const startAdventure = async (debugBossId = null) => {
         if (hasStarted) return;
         hasStarted = true;
         startButton.disabled = true;
+        if (debugBossStart) debugBossStart.disabled = true;
         const game = window.__game;
         // Start from the click gesture before mobile fullscreen/orientation awaits, so browsers
         // don't reject the first music playback under their autoplay policy.
@@ -412,10 +433,12 @@ try {
         // A title-screen keypress must not leak through as the first throw of the run.
         if (window.__game && window.__game.input) window.__game.input.blockFireUntilRelease();
         fitFrame();
+        if (debugBossId && game && game.debugStartBoss) game.debugStartBoss(debugBossId);
         cc.game.resume();
         cc.game.canvas.focus();
       };
       startButton.addEventListener('click', startAdventure);
+      if (SIM.debugKeys) debugBossStart.addEventListener('click', () => startAdventure(debugBossSelect.value));
       const stick = document.getElementById('touchStick');
       const stickHandle = stick.querySelector('span');
       let stickPointer = -1;
@@ -585,6 +608,8 @@ try {
             && event.target !== document.getElementById('dexFromTitle')
             && !event.target.closest('.title-download-link')
             && event.target !== updateLogOpen
+            && event.target !== debugBossSelect
+            && event.target !== debugBossStart
             && !event.target.closest('.trainer-options')) {
           event.preventDefault();
           startAdventure();
@@ -592,7 +617,9 @@ try {
         if (event.key === 'Tab') {
           event.preventDefault();
             const controls = [...generationButtons, ...starterButtons, ...trainerButtons, document.getElementById('trainerPrevious'),
-            document.getElementById('trainerNext'), startButton, ...downloadLinks, document.getElementById('dexFromTitle')];
+            document.getElementById('trainerNext'), startButton,
+            ...(SIM.debugKeys ? [debugBossSelect, debugBossStart] : []),
+            ...downloadLinks, document.getElementById('dexFromTitle')];
           controls.push(updateLogOpen);
           const index = controls.indexOf(document.activeElement);
           controls[(index + (event.shiftKey ? controls.length - 1 : 1)) % controls.length].focus();
