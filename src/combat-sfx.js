@@ -31,6 +31,12 @@ const Z_AUDIO_ELEMENT = Object.freeze({
 });
 
 const RAYQUAZA_ENTRY_SOUND = 'rayquaza-cloud-opening.ogg';
+const LUGIA_ENTRY_AUDIO_PLAN = Object.freeze([
+    Object.freeze({ delay: 0, file: 'lugia-opening/water-emerge-whoosh.mp3', volume: 0.30,
+        key: 'lugia-water-rise' }),
+    Object.freeze({ delay: 2850, file: 'lugia-opening/water-splash.mp3', volume: 0.42,
+        key: 'lugia-water-reveal' }),
+]);
 
 // Keep the approved preview's fire-first rhythm in the actual Mega skill: ignition, Charizard's
 // cry, two fast flame sweeps, then a bright burst and a short ember tail.
@@ -53,6 +59,7 @@ const resolveSound = (event) => {
                 priority: 3, cooldown: 0, globalCooldown: 0 }
             : null;
     }
+    if (kind === 'lugia-lair-opening') return null;
     if (kind === 'tandemaus-throw') {
         return { key: 'tandemaus-throw', file: 'tandemaus-throw.ogg', volume: 0.28,
             priority: 1, cooldown: 380, globalCooldown: 180 };
@@ -125,8 +132,10 @@ export class CombatSfx {
         sounds.add('tandemaus-throw.ogg');
         sounds.add(RAYQUAZA_ENTRY_SOUND);
         for (const cue of CHARIZARD_X_AUDIO_PLAN) sounds.add(cue.file);
+        for (const cue of LUGIA_ENTRY_AUDIO_PLAN) sounds.add(cue.file);
         for (const file of sounds) {
-            cc.assetManager.loadRemote(`assets/audio/${file}`, { ext: '.ogg' }, (err, clip) => {
+            const ext = file.slice(file.lastIndexOf('.'));
+            cc.assetManager.loadRemote(`assets/audio/${file}`, { ext }, (err, clip) => {
                 if (err) {
                     console.warn(`[audio] combat ${file} unavailable:`, err.message || err);
                     return;
@@ -141,6 +150,17 @@ export class CombatSfx {
         if (event && event.kind === 'charizard-x-skill') {
             const enqueuedAt = Date.now();
             for (const cue of CHARIZARD_X_AUDIO_PLAN) {
+                if (this.nPending >= this.pending.length) break;
+                this.pending[this.nPending++] = {
+                    ...cue, priority: 3, cooldown: 0, globalCooldown: 0,
+                    enqueuedAt, scheduledAt: enqueuedAt + cue.delay, sequence: true,
+                };
+            }
+            return;
+        }
+        if (event && event.kind === 'lugia-lair-opening') {
+            const enqueuedAt = Date.now();
+            for (const cue of LUGIA_ENTRY_AUDIO_PLAN) {
                 if (this.nPending >= this.pending.length) break;
                 this.pending[this.nPending++] = {
                     ...cue, priority: 3, cooldown: 0, globalCooldown: 0,

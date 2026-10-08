@@ -449,7 +449,8 @@ export function createGame (cc) {
             this.legendaryLairs = new LegendaryLairs(LEGENDARY_BOSSES);
             this.legendaryAttacks = new LegendaryAttackSystem();
             this.legendaryMap = { active: false, x: 0, y: 0, famIdx: -1, species: null,
-                mewtwoIntro: 0, mewtwoIntroDuration: 0, mewtwoRevert: 0 };
+                mewtwoIntro: 0, mewtwoIntroDuration: 0, mewtwoRevert: 0,
+                lugiaIntro: 0, lugiaIntroDuration: 0 };
             this._trainerMegaAnnounced = false;
             this.blockTrainerShot = this.blockTrainerShot.bind(this);
             this.capture = new CaptureSystem(BALL, CATCH);
@@ -588,6 +589,12 @@ export function createGame (cc) {
             this.legendaryAttacks.reset();
             this.legendaryMap.active = false;
             this.legendaryMap.famIdx = -1;
+            this.legendaryMap.species = null;
+            this.legendaryMap.mewtwoIntro = 0;
+            this.legendaryMap.mewtwoIntroDuration = 0;
+            this.legendaryMap.mewtwoRevert = 0;
+            this.legendaryMap.lugiaIntro = 0;
+            this.legendaryMap.lugiaIntroDuration = 0;
             this.kingCounters = Object.create(null);
             this.kingGrants.length = 0;
             this._trainerMegaAnnounced = false;
@@ -964,6 +971,8 @@ export function createGame (cc) {
             this.legendaryMap.mewtwoIntro = mewtwoEncounter ? 3.6 : 0;
             this.legendaryMap.mewtwoIntroDuration = this.legendaryMap.mewtwoIntro;
             this.legendaryMap.mewtwoRevert = 0;
+            this.legendaryMap.lugiaIntro = lugiaEncounter ? 3.7 : 0;
+            this.legendaryMap.lugiaIntroDuration = this.legendaryMap.lugiaIntro;
             this.capture.clearInFlight();
             this.skills.reset();
             this.build.balls += 5;
@@ -981,13 +990,17 @@ export function createGame (cc) {
                 this.enemies.intro[boss] = 1;
                 if (this.evolutionSfx) this.evolutionSfx.play('charge');
             }
+            if (lugiaEncounter) this.enemies.intro[boss] = 1;
             this.legendaryAttacks.start(this.enemies.x[boss], this.enemies.y[boss], site.species);
-            if (!mewtwoEncounter) {
+            if (!mewtwoEncounter && !lugiaEncounter) {
                 this.particleBursts.burst(site.species, this.enemies.x[boss], this.enemies.y[boss],
                     -Math.PI / 2, 'legendary-lair-entry');
             }
             if (site.species === 'legend-rayquaza') {
                 this.combatSfx.enqueue({ kind: 'legendary-lair-entry', fam: site.species });
+                this.combatSfx.flush();
+            } else if (lugiaEncounter) {
+                this.combatSfx.enqueue({ kind: 'lugia-lair-opening' });
                 this.combatSfx.flush();
             }
             this.aimWorld.x = this.enemies.x[boss];
@@ -998,12 +1011,30 @@ export function createGame (cc) {
             this.wave(this.player.x, this.player.y, 18, 260, 0.85, WAVE_GOLD);
             this.kick(0.35);
             this.say(mewtwoEncounter
-                ? '超梦从四面八方汇聚能量 · MEGA进化即将开始' : `进入${site.name}的神兽出没地！击败神兽后投球收服 · 已补充 5 球`, 5);
+                ? '超梦从四面八方汇聚能量 · MEGA进化即将开始'
+                : lugiaEncounter ? '海水翻涌 · 洛奇亚正在从瀑布中现身'
+                    : `进入${site.name}的神兽出没地！击败神兽后投球收服 · 已补充 5 球`, 5);
             return true;
         }
 
         stepMewtwoLairFx (dt) {
             const map = this.legendaryMap;
+            if (map.lugiaIntro > 0) {
+                map.lugiaIntro = Math.max(0, map.lugiaIntro - dt);
+                if (map.lugiaIntro === 0 && map.active && map.species === 'legend-lugia') {
+                    for (let i = 0; i < this.enemies.n; i++) {
+                        if (this.enemies.legendary[i] && this.enemies.fam[i] === map.famIdx) {
+                            this.enemies.intro[i] = 0;
+                            this.particleBursts.burst('legend-lugia', this.enemies.x[i], this.enemies.y[i],
+                                -Math.PI / 2, 'legendary-attack-impact');
+                            this.wave(this.enemies.x[i], this.enemies.y[i], 26, 186, 0.72, '#9df7ff');
+                            break;
+                        }
+                    }
+                    this.kick(0.2);
+                    this.say('洛奇亚从海瀑中现身！战斗开始', 3.4);
+                }
+            }
             if (map.mewtwoIntro > 0) {
                 map.mewtwoIntro = Math.max(0, map.mewtwoIntro - dt);
                 if (map.mewtwoIntro === 0) {
@@ -1035,6 +1066,8 @@ export function createGame (cc) {
             this.legendaryMap.mewtwoIntro = 0;
             this.legendaryMap.mewtwoIntroDuration = 0;
             this.legendaryMap.mewtwoRevert = 0;
+            this.legendaryMap.lugiaIntro = 0;
+            this.legendaryMap.lugiaIntroDuration = 0;
             this.legendaryAttacks.reset();
             this.clearEnemiesPreservingFieldProgress();
             this.capture.clearInFlight();
@@ -1428,6 +1461,8 @@ export function createGame (cc) {
             this.legendaryMap.mewtwoIntro = 0;
             this.legendaryMap.mewtwoIntroDuration = 0;
             this.legendaryMap.mewtwoRevert = 0;
+            this.legendaryMap.lugiaIntro = 0;
+            this.legendaryMap.lugiaIntroDuration = 0;
             this.player.hp = this.player.maxhp;
             this.player.dead = false;
 
@@ -2643,6 +2678,7 @@ export function createGame (cc) {
             }
             const bossAttackActive = this.legendaryMap.active
                 ? lairBossIndex >= 0 && !legendaryReady && this.legendaryMap.mewtwoIntro <= 0
+                    && this.legendaryMap.lugiaIntro <= 0
                 : this.legendaryAttacks.wildBoss && wildBossIndex >= 0 && !legendaryReady;
             const bossHpRatio = this.legendaryMap.active
                 ? (lairBossIndex >= 0 && this.enemies.maxhp[lairBossIndex] > 0
@@ -3616,6 +3652,7 @@ export function createGame (cc) {
                 const trainerForm = trainerMega ? this.trainerBoss.megaForm : null;
                 const enemyFamily = FAMILIES[e.fam[i]];
                 const mewtwoEncounter = bo && e.legendary[i] && enemyFamily && enemyFamily.id === 'legend-mewtwo';
+                const lugiaEncounter = bo && e.legendary[i] && enemyFamily && enemyFamily.id === 'legend-lugia';
                 const mewtwoMegaY = mewtwoEncounter && !e.intro[i]
                     && (!e.legendaryReady[i] || this.legendaryMap.mewtwoRevert > 0.52)
                     && this.atlas.glyphs.MEWTWO_MEGA_Y;
@@ -3632,6 +3669,7 @@ export function createGame (cc) {
                 const body = icon ? (e.shiny[i] ? ICON_TINT : bo ? HORDE_TINT_BOSS : trainer ? '#e7a1a1' : el ? HORDE_TINT_ELITE : HORDE_TINT)
                     : (trainer ? '#bd4c5a' : el || bo ? COL.enemyElite : COL.enemy);
                 const bob = Math.sin(this.time * 7 + i * 1.3) * (bo ? 0.6 : el ? 1.2 : 2);
+                let drawY = e.y[i] + bob;
                 const trainerMegaOutline = trainerMega && drawMegaFormOutline(b, this.pal,
                     this.atlas.glyphs, trainerForm, icon, e.x[i], e.y[i] + bob, scale,
                     scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), this.wall, i);
@@ -3671,8 +3709,43 @@ export function createGame (cc) {
                         }
                     }
                 }
+                if (lugiaEncounter && icon && e.intro[i]) {
+                    const introDuration = this.legendaryMap.lugiaIntroDuration || 3.7;
+                    const elapsed = introDuration - this.legendaryMap.lugiaIntro;
+                    const charge = Math.max(0, Math.min(1, elapsed / introDuration));
+                    const ripple = 1.45 + charge * 0.48 + 0.04 * Math.sin(this.wall * 5);
+                    b.draw('aura', e.x[i], e.y[i] - 5, scale * (2.8 + charge * 0.8),
+                        scale * (1.45 + charge * 0.34), 0,
+                        this.pal.get('#63dcf2', Math.round(30 + charge * 58)));
+                    b.draw('ring', e.x[i], e.y[i] - 5, scale * ripple * 1.4,
+                        scale * ripple * 0.76, 0, this.pal.get('#a7f7ff', Math.round(80 + charge * 120)));
+                    drawY -= (1 - charge) * scale * 0.85;
+                    const halfW = VIEW.W * 0.5 / this.cam.z;
+                    const halfH = VIEW.H * 0.5 / this.cam.z;
+                    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+                    for (let particle = 0; particle < 56; particle++) {
+                        const launch = particle / 56 * introDuration * 0.70;
+                        const travel = Math.max(0, Math.min(1,
+                            (elapsed - launch) / (introDuration * 0.30)));
+                        if (elapsed < launch || travel >= 1) continue;
+                        const angle = particle * goldenAngle + 0.37;
+                        const dx = Math.cos(angle), dy = Math.sin(angle);
+                        const edge = Math.min(halfW / Math.max(0.001, Math.abs(dx)),
+                            halfH / Math.max(0.001, Math.abs(dy)));
+                        const startX = this.cam.x + dx * edge;
+                        const startY = this.cam.y + dy * edge;
+                        const curve = Math.sin(travel * Math.PI) * 25 / this.cam.z;
+                        const x = startX + (e.x[i] - startX) * travel - dy * curve;
+                        const y = startY + (e.y[i] - startY) * travel + dx * curve;
+                        const size = 0.13 + Math.sin(travel * Math.PI) * 0.13;
+                        const alpha = Math.round(75 + Math.sin(travel * Math.PI) * 170);
+                        b.draw(particle % 3 === 0 ? 'star' : 'diamond', x, y, size, size,
+                            angle + this.wall * 0.65,
+                            this.pal.get(particle % 4 === 0 ? '#e2ffff' : '#74dcff', alpha));
+                    }
+                }
                 b.draw(icon || (bo ? 'blob' : el ? 'diamond' : MOB_GLYPH[Math.min(3, e.tier[i] - 1)]),
-                    e.x[i], e.y[i] + bob, scale, scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), 0,
+                    e.x[i], drawY, scale, scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), 0,
                     this.pal.get(lit ? COL.heroTrim : body));
                 if (el && !bo) {
                     // The 精英 used to be the only diamond on the field. Now that its 2 阶 silhouette is
@@ -4477,11 +4550,12 @@ export function createGame (cc) {
                 }
                 const ready = index >= 0 && this.enemies.legendaryReady[index];
                 const mewtwo = index >= 0 && FAMILIES[this.enemies.fam[index]].id === 'legend-mewtwo';
-                const intro = mewtwo && this.enemies.intro[index];
+                const lugia = index >= 0 && FAMILIES[this.enemies.fam[index]].id === 'legend-lugia';
+                const intro = (mewtwo || lugia) && this.enemies.intro[index];
                 const warning = this.legendaryAttacks.active && this.legendaryAttacks.phase === 'warning'
                     && !ready && !intro;
                 const detail = ready ? '虚弱 · 可投球收服'
-                    : intro ? '四方能量汇聚 · MEGA进化中'
+                    : intro ? (lugia ? '海水聚能 · 洛奇亚现身中' : '四方能量汇聚 · MEGA进化中')
                     : warning ? `${this.legendaryAttacks.label}范围已标出 · ${Math.max(0, this.legendaryAttacks.timeLeft).toFixed(1)}秒后攻击`
                         : this.legendaryAttacks.phase === 'impact'
                             ? (this.legendaryAttacks.type === 'tsunami'
