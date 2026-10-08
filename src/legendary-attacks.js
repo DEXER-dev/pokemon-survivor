@@ -39,6 +39,8 @@ export class LegendaryAttackSystem {
         this.cooldown = 0;
         this.cx = 0;
         this.cy = 0;
+        this.sourceX = 0;
+        this.sourceY = 0;
         this.attackCount = 0;
     }
 
@@ -58,6 +60,8 @@ export class LegendaryAttackSystem {
         const dy = py - sourceY;
         const distance = Math.hypot(dx, dy) || 1;
         const angle = Math.atan2(dy, dx);
+        this.sourceX = sourceX;
+        this.sourceY = sourceY;
         const ux = Math.cos(angle);
         const uy = Math.sin(angle);
         const nx = -uy;
@@ -168,21 +172,30 @@ export class LegendaryAttackSystem {
                 }
             } else if (this.family === 'legend-rayquaza') {
                 if (moveIndex === 0) {
-                    name = '天空俯冲';
+                    name = '天穹俯冲 · 画龙点睛';
                     areas.push(lane(target.x, target.y, phaseTwo ? 620 : 560,
                         phaseTwo ? 112 : 86, angle));
                 } else if (second) {
-                    name = '龙尾交错扫击';
+                    name = '龙尾回旋 · 苍天十字';
                     const sweepAngle = angle + (rng.next() < 0.5 ? -0.42 : 0.42);
                     areas.push(lane(target.x, target.y, 480, 52, sweepAngle));
-                    areas.push(lane(target.x, target.y, 420, 46, sweepAngle + Math.PI * 0.36));
+                    areas.push(lane(target.x, target.y, 420, 46, sweepAngle + Math.PI * 0.5));
+                    if (phaseTwo) {
+                        areas.push(lane(target.x, target.y, 360, 36, sweepAngle + 0.72));
+                        areas.push(lane(target.x, target.y, 360, 36, sweepAngle - 0.72));
+                    }
                 } else {
-                    name = '苍天裂界';
-                    const spreads = phaseTwo ? [-0.56, -0.28, 0, 0.28, 0.56] : [-0.48, -0.16, 0.16, 0.48];
-                    for (let i = 0; i < spreads.length; i++) {
-                        if (!phaseTwo && i === 2) continue;
-                        areas.push(lane(target.x, target.y, 520,
-                            phaseTwo ? 44 : 40, angle + spreads[i]));
+                    name = '苍天裂界 · 绿辉流星雨';
+                    const count = phaseTwo ? 5 : 4;
+                    const spacing = phaseTwo ? 108 : 116;
+                    for (let i = 0; i < count; i++) {
+                        const offset = (i - (count - 1) * 0.5) * spacing;
+                        const along = (i % 2 ? 18 : -18);
+                        const x = target.x + nx * offset + ux * along;
+                        const y = target.y + ny * offset + uy * along;
+                        const radius = phaseTwo ? 33 : 30;
+                        areas.push(circle(x, y, radius));
+                        markers.push(circle(x, y, radius + 11));
                     }
                 }
             } else if (this.family === 'legend-kyogre') {
@@ -491,6 +504,7 @@ export class LegendaryAttackSystem {
             return { hit: this._contains(px, py), type: this.type, name: this.name,
                 x: this.x, y: this.y, radius: this.radius, length: this.length, width: this.width,
                 angle: this.angle, safeWidth: this.safeWidth, safeOffset: this.safeOffset,
+                sourceX: this.sourceX, sourceY: this.sourceY,
                 areas: this.areas, safeAreas: this.safeAreas, markers: this.markers,
                 family: this.family, wildBoss: this.wildBoss, phaseTwo: this.phaseTwo,
                 moveIndex: this.moveIndex, ultimate: this.ultimate };

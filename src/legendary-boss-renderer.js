@@ -50,6 +50,89 @@ function drawMaterial (batch, pal, group, x, y, sx, sy, angle, alpha, wall, prog
         false, null, `primary-boss-${group}-${slot}`);
     return true;
 }
+
+function drawRayquazaAttack (batch, pal, attack, wall, progress, impact, draw) {
+    const sourceX = Number.isFinite(attack.sourceX) ? attack.sourceX : attack.cx || 0;
+    const sourceY = Number.isFinite(attack.sourceY) ? attack.sourceY : attack.cy || 0;
+    const dx = attack.x - sourceX;
+    const dy = attack.y - sourceY;
+    const distance = Math.hypot(dx, dy) || 1;
+    const direction = Math.atan2(dy, dx);
+
+    if (!impact) {
+        const pulse = 1 + 0.055 * Math.sin(wall * 7);
+        draw('aura', sourceX, sourceY, 3.6 * pulse, 3.6 * pulse,
+            0, '#36dc9a', Math.round(92 + progress * 96));
+        draw('legendSeal', sourceX, sourceY, 2.45, 2.45,
+            wall * 0.42, '#78e6a6', Math.round(118 + progress * 86));
+        draw('dragon', sourceX, sourceY, 2.0 + progress * 0.38,
+            1.45 + progress * 0.2, direction, '#c9ffe2', Math.round(145 + progress * 100));
+        // Emerald motes spiral inward as Rayquaza gathers force; their last orbit becomes the release cue.
+        for (let i = 0; i < 8; i++) {
+            const angle = i * TAU / 8 - wall * (1.1 + progress * 1.25);
+            const radius = 78 - progress * 45;
+            const x = sourceX + Math.cos(angle) * radius;
+            const y = sourceY + Math.sin(angle) * radius;
+            const size = 0.28 + progress * 0.12;
+            draw(i % 2 ? 'star' : 'diamond', x, y, size, size * 1.35,
+                angle + wall, i % 2 ? '#d9ffe8' : '#50f0ab', 210);
+        }
+        if (attack.moveIndex === 2) {
+            for (const area of attack.areas) {
+                const fall = 1 - progress;
+                draw('meteor', area.x, area.y + 150 * fall, 0.84, 0.84,
+                    -Math.PI / 2, '#baffd0', Math.round(100 + progress * 140));
+                draw('legendRay', area.x, area.y + 76 * fall, 0.38, 2.2,
+                    -Math.PI / 2, '#77efaa', Math.round(80 + progress * 90));
+            }
+        }
+        return;
+    }
+
+    if (attack.moveIndex === 2) {
+        // Each falling star lands exactly at one of the marked collision circles.
+        for (let i = 0; i < attack.areas.length; i++) {
+            const area = attack.areas[i];
+            const x = area.x + Math.cos(wall * 4 + i) * 7;
+            const y = area.y + 68 * (1 - progress);
+            draw('legendRay', x, area.y + 35 * (1 - progress), 0.68, 2.6,
+                -Math.PI / 2, '#55e99e', 210);
+            draw('meteor', x, y, 1.08, 1.08, -Math.PI / 2,
+                '#edfff1', 255);
+            draw('aura', area.x, area.y, 1.25 + progress * 0.8,
+                1.25 + progress * 0.8, 0, '#52e69b', Math.round(145 * (1 - progress * 0.55)));
+        }
+        return;
+    }
+
+    const eased = 1 - (1 - progress) * (1 - progress);
+    const headX = sourceX + dx * eased;
+    const headY = sourceY + dy * eased + Math.sin(progress * Math.PI) * 26;
+    const trailAngle = attack.moveIndex === 1 && attack.areas[0]
+        ? attack.areas[0].angle : direction;
+    const sprite = batch.glyphs?.RAYQUAZA ? 'RAYQUAZA' : 'dragon';
+    for (let ghost = 3; ghost >= 0; ghost--) {
+        const t = Math.max(0, eased - ghost * 0.13);
+        const x = sourceX + dx * t;
+        const y = sourceY + dy * t + Math.sin(t * Math.PI) * 26;
+        const alpha = ghost === 0 ? 255 : Math.round(138 / ghost);
+        const scale = ghost === 0 ? 2.5 : 2.15 - ghost * 0.12;
+        batch.draw(sprite, x, y, scale, scale * 0.68, trailAngle,
+            pal.get(ghost === 0 ? '#e7fff0' : '#58e7a0', alpha));
+    }
+    draw('legendRay', sourceX + dx * 0.5, sourceY + dy * 0.5,
+        distance / 48, 0.66, direction, '#65f2a5', 196);
+    draw('aura', headX, headY, 2.1 + progress * 0.55, 1.65 + progress * 0.4,
+        0, '#58ed9e', Math.round(145 + progress * 85));
+    if (progress > 0.62) {
+        const burst = (progress - 0.62) / 0.38;
+        draw('ring', attack.x, attack.y, 1.5 + burst * 2.8, 1.5 + burst * 2.8,
+            0, '#e6fff1', Math.round(235 * (1 - burst)));
+        draw('aura', attack.x, attack.y, 2.6 + burst * 2.2, 2.6 + burst * 2.2,
+            0, '#48dc91', Math.round(176 * (1 - burst)));
+    }
+}
+
 /** Source-backed hit accents for the nine primary legendary attacks; all remain cosmetic. */
 export function drawPrimaryLegendaryBossAttack (batch, pal, attack, wall) {
     const style = BOSS_STYLE[attack?.family];
@@ -65,6 +148,11 @@ export function drawPrimaryLegendaryBossAttack (batch, pal, attack, wall) {
     const draw = (glyph, x, y, sx, sy, angle, tint = style.color, a = alpha) =>
         batch.draw(glyph, x, y, sx, sy, angle, pal.get(tint, a));
     const impactFrame = (slot) => slot + progress * 0.18;
+
+    if (attack.family === 'legend-rayquaza') {
+        drawRayquazaAttack(batch, pal, attack, wall, progress, impact, draw);
+        return true;
+    }
 
     const coverage = attack.areas.reduce((furthest, area) => {
         const reach = Math.hypot(area.x - attack.x, area.y - attack.y)
