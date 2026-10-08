@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#49382f">
+  <title>铃之塔顶层 · 凤王战斗地图预览</title>
+  <style>
+    @font-face {
+      font-family: FusionPixel;
+      src: url('../../assets/fonts/fusion-pixel/fusion-pixel-12px-proportional-zh_hans.otf.woff2') format('woff2');
+      font-display: swap;
+    }
+    :root {
+      color-scheme: light;
+      --ink: #3d342f;
+      --brown: #49382f;
+      --copper: #ae7049;
+      --gold: #e6b967;
+      --paper: #fff8e9;
+      --muted: #786f67;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 22px;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(ellipse at 50% 0, #f6e6c8 0, #d5c6ad 78%);
+      color: var(--ink);
+      font-family: FusionPixel, "Microsoft YaHei", sans-serif;
+    }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    .frame {
+      width: min(1240px, 100%);
+      overflow: hidden;
+      border: 3px solid var(--brown);
+      border-radius: 18px;
+      background: var(--paper);
+      box-shadow: 0 7px 0 #9b8872, 0 22px 58px #392b2542;
+    }
+    .header {
+      min-height: 72px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      color: #fff7e7;
+      background: var(--brown);
+      border-bottom: 4px solid var(--gold);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .sigil {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 2px solid #e6c37a;
+      border-radius: 50%;
+      color: #ffe2a2;
+      background: #68503d;
+      box-shadow: inset 0 0 0 3px #47392f;
+      font-size: 23px;
+    }
+    .eyebrow { color: #e5c890; font: 700 10px/1.2 system-ui, sans-serif; letter-spacing: .14em; }
+    h1 { margin: 5px 0 0; color: #fff8e8; font-size: 19px; line-height: 1.2; }
+    .status { padding: 7px 10px; border: 1px solid #a5815f; border-radius: 99px; color: #fff1d7; font-size: 10px; white-space: nowrap; }
+    .body { padding: 16px 18px 13px; }
+    .lead { margin-bottom: 13px; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+    .lead h2 { margin: 0 0 5px; font-size: 16px; }
+    .lead p { max-width: 610px; margin: 0; color: var(--muted); font: 12px/1.55 system-ui, sans-serif; }
+    .controls { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+    .controls button {
+      padding: 8px 10px;
+      border: 1px solid #d2bda2;
+      border-radius: 8px;
+      background: #fffdf8;
+      box-shadow: 0 2px 0 #e9dece;
+      font-size: 10px;
+    }
+    .controls button[aria-pressed="true"] { border-color: #bd8957; color: #794a2c; background: #faedcf; }
+    .controls button:hover { border-color: var(--copper); }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 218px; gap: 14px; }
+    .stage {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      aspect-ratio: 1674 / 940;
+      border: 3px solid #493b32;
+      border-radius: 13px;
+      background: #88735d;
+      box-shadow: inset 0 0 0 2px #e0bc75;
+    }
+    .scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .shade {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, #fff2cf0a 0%, #6b4a3212 58%, #362b2942 100%);
+      transition: opacity .25s;
+    }
+    .stage.light-off .shade { opacity: 0; }
+    .sunbeam {
+      position: absolute;
+      z-index: 2;
+      inset: -34% -10% 0 4%;
+      pointer-events: none;
+      opacity: .46;
+      background: linear-gradient(106deg, transparent 39%, #fff0bf0a 43%, #fff2c73d 48%, #fff7da12 51%, transparent 57%);
+      mix-blend-mode: screen;
+      transform: translateX(-8%);
+      animation: beam-drift 12s ease-in-out infinite alternate;
+      transition: opacity .25s;
+    }
+    .stage.light-off .sunbeam { opacity: 0; }
+    @keyframes beam-drift { to { transform: translateX(8%); } }
+    .motes { position: absolute; z-index: 3; inset: 0; overflow: hidden; pointer-events: none; }
+    .mote {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: var(--size);
+      height: var(--size);
+      border-radius: 50%;
+      background: #ffe6a2;
+      box-shadow: 0 0 7px 2px #ffbd5b88;
+      opacity: 0;
+      animation: mote-rise var(--duration) linear infinite;
+      animation-delay: var(--delay);
+    }
+    .mote.feather {
+      width: 6px;
+      height: 12px;
+      border-radius: 90% 10% 80% 20%;
+      background: linear-gradient(135deg, #ffe69d, #e96539 76%);
+      box-shadow: 0 0 6px #ffb65b77;
+      transform: rotate(28deg);
+    }
+    @keyframes mote-rise {
+      0% { opacity: 0; transform: translate3d(0, 14px, 0) rotate(-22deg); }
+      17% { opacity: .8; }
+      80% { opacity: .58; }
+      100% { opacity: 0; transform: translate3d(22px, -56px, 0) rotate(72deg); }
+    }
+    .m1 { --x: 21%; --y: 77%; --size: 3px; --duration: 7s; --delay: -2s; }
+    .m2 { --x: 36%; --y: 72%; --size: 4px; --duration: 8s; --delay: -6s; }
+    .m3 { --x: 67%; --y: 77%; --size: 3px; --duration: 9s; --delay: -4s; }
+    .m4 { --x: 81%; --y: 68%; --size: 4px; --duration: 8s; --delay: -1s; }
+    .m5 { --x: 29%; --y: 42%; --size: 5px; --duration: 9s; --delay: -7s; }
+    .m6 { --x: 73%; --y: 52%; --size: 5px; --duration: 11s; --delay: -5s; }
+    .m7 { --x: 13%; --y: 61%; --size: 5px; --duration: 10s; --delay: -8s; }
+    .m8 { --x: 88%; --y: 45%; --size: 5px; --duration: 9s; --delay: -3s; }
+    .stage.motion-off .motes, .stage.clean .actor, .stage.clean .shadow, .stage.clean .badge { display: none; }
+    .badge, .hint {
+      position: absolute;
+      z-index: 5;
+      top: 13px;
+      padding: 6px 9px;
+      border-radius: 8px;
+      font-size: 10px;
+    }
+    .badge { left: 13px; border: 1px solid #e6c98b; color: #523f31; background: #fff6e8ed; box-shadow: 0 2px 0 #56433555; }
+    .hint { right: 13px; border: 1px solid #e5ca89; color: #fff5de; background: #493a30dd; }
+    .shadow {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      top: 53%;
+      width: 80px;
+      height: 13px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: #44372d77;
+      filter: blur(4px);
+    }
+    .actor { position: absolute; z-index: 5; image-rendering: pixelated; }
+    .hooh {
+      left: calc(50% - 32px);
+      top: calc(43% - 32px);
+      width: 64px;
+      height: 64px;
+      background: url('../../assets/icons/HOOH.png') left top / 128px 64px no-repeat;
+      transform: scale(1.7);
+      filter: drop-shadow(0 3px 2px #49382f99);
+      transform-origin: center;
+    }
+    .trainer {
+      left: calc(50% - 24px);
+      top: 69%;
+      width: 48px;
+      height: 48px;
+      background: url('../../assets/player/NPC_198_Lucas.png') left top / 192px 192px no-repeat;
+      transform: scale(1.05);
+      filter: drop-shadow(0 2px 1px #382c28aa);
+    }
+    .nameplate {
+      position: absolute;
+      z-index: 6;
+      top: 34%;
+      left: 50%;
+      padding: 5px 8px;
+      border: 1px solid #ddc18b;
+      border-radius: 8px;
+      color: #fff9e8;
+      background: #493b32df;
+      font: 10px/1 system-ui, sans-serif;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+    .stage.clean .nameplate { display: none; }
+    .landing {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      top: 44%;
+      width: 10px;
+      height: 10px;
+      border: 2px solid #fff1b3;
+      border-radius: 50%;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(.2);
+      box-shadow: 0 0 0 7px #ffb55722, 0 0 30px 12px #ffd269;
+      pointer-events: none;
+    }
+    .stage.arrival .hooh { animation: hooh-land 1.75s cubic-bezier(.16,.8,.24,1) both; }
+    .stage.arrival .landing { animation: landing-flash .9s ease-out 1.38s both; }
+    @keyframes hooh-land {
+      0% { opacity: 0; transform: translateY(-100px) scale(1.1); }
+      58% { opacity: 1; transform: translateY(8px) scale(1.82); }
+      78% { transform: translateY(-4px) scale(1.67); }
+      100% { opacity: 1; transform: translateY(0) scale(1.7); }
+    }
+    @keyframes landing-flash {
+      0% { opacity: 0; transform: translate(-50%,-50%) scale(.2); }
+      25% { opacity: .9; }
+      100% { opacity: 0; transform: translate(-50%,-50%) scale(12); }
+    }
+    .boss-hud {
+      position: absolute;
+      z-index: 7;
+      top: 12px;
+      left: 50%;
+      display: none;
+      width: min(250px, 48%);
+      padding: 6px 10px;
+      border: 1px solid #e5c783;
+      border-radius: 9px;
+      color: #fff9eb;
+      background: #49382fe8;
+      font: 10px/1.2 system-ui, sans-serif;
+      box-shadow: 0 2px 0 #42332988;
+      transform: translateX(-50%);
+    }
+    .hp-track { height: 5px; margin-top: 5px; overflow: hidden; border-radius: 4px; background: #c7b9a4; }
+    .hp-track i { display: block; width: 100%; height: 100%; background: linear-gradient(90deg,#f2a049,#f7d780); }
+    .stage.battle-active .boss-hud { display: block; }
+    .stage.clean .boss-hud { display: none; }
+    .stage.arrival .hooh { filter: drop-shadow(0 0 14px #ffc556); }
+    .stage.battle-active .hooh { animation: hooh-hover 2.7s ease-in-out infinite; }
+    @keyframes hooh-hover { 50% { transform: translateY(-5px) scale(1.73); } }
+    .side { display: grid; align-content: start; gap: 10px; }
+    .card { padding: 12px; border: 1px solid #e1d0b4; border-radius: 10px; background: #fffdf8; box-shadow: 0 2px 0 #eee3d1; }
+    .card h3 { margin: 0 0 7px; font-size: 12px; }
+    .card p { margin: 0; color: var(--muted); font: 11px/1.55 system-ui, sans-serif; }
+    .palette { display: flex; gap: 6px; margin-top: 10px; }
+    .swatch { width: 23px; height: 23px; border: 1px solid #3d342f22; border-radius: 6px; }
+    .s1 { background: #e4c8a2; }.s2 { background: #854d36; }.s3 { background: #52757b; }.s4 { background: #e3b258; }.s5 { background: #ed7650; }
+    .foot { margin-top: 11px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: #766c60; font: 10px/1.5 system-ui, sans-serif; }
+    .foot a { color: #835633; }
+    @media (max-width: 850px) {
+      body { padding: 10px; }
+      .frame { border-radius: 13px; }
+      .header { min-height: 62px; padding: 10px 12px; }
+      .header h1 { font-size: 16px; }
+      .body { padding: 11px; }
+      .lead { align-items: flex-start; flex-direction: column; }
+      .controls { justify-content: flex-start; }
+      .layout { grid-template-columns: 1fr; }
+      .side { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .side .card:last-child { grid-column: 1 / -1; }
+    }
+    @media (max-width: 520px) {
+      .status { display: none; }
+      .stage { min-height: 230px; aspect-ratio: 1.45; }
+      .side { grid-template-columns: 1fr; }
+      .side .card:last-child { grid-column: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <header class="header">
+      <div class="brand"><div class="sigil" aria-hidden="true">♢</div><div><div class="eyebrow">JOHTO · BOSS ARENA CONCEPT</div><h1>铃之塔顶层 · 凤王战斗地图</h1></div></div>
+      <div class="status">独立预览 · 尚未接入正式关卡</div>
+    </header>
+    <section class="body">
+      <div class="lead">
+        <div><h2>高空神殿 · 晨曦祭台</h2><p>以铃之塔为场景原型，外围用木构与铜铃收住空间，中央留出大面积开阔地供走位和识别招式范围。</p></div>
+        <div class="controls">
+          <button id="encounter" type="button" aria-pressed="true">遭遇构图</button>
+          <button id="clean" type="button" aria-pressed="false">纯场地</button>
+          <button id="motion" type="button" aria-pressed="true">环境微动：开</button>
+          <button id="light" type="button" aria-pressed="true">天光：开</button>
+          <button id="arrival" type="button" aria-pressed="false">播放凤王降临</button>
+        </div>
+      </div>
+      <div class="layout">
+        <div id="stage" class="stage">
+          <img class="scene" src="assets/hooh-arena-base.png" alt="铃之塔顶层开阔战斗平台概念底图">
+          <div class="shade"></div><div class="sunbeam"></div>
+          <div class="motes" aria-hidden="true">
+            <i class="mote m1"></i><i class="mote m2"></i><i class="mote feather m3"></i><i class="mote m4"></i>
+            <i class="mote m5"></i><i class="mote feather m6"></i><i class="mote m7"></i><i class="mote m8"></i>
+          </div>
+          <div class="badge">铃之塔 · 顶层祭台</div><div class="hint">凤王 · BOSS遭遇</div>
+          <div class="boss-hud"><span>凤王 · BOSS</span><div class="hp-track"><i></i></div></div>
+          <div class="shadow"></div>
+          <div class="actor hooh" role="img" aria-label="凤王"></div>
+          <div class="actor trainer" role="img" aria-label="训练家"></div>
+          <div class="nameplate">凤王 · 虹色之翼</div><div class="landing"></div>
+        </div>
+        <aside class="side">
+          <section class="card"><h3>场地布局</h3><p>塔檐、立柱和铜铃集中在远景与边缘；核心区域保持无遮挡，方便凤王的火焰招式预警清晰可读。</p></section>
+          <section class="card"><h3>光色方向</h3><p>上方晨光偏金白，近景落入暖棕阴影；少量羽焰承担动态点缀，不做全屏火海或大光环。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
+          <section class="card"><h3>战斗可读性</h3><p>开阔的八边形平台提供环绕走位空间。围栏和铜铃只做环境轮廓，后续可单独定义碰撞边界与火焰地带。</p></section>
+          <section class="card"><h3>设计依据</h3><p>借用铃之塔与凤王的城都意象，重做成适配本游戏俯视战斗的原创场景；玩家与凤王用现有游戏素材展示。</p></section>
+        </aside>
+      </div>
+      <div class="foot"><span>地点意象参考：<a href="https://www.nintendo.com/eu/media/downloads/migration_1/BROCHURE_POK_GOLD_SILVER_EN.pdf" target="_blank" rel="noreferrer">Nintendo《金／银》与《心金／魂银》宣传册中的铃之塔截图</a></span><span>概念底图原创生成 · 默认静音 · 可点“播放凤王降临”重播</span></div>
+    </section>
+  </main>
+  <script>
+    const stage = document.getElementById('stage');
+    const arrivalButton = document.getElementById('arrival');
+    let arrivalTimer;
+
+    function toggle(button, className, label) {
+      const enabled = !stage.classList.toggle(className);
+      button.setAttribute('aria-pressed', String(enabled));
+      button.textContent = `${label}：${enabled ? '开' : '关'}`;
+    }
+
+    document.getElementById('encounter').addEventListener('click', () => {
+      stage.classList.remove('clean');
+      document.getElementById('encounter').setAttribute('aria-pressed', 'true');
+      document.getElementById('clean').setAttribute('aria-pressed', 'false');
+    });
+    document.getElementById('clean').addEventListener('click', () => {
+      stage.classList.add('clean');
+      document.getElementById('encounter').setAttribute('aria-pressed', 'false');
+      document.getElementById('clean').setAttribute('aria-pressed', 'true');
+    });
+    document.getElementById('motion').addEventListener('click', (event) => {
+      toggle(event.currentTarget, 'motion-off', '环境微动');
+    });
+    document.getElementById('light').addEventListener('click', (event) => {
+      toggle(event.currentTarget, 'light-off', '天光');
+    });
+    arrivalButton.addEventListener('click', () => {
+      clearTimeout(arrivalTimer);
+      stage.classList.remove('clean', 'arrival', 'battle-active');
+      document.getElementById('encounter').setAttribute('aria-pressed', 'true');
+      document.getElementById('clean').setAttribute('aria-pressed', 'false');
+      arrivalButton.textContent = '凤王降临中…';
+      arrivalButton.setAttribute('aria-pressed', 'true');
+      void stage.offsetWidth;
+      stage.classList.add('arrival');
+      arrivalTimer = setTimeout(() => {
+        stage.classList.remove('arrival');
+        stage.classList.add('battle-active');
+        arrivalButton.textContent = '重播凤王降临';
+        arrivalButton.setAttribute('aria-pressed', 'false');
+      }, 1850);
+    });
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      stage.classList.add('motion-off');
+      document.getElementById('motion').setAttribute('aria-pressed', 'false');
+      document.getElementById('motion').textContent = '环境微动：关';
+    }
+  </script>
+</body>
+</html>

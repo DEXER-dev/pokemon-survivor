@@ -1,0 +1,15 @@
+# 铃之塔顶层 · 凤王战斗地图概念
+
+这是凤王 BOSS 战的独立场景预览，尚未接入正式关卡。
+
+## 设计依据
+
+- 以城都地区的铃之塔（旧称钟之塔）顶层遭遇意象为方向：木构塔檐、铜铃、开阔的高空平台与晨曦。
+- 战斗场地中央保持宽阔、低对比、无障碍；栏杆、立柱、屋檐和铜铃退到边缘，给玩家和招式预警留出识读空间。
+- 凤王使用项目已有的 `assets/icons/HOOH.png` 精灵图；训练家使用 `assets/player/NPC_198_Lucas.png`。
+- 预览底图为原创生成的概念背景，不是原作地图复刻。按钮可切换纯场地/遭遇构图、环境微动和天光，并播放一次短暂的凤王降临演出。页面默认静音。
+
+## 参考
+
+任天堂《Pokémon Gold & Silver》宣传册中的《HeartGold/SoulSilver》截图包含凤王与铃之塔场景：
+[Nintendo 官方宣传册 PDF](https://www.nintendo.com/eu/media/downloads/migration_1/BROCHURE_POK_GOLD_SILVER_EN.pdf)
