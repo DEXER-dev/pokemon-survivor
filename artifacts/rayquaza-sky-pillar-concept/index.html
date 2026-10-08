@@ -66,7 +66,7 @@
         <aside class="side">
           <section class="card"><h3>原作识别点</h3><div class="anchors"><div class="anchor"><span class="num">1</span><span>蓝紫色石砖构成的室内顶层。</span></div><div class="anchor"><span class="num">2</span><span>浅色石块按行列重复，沿墙边排布。</span></div><div class="anchor"><span class="num">3</span><span>南侧棕金色门槛与中央出口。</span></div></div></section>
           <section class="card open"><h3>战斗空间</h3><p>保留原作的砖纹和石块节奏，但让中区明显空出来。顶部偏亮、南侧渐暗，角色和技能范围仍保持清楚。</p></section>
-          <section class="card"><h3>开局演出</h3><p>上半屏先被连续云海笼罩，裂空座悬在云幕后方；前景云层轻柔舒展、上飘淡去，完整云幕再整体升起散开，一道天光掠过，裂空座在上半部显现。下半部玩家和走位空间保持清楚。</p></section>
+          <section class="card"><h3>开局演出</h3><p>上半屏先被连续云海笼罩，裂空座悬在云幕后方；前景云层轻柔舒展、上飘淡去，完整云幕再整体升起散开，配合一段短促的风掠声与天光，裂空座在上半部显现。下半部玩家和走位空间保持清楚。</p></section>
           <section class="card"><h3>光影与动画</h3><p>顶部柔和冷光向南渐暗；地砖偶尔闪烁，门口上方有稀疏尘点上浮。“播放苏醒演出”可单独预览短暂的气流聚拢。</p></section>
           <section class="card"><h3>设计边界</h3><p>云层开场、纵向光影、微光和气流是为战斗预览新增的演出，不冒充《绿宝石》原作动画；云层只在开场短暂出现，不遮挡战斗走位。</p></section>
         </aside>
@@ -74,16 +74,17 @@
       <div class="foot"><span>原作画面参考：<a href="https://kiroe.hatenablog.com/entry/2019/12/30/212748" target="_blank" rel="noreferrer"><strong>绿宝石天空之柱顶层实机记录</strong></a> · <a href="https://bulbapedia.bulbagarden.net/wiki/Sky_Pillar" target="_blank" rel="noreferrer">天空之柱资料</a></span><span>动画为新增设计稿，点按钮可开关或重播</span></div>
     </section>
   </main>
+  <audio id="opening-audio" src="assets/cloud-opening-whoosh.mp3" preload="auto"></audio>
   <script>
-    const stage=document.getElementById('stage'), encounter=document.getElementById('encounter'), clean=document.getElementById('clean'), motion=document.getElementById('motion'), light=document.getElementById('light'), opening=document.getElementById('opening'), wake=document.getElementById('wake');let wakeTimer,openingTimer,autoPlayTimer;const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const stage=document.getElementById('stage'), encounter=document.getElementById('encounter'), clean=document.getElementById('clean'), motion=document.getElementById('motion'), light=document.getElementById('light'), opening=document.getElementById('opening'), wake=document.getElementById('wake'), openingAudio=document.getElementById('opening-audio');let wakeTimer,openingTimer,autoPlayTimer;const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches,mutePreview=new URLSearchParams(location.search).get('mute')==='1';openingAudio.volume=.52;openingAudio.muted=mutePreview;
     if(reducedMotion){stage.classList.add('motion-off');motion.setAttribute('aria-pressed','false');motion.textContent='环境微动：关'}
     function setMode(showActors){stage.classList.toggle('clean',!showActors);encounter.setAttribute('aria-pressed',String(showActors));clean.setAttribute('aria-pressed',String(!showActors))}
     encounter.addEventListener('click',()=>setMode(true));clean.addEventListener('click',()=>setMode(false));
     motion.addEventListener('click',()=>{const enabled=stage.classList.toggle('motion-off')===false;stage.classList.toggle('motion-opt-in',enabled&&reducedMotion);motion.setAttribute('aria-pressed',String(enabled));motion.textContent=`环境微动：${enabled?'开':'关'}`});
     light.addEventListener('click',()=>{const enabled=stage.classList.toggle('light-off')===false;light.setAttribute('aria-pressed',String(enabled));light.textContent=`上下光影：${enabled?'开':'关'}`});
-    function finishOpening(){clearTimeout(openingTimer);stage.classList.remove('intro-ready','intro-playing');stage.classList.add('intro-complete');wake.disabled=false;opening.textContent='重播开场演出'}
-    function playOpening(){clearTimeout(autoPlayTimer);clearTimeout(openingTimer);clearTimeout(wakeTimer);setMode(true);stage.classList.remove('waking','intro-playing','intro-complete');stage.classList.add('intro-ready');wake.disabled=true;wake.textContent='播放苏醒演出';opening.textContent='跳过开场';void stage.offsetWidth;stage.classList.remove('intro-ready');stage.classList.add('intro-playing');openingTimer=setTimeout(finishOpening,3000)}
-    opening.addEventListener('click',()=>{if(stage.classList.contains('intro-playing'))finishOpening();else playOpening()});
+    function finishOpening(stopSound=false){clearTimeout(openingTimer);if(stopSound){openingAudio.pause();openingAudio.currentTime=0}stage.classList.remove('intro-ready','intro-playing');stage.classList.add('intro-complete');wake.disabled=false;opening.textContent='重播开场演出'}
+    function playOpening(){clearTimeout(autoPlayTimer);clearTimeout(openingTimer);clearTimeout(wakeTimer);openingAudio.pause();openingAudio.currentTime=0;if(!mutePreview)openingAudio.play().catch(()=>{});setMode(true);stage.classList.remove('waking','intro-playing','intro-complete');stage.classList.add('intro-ready');wake.disabled=true;wake.textContent='播放苏醒演出';opening.textContent='跳过开场';void stage.offsetWidth;stage.classList.remove('intro-ready');stage.classList.add('intro-playing');openingTimer=setTimeout(()=>finishOpening(false),3000)}
+    opening.addEventListener('click',()=>{if(stage.classList.contains('intro-playing'))finishOpening(true);else playOpening()});
     if(reducedMotion){stage.classList.remove('intro-ready');stage.classList.add('intro-complete');opening.textContent='播放开场演出'}else{autoPlayTimer=window.setTimeout(playOpening,320)}
     wake.addEventListener('click',()=>{setMode(true);clearTimeout(wakeTimer);stage.classList.remove('waking');void stage.offsetWidth;stage.classList.add('waking');wake.disabled=true;wake.textContent='风流汇聚…';wakeTimer=setTimeout(()=>{stage.classList.remove('waking');wake.disabled=false;wake.textContent='播放苏醒演出'},2150)});
   </script>

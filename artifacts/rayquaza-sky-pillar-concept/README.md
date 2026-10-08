@@ -16,3 +16,8 @@
 干净像素质感的背景是基于上面的原作画面参考生成的概念底图；玩家与裂空座采用项目现有精灵素材做构图展示。最初带有过密屏幕纹理的版本保留为 `assets/sky-pillar-arena-base.png`，预览页现使用 `assets/sky-pillar-arena-base-clean-v2.png`。
 
 开场云海由 `assets/rayquaza-cloud-canopy.png` 与 `assets/rayquaza-cloud-banks.png` 分层组合：两张云图都完整绘制，不在中央裁切；前景云层轻柔舒展、上飘淡出，完整云幕随后升起散开。
+
+## 开场音效来源
+
+- `assets/cloud-opening-whoosh.mp3`：采用 AudioPapkin 发布的 **Sound Design Elements Whoosh SFX 015** 预览音频，来自 Freesound，页面标记为 CC0 1.0；原音长 2.428 秒，作为云幕散开的短风掠声，网页播放音量设为 0.52。来源：[Freesound 音效页面](https://freesound.org/people/AudioPapkin/sounds/812650/)。
+- `?mute=1` 会静音预览音效，方便自动化或反复测试；正常打开时，浏览器允许播放的情况下，开场会播放这段音效。用户点击“跳过开场”时会立即停止声音。
