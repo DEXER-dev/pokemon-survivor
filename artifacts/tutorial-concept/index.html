@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#171527">
+  <title>冒险指南 · 宝可梦幸存者</title>
+  <style>
+    @font-face{font-family:FusionPixel;src:url('../../assets/fonts/fusion-pixel/fusion-pixel-12px-proportional-zh_hans.otf.woff2') format('woff2');font-display:swap}
+    :root{color-scheme:dark;--ink:#29283a;--muted:#747285;--paper:#fff8e7;--gold:#f6d977;--violet:#b49ae2;--green:#81d8a1;--line:#59546e;--bg:#171527}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:18px;background:radial-gradient(ellipse at 50% 0,#48405e 0,#27243b 48%,#12111e 100%);color:#f5f0ff;font-family:FusionPixel,"Microsoft YaHei",sans-serif;display:grid;place-items:center}
+    button,a{font:inherit;color:inherit}.shell{width:min(1040px,100%);overflow:hidden;border:1px solid #84779f;border-radius:20px;background:#1c1a2c;box-shadow:0 24px 80px #05040dbb,0 0 0 5px #100f1b}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 19px;background:linear-gradient(110deg,#302943,#25243a);border-bottom:1px solid #524b68}.brand{display:flex;align-items:center;gap:11px}.brand-icon{width:34px;height:34px;display:grid;place-items:center;border:1px solid #a999d6;border-radius:10px;background:#45385d;color:#ffe394;font-size:18px;box-shadow:inset 0 -3px #27233a}.eyebrow{color:#c0afd9;font:700 9px/1.2 system-ui,sans-serif;letter-spacing:.17em}.top h1{margin:4px 0 0;font-size:18px;line-height:1.2}.close{width:34px;height:34px;border:1px solid #706784;border-radius:9px;background:#262338;cursor:pointer;color:#ddd4ed;font-size:17px}.close:hover{background:#413854}
+    .content{padding:19px}.intro{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-bottom:14px}.intro h2{margin:0;color:#fff4cb;font-size:clamp(20px,3vw,27px)}.intro p{margin:5px 0 0;color:#c4bfd0;font:12px/1.45 system-ui,sans-serif}.duration{flex:none;padding:6px 9px;border:1px solid #5d566f;border-radius:999px;background:#242235;color:#d7cfea;font:10px system-ui,sans-serif}
+    .guide{display:grid;grid-template-columns:245px minmax(0,1fr);min-height:335px;overflow:hidden;border:1px solid #a99bc1;border-radius:15px;background:var(--paper);color:var(--ink);box-shadow:0 5px 0 #09081266}.steps{padding:13px;background:linear-gradient(180deg,#302b43,#27253a);border-right:1px solid #827894}.step{display:flex;align-items:center;gap:10px;width:100%;min-height:57px;margin:0 0 7px;padding:8px 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:#c9c3d4;text-align:left;cursor:pointer;transition:.15s}.step:hover{background:#ffffff0c;color:#fff}.step[aria-current="step"]{border-color:#b9a8e5;background:#453958;color:#fff4c9;box-shadow:inset 3px 0 #f5d777}.number{display:grid;place-items:center;flex:none;width:29px;height:29px;border:1px solid #726986;border-radius:8px;background:#211e31;color:#e3d7fb;font-size:12px}.step[aria-current="step"] .number{border-color:#f0d982;background:#75643d;color:#fff4c9}.step-copy{display:grid;gap:3px}.step-copy strong{font-size:12px}.step-copy small{color:#aaa2b8;font:10px system-ui,sans-serif}
+    .lesson{position:relative;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(210px,.9fr);gap:20px;align-items:center;padding:22px 25px}.lesson-copy{align-self:center}.lesson-kicker{color:#8d7cb0;font:700 9px system-ui,sans-serif;letter-spacing:.14em}.lesson h3{margin:8px 0 8px;font-size:23px;color:#29283a}.lesson p{max-width:440px;margin:0;color:#656477;font:13px/1.7 system-ui,sans-serif}.lesson-tip{display:flex;gap:9px;align-items:flex-start;margin-top:15px;padding:9px 11px;border:1px solid #e6d9a9;border-radius:9px;background:#fff2c9;color:#554b38;font:11px/1.55 system-ui,sans-serif}.lesson-tip b{flex:none;color:#a78338}
+    .illustration{position:relative;display:grid;place-items:center;min-height:218px;overflow:hidden;border:1px solid #ded6e3;border-radius:13px;background:radial-gradient(ellipse at 50% 100%,#dbeac4 0,#e9f0d7 44%,#edf0df 100%)}.illustration:before,.illustration:after{content:"";position:absolute;width:230px;height:45px;border-radius:50%;background:#d1dfb1;transform:rotate(-18deg);opacity:.58}.illustration:before{top:28px;left:-70px}.illustration:after{right:-80px;bottom:18px;transform:rotate(17deg)}.visual-item{position:absolute;z-index:1;image-rendering:pixelated;object-fit:contain;filter:drop-shadow(0 4px 0 #34445228)}.trainer{width:58px;height:76px;bottom:37px;left:48%;z-index:3}.pokemon{width:72px;height:72px;right:15%;bottom:40px}.ball{width:40px;height:40px;left:27%;bottom:58px}.orb{position:absolute;z-index:2;width:15px;height:15px;border:2px solid #fff;border-radius:50%;background:#77d6f0;box-shadow:0 0 0 3px #77d6f04d,0 0 12px #77d6f0}.o1{top:24%;left:26%}.o2{top:38%;right:23%;background:#f7d06d;box-shadow:0 0 0 3px #f7d06d4d,0 0 12px #f7d06d}.path{position:absolute;z-index:2;width:44%;left:23%;bottom:30%;border-top:2px dashed #9d8cc4;transform:rotate(-13deg)}.art-caption{position:absolute;z-index:4;left:10px;top:10px;padding:5px 7px;border:1px solid #d3c6df;border-radius:6px;background:#fff9e9cc;color:#66617a;font:9px system-ui,sans-serif}
+    .lesson[data-step="1"] .visual-item,.lesson[data-step="1"] .orb,.lesson[data-step="1"] .path{display:none}.lesson[data-step="1"] .key-demo{display:flex}.key-demo{display:none;position:relative;z-index:3;align-items:center;gap:7px}.key{display:grid;place-items:center;width:37px;height:37px;border:1px solid #aaa0b8;border-radius:8px;background:linear-gradient(#fff,#eae5ee);box-shadow:0 3px 0 #b4acbc;color:#554962;font:bold 13px system-ui,sans-serif}.key-stack{display:grid;gap:6px}.key-row{display:flex;gap:6px}.mobile-stick{display:none;position:relative;z-index:3;width:96px;height:96px;border:2px solid #b3a7c5;border-radius:50%;background:#ffffff45}.mobile-stick:before{content:"";position:absolute;inset:24px;border:1px solid #c5b9d4;border-radius:50%}.mobile-stick:after{content:"";position:absolute;left:33px;top:31px;width:27px;height:27px;border-radius:9px;background:#9585b8;box-shadow:0 3px #6a5c82}
+    .lesson[data-step="2"] .pokemon{right:18%;bottom:43px}.lesson[data-step="2"] .ball{left:29%;bottom:82px;width:46px;height:46px}.lesson[data-step="2"] .path{display:block;left:37%;bottom:47%;width:31%;transform:rotate(-22deg)}.lesson[data-step="2"] .orb{display:none}
+    .lesson[data-step="3"] .orb{display:block;width:8px;height:8px;border:0;background:#f0c857;box-shadow:0 0 9px #f0c857}.lesson[data-step="3"] .o1{left:22%;top:24%}.lesson[data-step="3"] .o2{right:23%;top:30%}.lesson[data-step="3"] .pokemon{right:16%;width:83px;height:83px;bottom:49px}.lesson[data-step="3"] .ball,.lesson[data-step="3"] .path{display:none}.exp-card{display:none;position:relative;z-index:3;padding:12px 15px;border:1px solid #c9bd8c;border-radius:10px;background:#fff8df;box-shadow:0 4px 0 #a59a75;color:#403d50;text-align:center}.lesson[data-step="3"] .exp-card{display:block}.exp-title{font-size:13px}.exp-meter{width:128px;height:9px;margin-top:8px;border:1px solid #777b78;border-radius:99px;background:#e1e4d7;overflow:hidden}.exp-meter i{display:block;width:72%;height:100%;background:#71c990}.exp-stars{margin-top:7px;color:#bc9c43;font:11px system-ui,sans-serif}
+    .lesson[data-step="4"] .illustration{background:radial-gradient(ellipse at 50% 82%,#c9ead4 0,#d6e7db 36%,#dce0ee 100%)}.lesson[data-step="4"] .trainer{left:14%;bottom:48px}.lesson[data-step="4"] .pokemon{right:13%;bottom:50px;width:105px;height:105px}.lesson[data-step="4"] .ball,.lesson[data-step="4"] .orb,.lesson[data-step="4"] .path{display:none}.warning-demo{display:none;position:absolute;z-index:2;left:31%;right:25%;bottom:48px;height:56px;border:2px dashed #e68a69;border-radius:10px;background:#f48c6633;transform:rotate(-7deg)}.lesson[data-step="4"] .warning-demo{display:block}.boss-caption{display:none;position:absolute;z-index:4;right:10px;top:10px;padding:5px 7px;border:1px solid #e6a38c;border-radius:6px;background:#fff3e9;color:#a4543e;font:9px system-ui,sans-serif}.lesson[data-step="4"] .boss-caption{display:block}
+    .bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}.controls{display:flex;align-items:center;gap:8px;color:#c8c2d0;font:10px/1.5 system-ui,sans-serif}.controls span{white-space:nowrap}.controls kbd{padding:3px 5px;border:1px solid #746b83;border-radius:5px;background:#292638;color:#fff2c8;font:10px system-ui,sans-serif}.bottom-actions{display:flex;gap:8px}.nav,.primary{min-height:38px;padding:8px 13px;border:1px solid #736b80;border-radius:9px;background:#28263a;color:#eee8f6;cursor:pointer}.nav:hover{background:#39354c}.primary{border-color:#eed688;background:linear-gradient(#ffe9a0,#e8bd62);box-shadow:0 3px #8e6b36;color:#40331d;font-weight:bold}.primary:hover{filter:brightness(1.05);transform:translateY(-1px)}.primary:active{transform:translateY(2px);box-shadow:0 1px #8e6b36}.nav:focus-visible,.primary:focus-visible,.step:focus-visible,.close:focus-visible{outline:2px solid #fff;outline-offset:2px}
+    @media(max-width:720px){body{padding:8px}.shell{border-radius:14px}.top{padding:10px 12px}.brand-icon{width:29px;height:29px}.top h1{font-size:15px}.content{padding:12px}.intro{align-items:flex-start}.intro h2{font-size:20px}.intro p{font-size:11px}.duration{font-size:8px}.guide{grid-template-columns:1fr;min-height:0}.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:7px;border-right:0;border-bottom:1px solid #827894}.step{display:grid;justify-items:center;gap:3px;min-height:52px;margin:0;padding:4px 2px;text-align:center}.step-copy{gap:1px}.step-copy strong{font-size:9px}.step-copy small{display:none}.number{width:23px;height:23px;font-size:10px}.lesson{grid-template-columns:1fr;gap:10px;padding:13px}.lesson-copy{grid-row:1}.lesson h3{margin:5px 0;font-size:18px}.lesson p{font-size:11px;line-height:1.55}.lesson-tip{margin-top:8px;padding:7px 8px;font-size:10px}.illustration{grid-row:2;min-height:150px}.trainer{width:45px;height:58px;bottom:23px}.pokemon{width:59px;height:59px;bottom:25px}.ball{width:33px;height:33px;bottom:37px}.exp-card{padding:8px 10px}.exp-meter{height:7px}.bottom{align-items:stretch;flex-direction:column;margin-top:11px}.controls{justify-content:center;flex-wrap:wrap;gap:5px}.bottom-actions{justify-content:space-between}.nav,.primary{flex:1;min-height:40px;padding:7px 8px;font-size:11px}.mobile-stick{display:block}.key-demo{display:none!important}.lesson[data-step="1"] .mobile-stick{display:block}.lesson[data-step="1"] .illustration{background:radial-gradient(ellipse at 50% 92%,#dcebbe 0,#e8efd9 53%,#edf0df 100%)}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="shell" aria-labelledby="pageTitle">
+    <header class="top"><div class="brand"><span class="brand-icon" aria-hidden="true">✦</span><div><div class="eyebrow">POKÉMON SURVIVOR · FIELD GUIDE</div><h1 id="pageTitle">冒险指南</h1></div></div><button class="close" id="close" type="button" aria-label="关闭教程">✕</button></header>
+    <section class="content">
+      <div class="intro"><div><h2>开始冒险，只需了解四件事</h2><p>边移动、边收服，组建队伍并迎战强敌。</p></div><span class="duration">约 30 秒</span></div>
+      <div class="guide">
+        <nav class="steps" aria-label="教程步骤">
+          <button class="step" data-step="1" aria-current="step"><span class="number">01</span><span class="step-copy"><strong>移动探索</strong><small>躲避攻击 · 收集经验</small></span></button>
+          <button class="step" data-step="2"><span class="number">02</span><span class="step-copy"><strong>投球收服</strong><small>瞄准野生宝可梦</small></span></button>
+          <button class="step" data-step="3"><span class="number">03</span><span class="step-copy"><strong>培养队伍</strong><small>升级 · 进化 · 技能</small></span></button>
+          <button class="step" data-step="4"><span class="number">04</span><span class="step-copy"><strong>挑战首领</strong><small>看预警 · 找时机</small></span></button>
+        </nav>
+        <article class="lesson" id="lesson" data-step="1" aria-live="polite">
+          <div class="lesson-copy"><span class="lesson-kicker" id="kicker">STEP 01 / GET MOVING</span><h3 id="lessonTitle">灵活走位，探索草甸</h3><p id="lessonText">移动训练家避开敌方攻击，也能更快接近想收服的宝可梦。你的队伍会自动寻找目标并发动攻击。</p><div class="lesson-tip"><b>小提示</b><span id="lessonTip">别停在红色预警里；移动本身就是最重要的防御。</span></div></div>
+          <div class="illustration" aria-hidden="true"><span class="art-caption" id="artCaption">移动 · 躲避 · 探索</span><span class="boss-caption">首领攻击预警</span><div class="path"></div><span class="orb o1"></span><span class="orb o2"></span><img class="visual-item trainer" src="../../assets/player/NPC_198_Lucas.png" alt=""><img class="visual-item pokemon" src="../../assets/icons/CHARMANDER.png" alt=""><img class="visual-item ball" src="../../assets/items/POKEBALL.png" alt=""><div class="key-demo"><span class="key">W</span><span class="key-stack"><span class="key">↑</span><span class="key-row"><span class="key">A</span><span class="key">S</span><span class="key">D</span></span></span></div><div class="mobile-stick"></div><div class="exp-card"><div class="exp-title">队伍经验　Lv. 2</div><div class="exp-meter"><i></i></div><div class="exp-stars">✦ 升级时选择强化 ✦</div></div><div class="warning-demo"></div></div>
+        </article>
+      </div>
+      <div class="bottom"><div class="controls" aria-label="操作方式"><span><kbd>WASD</kbd>/<kbd>↑↓←→</kbd> 移动</span><span><kbd>Space</kbd>/<kbd>J</kbd> 投球</span><span><kbd>E</kbd> 进化</span><span><kbd>Q</kbd>/<kbd>X</kbd> 技能</span><span>手机：摇杆 + 按住投球</span></div><div class="bottom-actions"><button class="nav" id="prev" type="button" disabled>上一步</button><button class="nav" id="next" type="button">下一步　›</button><a class="primary" id="start" href="../../index.html">知道了，开始冒险　➜</a></div></div>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const steps = [
+        ['灵活走位，探索草甸','移动训练家避开敌方攻击，也能更快接近想收服的宝可梦。你的队伍会自动寻找目标并发动攻击。','别停在红色预警里；移动本身就是最重要的防御。','移动 · 躲避 · 探索'],
+        ['投出精灵球，邀请新伙伴','将准星对准野生宝可梦后投球。命中即可收服；按住投球键可以连续投出精灵球。','留意右下角剩余球数；换个角度再投，瞄准会更轻松。','瞄准 · 投球 · 收服'],
+        ['积累经验，强化队伍','收集经验提升等级。每次升级都能挑选强化；遇到可进化的伙伴时，按 E 进化，解锁更强形态与攻击。','队伍会自动攻击，不用逐只下达指令。优先补齐队伍，再挑喜欢的强化路线。','经验 · 强化 · 进化'],
+        ['读懂预警，击败首领','首领会先标出攻击范围。离开危险区域，等攻击结束再投球；击败神兽后就能尝试收服。','攻击范围出现时先躲开；看见“可投球收服”提示，再抓住时机出手。','观察预警 · 躲避 · 收服']
+      ];
+      let current = 1;
+      const lesson = document.getElementById('lesson');
+      const title = document.getElementById('lessonTitle');
+      const text = document.getElementById('lessonText');
+      const tip = document.getElementById('lessonTip');
+      const caption = document.getElementById('artCaption');
+      const kicker = document.getElementById('kicker');
+      const prev = document.getElementById('prev');
+      const next = document.getElementById('next');
+      const buttons = [...document.querySelectorAll('.step')];
+      function select(step) {
+        current = Math.max(1, Math.min(steps.length, step));
+        const item = steps[current - 1];
+        lesson.dataset.step = String(current);
+        kicker.textContent = `STEP ${String(current).padStart(2, '0')} / ${['GET MOVING','CATCH PARTNERS','GROW YOUR TEAM','BOSS BATTLE'][current - 1]}`;
+        [title.textContent, text.textContent, tip.textContent, caption.textContent] = item;
+        buttons.forEach((button, index) => {
+          if (index + 1 === current) button.setAttribute('aria-current', 'step');
+          else button.removeAttribute('aria-current');
+        });
+        prev.disabled = current === 1;
+        next.textContent = current === steps.length ? '完成　✓' : '下一步　›';
+      }
+      buttons.forEach((button) => button.addEventListener('click', () => select(Number(button.dataset.step))));
+      prev.addEventListener('click', () => select(current - 1));
+      next.addEventListener('click', () => current === steps.length ? select(1) : select(current + 1));
+      document.getElementById('close').addEventListener('click', () => { window.location.href = '../../index.html'; });
+      select(current);
+    })();
+  </script>
+</body>
+</html>
