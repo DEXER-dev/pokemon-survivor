@@ -205,6 +205,8 @@ const TAU = Math.PI * 2;
         || resolveCombatSound({ kind: 'blaziken-charge', fam: 'striker' })?.priority !== 3
         || resolveCombatSound({ kind: 'blaziken-charge', fam: 'striker' })?.volume < 0.5
         || resolveCombatSound({ kind: 'flower-bloom', fam: 'sprigatito' })?.priority !== 2
+        || resolveCombatSound({ kind: 'legendary-lair-entry', fam: 'legend-rayquaza' })?.file !== 'rayquaza-cloud-opening.ogg'
+        || resolveCombatSound({ kind: 'legendary-lair-entry', fam: 'legend-mewtwo' }) !== null
         || resolveCombatSound({ kind: 'hit', fam: 'mush' }) !== null) {
         throw new Error('Combat sound routing must distinguish elements/signatures and keep ordinary impacts silent');
     }
@@ -220,7 +222,9 @@ const TAU = Math.PI * 2;
     } };
     const audio = new CombatSfx(cc, node);
     if (audio.clips['trainer-encounter.ogg'] || !audio.clips['tandemaus-throw.ogg']
-        || !existsSync(new URL('./assets/audio/tandemaus-throw.ogg', import.meta.url))) {
+        || !existsSync(new URL('./assets/audio/tandemaus-throw.ogg', import.meta.url))
+        || !audio.clips['rayquaza-cloud-opening.ogg']
+        || !existsSync(new URL('./assets/audio/rayquaza-cloud-opening.ogg', import.meta.url))) {
         throw new Error('combat audio must preload short effects and omit the 42-second trainer music duplicate');
     }
     audio.enqueue({ kind: 'trainer-encounter' });
@@ -269,8 +273,15 @@ const TAU = Math.PI * 2;
         || !xAudio.some((url) => url.endsWith('blue-flame-embers.ogg'))) {
         throw new Error('Charizard X fire audio should sequence its cry, two sweeps, burst, and ember tail');
     }
+    const beforeRayquazaCue = played.length;
+    audio.enqueue({ kind: 'legendary-lair-entry', fam: 'legend-rayquaza' });
+    if (!audio.flush(Date.now() + 5000) || played.length !== beforeRayquazaCue + 1
+        || !played.at(-1).clip.endsWith('rayquaza-cloud-opening.ogg')
+        || Math.abs(played.at(-1).volume - 0.64) > 1e-9) {
+        throw new Error('Rayquaza lair entry must play its dedicated, restrained cloud-opening cue');
+    }
     audio.destroy();
-    console.log('战斗音效：属性路由、优先级/限频与喷火龙 X 点燃-叫声-双扫斩-爆燃音效序列 PASS');
+    console.log('战斗音效：属性路由、优先级/限频、喷火龙 X 序列与裂空座开场音效 PASS');
 }
 // Level-up UI has distinct, bounded cues for the reveal, focus movement, confirm, and exit.
 {

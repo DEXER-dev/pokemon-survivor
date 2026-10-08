@@ -951,6 +951,10 @@ export function createGame (cc) {
             this.legendaryAttacks.start(this.enemies.x[boss], this.enemies.y[boss], site.species);
             this.particleBursts.burst(site.species, this.enemies.x[boss], this.enemies.y[boss],
                 -Math.PI / 2, 'legendary-lair-entry');
+            if (site.species === 'legend-rayquaza') {
+                this.combatSfx.enqueue({ kind: 'legendary-lair-entry', fam: site.species });
+                this.combatSfx.flush();
+            }
             this.aimWorld.x = this.enemies.x[boss];
             this.aimWorld.y = this.enemies.y[boss];
             this.input.blockFireUntilRelease();

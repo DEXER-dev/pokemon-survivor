@@ -30,6 +30,8 @@ const Z_AUDIO_ELEMENT = Object.freeze({
     ice: 'water',
 });
 
+const RAYQUAZA_ENTRY_SOUND = 'rayquaza-cloud-opening.ogg';
+
 // Keep the approved preview's fire-first rhythm in the actual Mega skill: ignition, Charizard's
 // cry, two fast flame sweeps, then a bright burst and a short ember tail.
 const CHARIZARD_X_AUDIO_PLAN = Object.freeze([
@@ -45,6 +47,12 @@ const CHARIZARD_X_AUDIO_PLAN = Object.freeze([
 const resolveSound = (event) => {
     if (!event) return null;
     const kind = event.kind || '';
+    if (kind === 'legendary-lair-entry') {
+        return event.fam === 'legend-rayquaza'
+            ? { key: 'rayquaza-lair-opening', file: RAYQUAZA_ENTRY_SOUND, volume: 0.64,
+                priority: 3, cooldown: 0, globalCooldown: 0 }
+            : null;
+    }
     if (kind === 'tandemaus-throw') {
         return { key: 'tandemaus-throw', file: 'tandemaus-throw.ogg', volume: 0.28,
             priority: 1, cooldown: 380, globalCooldown: 180 };
@@ -115,6 +123,7 @@ export class CombatSfx {
         const sounds = new Set(Object.values(ELEMENT_SOUNDS));
         sounds.add('combat-impact.ogg');
         sounds.add('tandemaus-throw.ogg');
+        sounds.add(RAYQUAZA_ENTRY_SOUND);
         for (const cue of CHARIZARD_X_AUDIO_PLAN) sounds.add(cue.file);
         for (const file of sounds) {
             cc.assetManager.loadRemote(`assets/audio/${file}`, { ext: '.ogg' }, (err, clip) => {
