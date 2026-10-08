@@ -921,6 +921,33 @@ function alphaBox (data, w, x0, y0, x1, y1) {
     return found ? { x: lo, y: up, w: hi - lo + 1, h: dn - up + 1 } : null;
 }
 
+/** Load the sourced Mega Mewtwo Y sprite into the same fitted 56px cell as the species icons. */
+export async function loadMegaMewtwoYIcon (cc) {
+    const image = await loadPng('assets/icons/MEWTWO-MEGA-Y.gif');
+    const source = document.createElement('canvas');
+    source.width = image.width;
+    source.height = image.height;
+    const sourceCtx = source.getContext('2d', { willReadFrequently: true });
+    sourceCtx.drawImage(image, 0, 0);
+    const box = alphaBox(sourceCtx.getImageData(0, 0, source.width, source.height).data,
+        source.width, 0, 0, source.width, source.height);
+    if (!box) throw new Error('Mega Mewtwo Y sprite is fully transparent');
+
+    const canvas = document.createElement('canvas');
+    canvas.width = CELL;
+    canvas.height = CELL;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    const scale = Math.min(FIT / box.w, FIT / box.h, MAX_ZOOM);
+    const width = box.w * scale;
+    const height = box.h * scale;
+    ctx.drawImage(source, box.x, box.y, box.w, box.h,
+        (CELL - width) / 2, (CELL - height) / 2, width, height);
+    const frame = cc.SpriteFrame.createWithImage(canvas);
+    if (frame.texture && typeof frame.texture.setFilters === 'function') frame.texture.setFilters(1, 1);
+    return { glyphs: { MEWTWO_MEGA_Y: { frame, size: CELL } } };
+}
+
 /**
  * @returns Promise<{glyphs, texture, canvas, CELL}> glyphs keyed by species name and by `<name>_s`
  *          for the shiny half - merged into the greybox atlas by the caller, not by this function.

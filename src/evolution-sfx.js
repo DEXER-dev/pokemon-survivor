@@ -4,6 +4,7 @@ const SOUNDS = Object.freeze({
     charge: Object.freeze({ file: 'mega-charge-whoosh.mp3', volume: 0.28 }),
     burst: Object.freeze({ file: 'mega-orb-shatter.mp3', volume: 0.34 }),
     reveal: Object.freeze({ file: 'mega-reveal.ogg', volume: 0.3 }),
+    revert: Object.freeze({ file: 'evolution-flash.ogg', volume: 0.25 }),
 });
 
 /** Dedicated, sourced Mega Evolution cues. The existing test mute query applies here as well. */

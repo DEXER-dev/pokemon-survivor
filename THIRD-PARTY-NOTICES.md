@@ -11,3 +11,6 @@ for this game. It does not apply to third-party software or assets.
 - `assets/fonts/fusion-pixel/` contains Fusion Pixel 12px Proportional zh-Hans, release 2026.09.25,
   licensed under SIL Open Font License 1.1. The font and upstream notices are included beside the
   asset; source: https://github.com/TakWolf/fusion-pixel-font.
+- `assets/icons/MEWTWO-MEGA-Y.gif` is the Mega Mewtwo Y battle sprite from Pokémon Showdown's
+  Gen 5 animated sprite collection: https://play.pokemonshowdown.com/sprites/gen5ani/mewtwo-mega-y.gif.
+  Pokémon character art remains the property of its respective rights holders.

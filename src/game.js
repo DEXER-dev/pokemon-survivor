@@ -8,7 +8,7 @@ import {
     PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, family,
 } from './config.js';
 import { SpriteBatch, Palette } from './batch.js';
-import { buildGreyboxAtlas, loadIconAtlas, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
+import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
 import { WorldFlora } from './world-flora.js';
 import { WorldTrees } from './world-trees.js';
 import { WorldPond } from './world-pond.js';
@@ -350,8 +350,15 @@ export function createGame (cc) {
             }).catch((err) => console.warn('[trees] field trees unavailable:', err && err.message));
             // Start the 278-species atlas only after tree/field art has claimed its image requests.
             // It can keep loading while the title screen and game are already usable.
-            this.iconAtlasPromise = loadIconAtlas(cc, iconKeys(), MEGA_FORMS.map((form) => form.icon)).then((a) => {
+            this.iconAtlasPromise = Promise.all([
+                loadIconAtlas(cc, iconKeys(), MEGA_FORMS.map((form) => form.icon)),
+                loadMegaMewtwoYIcon(cc).catch((err) => {
+                    console.warn('[icons] Mega Mewtwo Y sprite unavailable; keeping its normal form:', err && err.message);
+                    return { glyphs: {} };
+                }),
+            ]).then(([a, mewtwo]) => {
                 Object.assign(this.atlas.glyphs, a.glyphs);
+                Object.assign(this.atlas.glyphs, mewtwo.glyphs);
                 this.iconAtlas = a;
                 this.icons = true;
             }).catch((err) => console.warn('[icons] staying greybox:', err && err.message));
@@ -430,7 +437,8 @@ export function createGame (cc) {
             this.trainerBoss = new TrainerBossSystem();
             this.legendaryLairs = new LegendaryLairs(LEGENDARY_BOSSES);
             this.legendaryAttacks = new LegendaryAttackSystem();
-            this.legendaryMap = { active: false, x: 0, y: 0, famIdx: -1 };
+            this.legendaryMap = { active: false, x: 0, y: 0, famIdx: -1,
+                mewtwoIntro: 0, mewtwoIntroDuration: 0, mewtwoRevert: 0 };
             this._trainerMegaAnnounced = false;
             this.blockTrainerShot = this.blockTrainerShot.bind(this);
             this.capture = new CaptureSystem(BALL, CATCH);
@@ -939,6 +947,10 @@ export function createGame (cc) {
             this.legendaryMap.x = this.player.x;
             this.legendaryMap.y = this.player.y;
             this.legendaryMap.famIdx = famIdx;
+            const mewtwoEncounter = site.species === 'legend-mewtwo';
+            this.legendaryMap.mewtwoIntro = mewtwoEncounter ? 3.6 : 0;
+            this.legendaryMap.mewtwoIntroDuration = this.legendaryMap.mewtwoIntro;
+            this.legendaryMap.mewtwoRevert = 0;
             this.capture.clearInFlight();
             this.skills.reset();
             this.build.balls += 5;
@@ -948,9 +960,15 @@ export function createGame (cc) {
             this.enemies.maxhp[boss] *= hpScale;
             this.enemies.hp[boss] = this.enemies.maxhp[boss];
             this.enemies.r[boss] *= 1.65;
+            if (mewtwoEncounter) {
+                this.enemies.intro[boss] = 1;
+                if (this.evolutionSfx) this.evolutionSfx.play('charge');
+            }
             this.legendaryAttacks.start(this.enemies.x[boss], this.enemies.y[boss], site.species);
-            this.particleBursts.burst(site.species, this.enemies.x[boss], this.enemies.y[boss],
-                -Math.PI / 2, 'legendary-lair-entry');
+            if (!mewtwoEncounter) {
+                this.particleBursts.burst(site.species, this.enemies.x[boss], this.enemies.y[boss],
+                    -Math.PI / 2, 'legendary-lair-entry');
+            }
             if (site.species === 'legend-rayquaza') {
                 this.combatSfx.enqueue({ kind: 'legendary-lair-entry', fam: site.species });
                 this.combatSfx.flush();
@@ -962,14 +980,43 @@ export function createGame (cc) {
                 x: Math.round(site.x), y: Math.round(site.y), hp: Math.round(this.enemies.maxhp[boss]) });
             this.wave(this.player.x, this.player.y, 18, 260, 0.85, WAVE_GOLD);
             this.kick(0.35);
-            this.say(`进入${site.name}的神兽出没地！击败神兽后投球收服 · 已补充 5 球`, 5);
+            this.say(mewtwoEncounter
+                ? '超梦从四面八方汇聚能量 · MEGA进化即将开始' : `进入${site.name}的神兽出没地！击败神兽后投球收服 · 已补充 5 球`, 5);
             return true;
+        }
+
+        stepMewtwoLairFx (dt) {
+            const map = this.legendaryMap;
+            if (map.mewtwoIntro > 0) {
+                map.mewtwoIntro = Math.max(0, map.mewtwoIntro - dt);
+                if (map.mewtwoIntro === 0) {
+                    for (let i = 0; i < this.enemies.n; i++) {
+                        if (this.enemies.legendary[i] && this.enemies.fam[i] === map.famIdx) {
+                            this.enemies.intro[i] = 0;
+                            this.particleBursts.burst('legend-mewtwo', this.enemies.x[i], this.enemies.y[i],
+                                0, 'legendary-attack-impact');
+                            this.wave(this.enemies.x[i], this.enemies.y[i], 24, 142, 0.62, '#d7a8ff');
+                            break;
+                        }
+                    }
+                    if (this.evolutionSfx) {
+                        this.evolutionSfx.play('burst');
+                        this.evolutionSfx.play('reveal');
+                    }
+                    this.kick(0.32);
+                    this.say('MEGA超梦Y现身！战斗开始', 3.4);
+                }
+            }
+            if (map.mewtwoRevert > 0) map.mewtwoRevert = Math.max(0, map.mewtwoRevert - dt);
         }
 
         finishLegendaryLair (site) {
             this.legendaryLairs.completeActive();
             this.legendaryMap.active = false;
             this.legendaryMap.famIdx = -1;
+            this.legendaryMap.mewtwoIntro = 0;
+            this.legendaryMap.mewtwoIntroDuration = 0;
+            this.legendaryMap.mewtwoRevert = 0;
             this.legendaryAttacks.reset();
             this.clearEnemiesPreservingFieldProgress();
             this.capture.clearInFlight();
@@ -1962,7 +2009,17 @@ export function createGame (cc) {
                 const legend = FAMILIES[e.bossDownFam];
                 this.logEvent('boss.defeated', { kind: 'legendary', species: legend && legend.id,
                     catchable: true, hpLeft: 0.08 });
-                this.say(`${legend ? legend.name : '神兽'}已被击败并陷入虚弱！投出精灵球即可收服`, 5);
+                if (legend && legend.id === 'legend-mewtwo') {
+                    this.legendaryMap.mewtwoRevert = 0.9;
+                    if (this.evolutionSfx) this.evolutionSfx.play('revert');
+                    this.particleBursts.burst(legend.id, e.bossX, e.bossY, Math.PI / 2,
+                        'legendary-attack-impact');
+                    this.wave(e.bossX, e.bossY, 24, 148, 0.6, '#dfb9ff');
+                    this.kick(0.28);
+                    this.say('MEGA能量消散 · 超梦恢复原形！投出精灵球即可收服', 5);
+                } else {
+                    this.say(`${legend ? legend.name : '神兽'}已被击败并陷入虚弱！投出精灵球即可收服`, 5);
+                }
             } else {
                 this.logEvent('boss.defeated', { kind: 'boss', name: BOSS.name });
                 this.say(`${BOSS.name} 倒下 · 选择一只队伍宝可梦进化`);
@@ -2365,6 +2422,7 @@ export function createGame (cc) {
         step (dt) {
             const p = this.player;
             if (p.dead) return;
+            this.stepMewtwoLairFx(dt);
             this.stepDynamaxBand(dt);
             const b = this.build;
             for (const seg of this.chain.segments) {
@@ -2495,7 +2553,7 @@ export function createGame (cc) {
                 this.legendaryAttacks.active = false;
             }
             const bossAttackActive = this.legendaryMap.active
-                ? lairBossIndex >= 0 && !legendaryReady
+                ? lairBossIndex >= 0 && !legendaryReady && this.legendaryMap.mewtwoIntro <= 0
                 : this.legendaryAttacks.wildBoss && wildBossIndex >= 0 && !legendaryReady;
             const bossHpRatio = this.legendaryMap.active
                 ? (lairBossIndex >= 0 && this.enemies.maxhp[lairBossIndex] > 0
@@ -2771,6 +2829,11 @@ export function createGame (cc) {
             scene.addChild(simRoot);
             this.dexPreviewSimRoot = simRoot;
             simRoot.setScale(DEX_PREVIEW_ZOOM, DEX_PREVIEW_ZOOM, 1);
+            this.dexPreviewFlora = new WorldFlora(cc, simRoot);
+            this.dexPreviewFlora.frames = this.flora?.frames || null;
+            this.floraPromise?.then(() => {
+                if (this.dexPreviewFlora && this.flora) this.dexPreviewFlora.frames = this.flora.frames;
+            });
             this.dexPreviewBatch = new SpriteBatch(cc, simRoot, this.atlas.glyphs);
             this.dexPreviewBursts = new NativeParticleBursts(cc, simRoot,
                 this.atlas.glyphs.circle.frame, this.atlas.glyphs.star.frame,
@@ -2910,6 +2973,7 @@ export function createGame (cc) {
             }
             const batch = this.dexPreviewBatch;
             this._withDexPreviewArena(arena, () => {
+                this.dexPreviewFlora?.updatePreview(arena.flora?.plants || []);
                 batch.begin();
                 drawPersistentSkillFields(this, batch);
                 for (let i = 0; i < arena.enemies.n; i++) {
@@ -3419,8 +3483,8 @@ export function createGame (cc) {
             b.begin();
             drawPersistentSkillFields(this, b);
             if (!this.legendaryMap.active) {
-                const site = this.legendaryLairs.next;
-                if (site && Math.hypot(site.x - p.x, site.y - p.y) < 760 / this.cam.z) {
+                for (const site of this.legendaryLairs.sites) {
+                    if (site.complete || Math.hypot(site.x - p.x, site.y - p.y) >= 760 / this.cam.z) continue;
                     const pulse = 1 + 0.08 * Math.sin(this.wall * 4);
                     b.draw('aura', site.x, site.y, 2.8 * pulse, 2.8 * pulse, 0,
                         this.pal.get(COL.gold, 75));
@@ -3445,7 +3509,12 @@ export function createGame (cc) {
                 // With real species art the silhouette carries "which 族, which 阶", so the tint goes
                 // back to being one thing only: cold, i.e. not yours.
                 const trainerForm = trainerMega ? this.trainerBoss.megaForm : null;
-                const iconBase = bo ? (e.legendary[i] || e.wildBoss[i] ? iconKey(FAMILIES[e.fam[i]] && FAMILIES[e.fam[i]].id, 1)
+                const enemyFamily = FAMILIES[e.fam[i]];
+                const mewtwoEncounter = bo && e.legendary[i] && enemyFamily && enemyFamily.id === 'legend-mewtwo';
+                const mewtwoMegaY = mewtwoEncounter && !e.intro[i]
+                    && (!e.legendaryReady[i] || this.legendaryMap.mewtwoRevert > 0.52)
+                    && this.atlas.glyphs.MEWTWO_MEGA_Y;
+                const iconBase = mewtwoMegaY ? 'MEWTWO_MEGA_Y' : bo ? (e.legendary[i] || e.wildBoss[i] ? iconKey(enemyFamily && enemyFamily.id, 1)
                         : BOSS_SPECIES.key) : trainerForm ? trainerForm.icon
                         : iconKey(FAMILIES[e.fam[i]] && FAMILIES[e.fam[i]].id, e.tier[i]);
                 const wildShinyIcon = !bo && !trainer && e.shiny[i] && iconBase ? shinyKey(iconBase) : null;
@@ -3461,6 +3530,42 @@ export function createGame (cc) {
                 const trainerMegaOutline = trainerMega && drawMegaFormOutline(b, this.pal,
                     this.atlas.glyphs, trainerForm, icon, e.x[i], e.y[i] + bob, scale,
                     scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), this.wall, i);
+                if (mewtwoEncounter && icon) {
+                    const introDuration = this.legendaryMap.mewtwoIntroDuration || 3.6;
+                    const charge = e.intro[i]
+                        ? Math.max(0, Math.min(1, (introDuration - this.legendaryMap.mewtwoIntro) / introDuration))
+                        : mewtwoMegaY ? 0.68 + 0.16 * Math.sin(this.wall * 4) : 0.24;
+                    const pulse = 1 + charge * 0.16 + 0.025 * Math.sin(this.wall * 8);
+                    b.draw('aura', e.x[i], e.y[i] + bob, scale * (1.85 + charge * 0.5),
+                        scale * (1.85 + charge * 0.5), 0, this.pal.get('#bd8be9', Math.round(45 + charge * 76)));
+                    b.draw(icon, e.x[i], e.y[i] + bob, scale * pulse, scale * pulse, 0,
+                        this.pal.get('#d8b1ff', Math.round(48 + charge * 92)));
+                    if (e.intro[i]) {
+                        const elapsed = introDuration - this.legendaryMap.mewtwoIntro;
+                        const halfW = VIEW.W * 0.5 / this.cam.z;
+                        const halfH = VIEW.H * 0.5 / this.cam.z;
+                        const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+                        for (let particle = 0; particle < 56; particle++) {
+                            const launch = particle / 56 * introDuration * 0.72;
+                            const travel = Math.max(0, Math.min(1,
+                                (elapsed - launch) / (introDuration * 0.28)));
+                            if (elapsed < launch || travel >= 1) continue;
+                            const angle = particle * goldenAngle + 0.37;
+                            const dx = Math.cos(angle), dy = Math.sin(angle);
+                            const edge = Math.min(halfW / Math.max(0.001, Math.abs(dx)),
+                                halfH / Math.max(0.001, Math.abs(dy)));
+                            const curve = Math.sin(travel * Math.PI) * 22 / this.cam.z;
+                            const x = this.cam.x + dx * edge + -dy * curve
+                                + (e.x[i] - this.cam.x - dx * edge) * travel;
+                            const y = this.cam.y + dy * edge + dx * curve
+                                + (e.y[i] - this.cam.y - dy * edge) * travel;
+                            const size = 0.14 + Math.sin(travel * Math.PI) * 0.17;
+                            const alpha = Math.round(70 + Math.sin(travel * Math.PI) * 185);
+                            b.draw('star', x, y, size, size, angle + this.wall * 0.8,
+                                this.pal.get(particle % 4 === 0 ? '#d8fbff' : '#e4c7ff', alpha));
+                        }
+                    }
+                }
                 b.draw(icon || (bo ? 'blob' : el ? 'diamond' : MOB_GLYPH[Math.min(3, e.tier[i] - 1)]),
                     e.x[i], e.y[i] + bob, scale, scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), 0,
                     this.pal.get(lit ? COL.heroTrim : body));
@@ -4262,14 +4367,20 @@ export function createGame (cc) {
                     if (this.enemies.legendary[i] && !this.enemies.dead[i]) { index = i; break; }
                 }
                 const ready = index >= 0 && this.enemies.legendaryReady[index];
-                const warning = this.legendaryAttacks.active && this.legendaryAttacks.phase === 'warning' && !ready;
+                const mewtwo = index >= 0 && FAMILIES[this.enemies.fam[index]].id === 'legend-mewtwo';
+                const intro = mewtwo && this.enemies.intro[index];
+                const warning = this.legendaryAttacks.active && this.legendaryAttacks.phase === 'warning'
+                    && !ready && !intro;
                 const detail = ready ? '虚弱 · 可投球收服'
+                    : intro ? '四方能量汇聚 · MEGA进化中'
                     : warning ? `${this.legendaryAttacks.label}范围已标出 · ${Math.max(0, this.legendaryAttacks.timeLeft).toFixed(1)}秒后攻击`
                         : this.legendaryAttacks.phase === 'impact'
                             ? (this.legendaryAttacks.type === 'tsunami'
                                 ? '海啸扫过 · 留在蓝色安全窄道内' : `${this.legendaryAttacks.label}冲击中 · 立即避开预警区域`)
                         : '神兽 · 击败后可捕捉';
-                this.hud.setBoss(index >= 0 ? FAMILIES[this.enemies.fam[index]].name : '神兽',
+                this.hud.setBoss(index >= 0
+                    ? mewtwo && !ready && !intro ? 'MEGA超梦Y' : FAMILIES[this.enemies.fam[index]].name
+                    : '神兽',
                     index >= 0 ? this.enemies.hp[index] : 0,
                     index >= 0 ? this.enemies.maxhp[index] : 0,
                     detail, 1);
