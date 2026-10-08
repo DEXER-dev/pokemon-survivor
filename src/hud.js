@@ -13,6 +13,56 @@ import { GAME_FONT } from './ui-font.js';
 const PARTY_ICON_LIMIT = 16;
 const PARTY_ICON_STEP = 40;
 const PARTY_COLUMNS = 8;
+const BOSS_ACCENTS = Object.freeze([
+    ['烈空坐', '#39bc89', '#b8ffda', '#f2d47a'], ['裂空座', '#39bc89', '#b8ffda', '#f2d47a'],
+    ['超梦', '#a77de0', '#ead7ff', '#f39bd4'], ['洛奇亚', '#4bbdd5', '#d7f8ff', '#76b7ff'],
+    ['凤王', '#e99744', '#fff0ad', '#ff775d'], ['固拉多', '#e96355', '#ffd2a1', '#f4b15c'],
+    ['盖欧卡', '#428de0', '#c3e4ff', '#60dbe2'], ['阿尔宙斯', '#c9a844', '#fff0b0', '#edda7d'],
+]);
+
+function bossPalette (name) {
+    const match = BOSS_ACCENTS.find(([key]) => name.includes(key));
+    return match ? match.slice(1) : [HUD.red, '#ffe2c5', '#f5cb65'];
+}
+
+function drawBossGauge (g, cc, progress, trailing, tint, highlight, segments = 1) {
+    g.clear();
+    const x = -278, y = -8, width = 556, height = 18;
+    g.fillColor = color(cc, '#15273a', 95);
+    g.roundRect(x - 3, y - 3, width + 6, height + 6, 12); g.fill();
+    g.fillColor = color(cc, '#ced9cc');
+    g.roundRect(x, y, width, height, 9); g.fill();
+    const innerWidth = width - 4;
+    const shown = Math.max(0, Math.min(1, trailing)) * innerWidth;
+    const fill = Math.max(0, Math.min(1, progress)) * innerWidth;
+    if (shown > fill) {
+        g.fillColor = color(cc, highlight, 220);
+        g.roundRect(x + 2 + fill, y + 2, shown - fill, height - 4, 6); g.fill();
+    }
+    if (fill > 0) {
+        g.fillColor = color(cc, tint);
+        g.roundRect(x + 2, y + 2, fill, height - 4, Math.min(7, fill / 2)); g.fill();
+        g.fillColor = color(cc, '#ffffff', 115);
+        g.roundRect(x + 5, y + 3, Math.max(0, fill - 8), 3, 2); g.fill();
+    }
+    // The center marker foreshadows the half-health escalation; party bosses keep their segment ticks.
+    g.strokeColor = color(cc, '#fff0b0', 230);
+    g.lineWidth = 2;
+    const phaseX = x + width * 0.5;
+    g.moveTo(phaseX, y - 2); g.lineTo(phaseX, y + height + 2); g.stroke();
+    if (segments > 1) {
+        g.strokeColor = color(cc, '#fff7e3', 220);
+        g.lineWidth = 1.5;
+        for (let i = 1; i < segments; i++) {
+            const tick = x + width * i / segments;
+            g.moveTo(tick, y + 1); g.lineTo(tick, y + height - 1);
+        }
+        g.stroke();
+    }
+    g.strokeColor = color(cc, '#20364b');
+    g.lineWidth = 1.7;
+    g.roundRect(x, y, width, height, 9); g.stroke();
+}
 
 export function makeLabel (cc, parent, name, y, size, hex, align, x = 0, width = VIEW.W - 36) {
     const node = new cc.Node(name);
@@ -192,14 +242,19 @@ export class Hud {
         bossPanelNode.layer = cc.Layers.Enum.UI_2D;
         bossPanelNode.setPosition(0, 210, 0);
         this.bossRoot.addChild(bossPanelNode);
-        const bossPanel = bossPanelNode.addComponent(cc.Graphics);
-        card(bossPanel, cc, -260, -56, 520, 112, HUD.red);
-        this.bossTitle = makeLabel(cc, this.bossRoot, 'BossTitle', 246, 17, HUD.ink, 'center', 0, 490);
+        this.bossPanel = bossPanelNode.addComponent(cc.Graphics);
+        this.bossPanelTheme = '';
+        this.bossTrail = null;
+        this.bossTitle = makeLabel(cc, this.bossRoot, 'BossTitle', 251, 19, HUD.ink, 'center', 0, 520);
         this.bossTitle.overflow = cc.Label.Overflow.SHRINK;
-        this.bossHp = makeLabel(cc, this.bossRoot, 'BossHP', 216, 13, HUD.muted, 'center', 0, 480);
+        this.bossDetail = makeLabel(cc, this.bossRoot, 'BossDetail', 226, 11, HUD.muted, 'center', 0, 520);
+        this.bossDetail.overflow = cc.Label.Overflow.SHRINK;
+        this.bossHp = makeLabel(cc, this.bossRoot, 'BossHP', 196, 12, HUD.ink, 'left', -270, 410);
+        this.bossHp.overflow = cc.Label.Overflow.SHRINK;
+        this.bossPhase = makeLabel(cc, this.bossRoot, 'BossPhase', 196, 11, '#a05037', 'right', 258, 105);
         const gaugeNode = new cc.Node('BossGauge');
         gaugeNode.layer = cc.Layers.Enum.UI_2D;
-        gaugeNode.setPosition(0, 176, 0);
+        gaugeNode.setPosition(0, 169, 0);
         this.bossRoot.addChild(gaugeNode);
         this.bossGauge = gaugeNode.addComponent(cc.Graphics);
         this.bossRoot.active = false;
@@ -785,19 +840,22 @@ export class Hud {
         this.bossRoot.active = show;
         if (!show) return;
         const p = Math.max(0, Math.min(1, hp / maxHp));
-        this.bossTitle.string = `${name} · ${detail}`;
-        this.bossHp.string = `${Math.ceil(hp).toLocaleString('zh-CN')} / ${Math.ceil(maxHp).toLocaleString('zh-CN')} HP · ${Math.round(p * 100)}%`;
-        const g = this.bossGauge;
-        gauge(g, this.cc, -240, -8, 480, 16, p, HUD.red);
-        if (segments > 1) {
-            g.strokeColor = new this.cc.Color(255, 237, 204, 235);
-            g.lineWidth = 3;
-            for (let i = 1; i < segments; i++) {
-                const x = -238 + 476 * i / segments;
-                g.moveTo(x, -6);
-                g.lineTo(x, 6);
-            }
-            g.stroke();
+        const [accent, highlight, phaseTint] = bossPalette(name);
+        if (this.bossPanelTheme !== accent) {
+            this.bossPanelTheme = accent;
+            card(this.bossPanel, this.cc, -300, -64, 600, 128, accent);
         }
+        this.bossTitle.string = name;
+        this.bossDetail.string = detail;
+        this.bossHp.string = `${Math.ceil(hp).toLocaleString('zh-CN')} / ${Math.ceil(maxHp).toLocaleString('zh-CN')} HP`;
+        this.bossPhase.string = `${p <= 0.5 ? 'PHASE II' : 'PHASE I'} · ${Math.round(p * 100)}%`;
+        const phaseColor = p <= 0.5 ? phaseTint : accent;
+        const rgb = hexToRgb(phaseColor);
+        this.bossPhase.color = new this.cc.Color(...rgb, 255);
+        if (this.bossTrail == null || p >= this.bossTrail) this.bossTrail = p;
+        else this.bossTrail += (p - this.bossTrail) * 0.075;
+        if (Math.abs(this.bossTrail - p) < 0.003) this.bossTrail = p;
+        drawBossGauge(this.bossGauge, this.cc, p, this.bossTrail,
+            phaseColor, highlight, Math.max(1, segments));
     }
 }
