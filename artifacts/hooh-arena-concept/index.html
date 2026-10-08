@@ -93,7 +93,7 @@
       background: #68aaf1;
       box-shadow: inset 0 0 0 2px #e0bc75;
     }
-    .sky-base, .sky-texture, .cloud-bank, .scene {
+    .sky-base, .clouds, .scene {
       position: absolute;
       inset: 0;
       width: 100%;
@@ -101,18 +101,39 @@
       pointer-events: none;
     }
     .sky-base { z-index: 0; background: linear-gradient(180deg, #5eabfc 0%, #74b7f2 58%, #7ab9ea 100%); }
-    .sky-texture { z-index: 0; object-fit: cover; }
-    .cloud-bank {
-      z-index: 1;
-      --cloud-drift-x: clamp(22px, 5vw, 60px);
-      animation: cloud-bank-drift 10s ease-in-out infinite alternate;
-      will-change: transform;
+    .clouds { z-index: 1; overflow: hidden; }
+    .cloud {
+      position: absolute;
+      left: 0;
+      top: var(--cloud-top);
+      width: var(--cloud-width);
+      height: auto;
+      object-fit: contain;
+      opacity: .88;
+      image-rendering: auto;
+      filter: drop-shadow(0 3px 2px #456b8a32);
+      animation: var(--cloud-motion) var(--cloud-duration) var(--cloud-easing) var(--cloud-delay) infinite alternate;
+      will-change: transform, opacity;
     }
-    .cloud-bank, .scene { object-fit: cover; }
-    .scene { z-index: 2; }
-    @keyframes cloud-bank-drift {
-      from { transform: translate3d(calc(0px - var(--cloud-drift-x)), -5px, 0); }
-      to { transform: translate3d(var(--cloud-drift-x), 5px, 0); }
+    .cloud-1 { left: -8%; --cloud-top: 3%; --cloud-width: 20%; --cloud-duration: 16s; --cloud-delay: -7s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: 2%; }
+    .cloud-2 { left: 86%; --cloud-top: 1%; --cloud-width: 19%; --cloud-duration: 21s; --cloud-delay: -13s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: -10%; }
+    .cloud-3 { left: -9%; --cloud-top: 25%; --cloud-width: 20%; --cloud-duration: 18s; --cloud-delay: -8s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: 2%; }
+    .cloud-4 { left: 86%; --cloud-top: 23%; --cloud-width: 19%; --cloud-duration: 15s; --cloud-delay: -12s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: -10%; }
+    .cloud-5 { left: -9%; --cloud-top: 57%; --cloud-width: 22%; --cloud-duration: 20s; --cloud-delay: -5s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: 0%; }
+    .cloud-6 { left: 84%; --cloud-top: 61%; --cloud-width: 20%; --cloud-duration: 17s; --cloud-delay: -16s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: -8%; }
+    @keyframes cloud-float-right {
+      from { transform: translate3d(-18px, 3px, 0); }
+      to { transform: translate3d(28px, -5px, 0); }
+    }
+    @keyframes cloud-float-left {
+      from { transform: translate3d(18px, -4px, 0); }
+      to { transform: translate3d(-28px, 4px, 0); }
+    }
+    .scene { z-index: 2; object-fit: cover; }
+    .stage.motion-off .cloud {
+      animation: none;
+      opacity: .88;
+      transform: translate3d(var(--cloud-still-x), 0, 0);
     }
     .shade {
       position: absolute;
@@ -170,7 +191,6 @@
     .m7 { --x: 13%; --y: 61%; --size: 5px; --duration: 10s; --delay: -8s; }
     .m8 { --x: 88%; --y: 45%; --size: 5px; --duration: 9s; --delay: -3s; }
     .stage.motion-off .motes, .stage.clean .actor, .stage.clean .shadow, .stage.clean .badge { display: none; }
-    .stage.motion-off .cloud-bank { animation: none; }
     .badge, .hint {
       position: absolute;
       z-index: 5;
@@ -404,7 +424,7 @@
     </header>
     <section class="body">
       <div class="lead">
-        <div><h2>铃之塔顶层 · 云上屋脊</h2><p>塔身和蓝天保持固定，只让原底图里的云块在塔后缓慢飘动；下方飞檐与木构楼身清晰可见。</p></div>
+        <div><h2>铃之塔顶层 · 云上屋脊</h2><p>六朵独立云分别从塔后飘过，各自拥有不同的方向、速度与高度；塔身和战斗平台保持静止。</p></div>
         <div class="controls">
           <button id="encounter" type="button" aria-pressed="true">遭遇构图</button>
           <button id="clean" type="button" aria-pressed="false">纯场地</button>
@@ -416,8 +436,14 @@
       <div class="layout">
         <div id="stage" class="stage">
           <div class="sky-base" aria-hidden="true"></div>
-          <img class="sky-texture" src="assets/hooh-sky-underlay.webp?v=cloud-pixels-v2" alt="" aria-hidden="true">
-          <img class="cloud-bank" src="assets/hooh-cloud-layer.webp?v=cloud-pixels-v2" alt="" aria-hidden="true">
+          <div class="clouds" aria-hidden="true">
+            <img class="cloud cloud-1" src="assets/hooh-cloud-1.png?v=independent-clouds" alt="">
+            <img class="cloud cloud-2" src="assets/hooh-cloud-2.png?v=independent-clouds" alt="">
+            <img class="cloud cloud-3" src="assets/hooh-cloud-3.png?v=independent-clouds" alt="">
+            <img class="cloud cloud-4" src="assets/hooh-cloud-4.png?v=independent-clouds" alt="">
+            <img class="cloud cloud-5" src="assets/hooh-cloud-5.png?v=independent-clouds" alt="">
+            <img class="cloud cloud-6" src="assets/hooh-cloud-6.png?v=independent-clouds" alt="">
+          </div>
           <img class="scene" src="assets/hooh-tower-foreground.webp?v=cloud-pixels-v2" alt="铃之塔顶层外部平台与下方塔身">
           <div class="shade"></div><div class="sunbeam"></div>
           <div class="motes" aria-hidden="true">
@@ -436,7 +462,7 @@
         </div>
         <aside class="side">
           <section class="card"><h3>场地布局</h3><p>战斗平台下方露出格窗立面、承重梁柱和层叠瓦檐；这些塔身结构作为背景，不侵入平台的走位空间。</p></section>
-          <section class="card"><h3>光色方向</h3><p>只移动原底图里的白色云团与蓝灰阴影，蓝天和铃之塔固定；云始终在塔后，不会压住屋脊或角色。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
+          <section class="card"><h3>云层动效</h3><p>六朵单独绘制的像素云分布在塔顶外侧，各自以不同节奏轻轻漂浮；云不会互相拼成一整张移动背景，塔和屋脊保持静止。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
           <section class="card"><h3>战斗可读性</h3><p>开阔的顶层屋脊提供环绕走位空间；下方塔身只承担地标识别，实装时不参与角色走位。</p></section>
           <section class="card"><h3>设计依据</h3><p>借用铃之塔与凤王的城都意象，重做成适配本游戏俯视战斗的原创场景；玩家与凤王用现有游戏素材展示。</p></section>
         </aside>
