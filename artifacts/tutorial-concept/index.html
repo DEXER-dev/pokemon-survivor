@@ -22,9 +22,26 @@
     .bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}.controls{display:flex;align-items:center;gap:8px;color:#c8c2d0;font:10px/1.5 system-ui,sans-serif}.controls span{white-space:nowrap}.controls kbd{padding:3px 5px;border:1px solid #746b83;border-radius:5px;background:#292638;color:#fff2c8;font:10px system-ui,sans-serif}.bottom-actions{display:flex;gap:8px}.nav,.primary{min-height:38px;padding:8px 13px;border:1px solid #736b80;border-radius:9px;background:#28263a;color:#eee8f6;cursor:pointer}.nav:hover{background:#39354c}.primary{border-color:#eed688;background:linear-gradient(#ffe9a0,#e8bd62);box-shadow:0 3px #8e6b36;color:#40331d;font-weight:bold}.primary:hover{filter:brightness(1.05);transform:translateY(-1px)}.primary:active{transform:translateY(2px);box-shadow:0 1px #8e6b36}.nav:focus-visible,.primary:focus-visible,.step:focus-visible,.close:focus-visible{outline:2px solid #fff;outline-offset:2px}
     @media(max-width:720px){body{padding:8px}.shell{border-radius:14px}.top{padding:10px 12px}.brand-icon{width:29px;height:29px}.top h1{font-size:15px}.content{padding:12px}.intro{align-items:flex-start}.intro h2{font-size:20px}.intro p{font-size:11px}.duration{font-size:8px}.guide{grid-template-columns:1fr;min-height:0}.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:7px;border-right:0;border-bottom:1px solid #827894}.step{display:grid;justify-items:center;gap:3px;min-height:52px;margin:0;padding:4px 2px;text-align:center}.step-copy{gap:1px}.step-copy strong{font-size:9px}.step-copy small{display:none}.number{width:23px;height:23px;font-size:10px}.lesson{grid-template-columns:1fr;gap:10px;padding:13px}.lesson-copy{grid-row:1}.lesson h3{margin:5px 0;font-size:18px}.lesson p{font-size:11px;line-height:1.55}.lesson-tip{margin-top:8px;padding:7px 8px;font-size:10px}.illustration{grid-row:2;min-height:150px}.trainer{width:45px;height:58px;bottom:23px}.pokemon{width:59px;height:59px;bottom:25px}.ball{width:33px;height:33px;bottom:37px}.exp-card{padding:8px 10px}.exp-meter{height:7px}.bottom{align-items:stretch;flex-direction:column;margin-top:11px}.controls{justify-content:center;flex-wrap:wrap;gap:5px}.bottom-actions{justify-content:space-between}.nav,.primary{flex:1;min-height:40px;padding:7px 8px;font-size:11px}.mobile-stick{display:block}.key-demo{display:none!important}.lesson[data-step="1"] .mobile-stick{display:block}.lesson[data-step="1"] .illustration{background:radial-gradient(ellipse at 50% 92%,#dcebbe 0,#e8efd9 53%,#edf0df 100%)}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+    /* The lesson is demonstrated over the real running game, not a mock scene. */
+    body{display:block;min-height:100vh;height:100dvh;padding:0;overflow:hidden;background:#101322}
+    #realGame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#171527}
+    .shell{position:fixed;z-index:5;top:14px;right:14px;width:min(495px,calc(100vw - 28px));max-height:calc(100dvh - 28px);overflow:auto;border-color:#a99bc1;background:#1c1a2cf2;backdrop-filter:blur(10px);box-shadow:0 12px 48px #05040dbb,0 0 0 1px #fff2}
+    .top{padding:10px 13px}.content{padding:12px}.intro{margin-bottom:9px}.intro h2{font-size:19px}.intro p{font-size:11px}
+    .guide{grid-template-columns:136px minmax(0,1fr);min-height:0}.steps{padding:8px}.step{min-height:49px;margin-bottom:4px;padding:6px}.number{width:25px;height:25px}.step-copy strong{font-size:11px}.step-copy small{font-size:9px}
+    .lesson{display:block;padding:14px 16px}.lesson h3{font-size:19px}.lesson p{font-size:12px;line-height:1.55}.lesson-tip{margin-top:10px;padding:7px 9px;font-size:10px}.illustration{display:none!important}
+    .bottom{margin-top:10px}.controls{display:none}.nav,.primary{min-height:34px;padding:6px 9px;font-size:11px}
+    .game-label{position:fixed;z-index:2;left:14px;top:14px;padding:8px 11px;border:1px solid #ffffff70;border-radius:9px;background:#171527b8;color:#fff4c9;box-shadow:0 4px 18px #05040d55;font:11px/1.4 system-ui,sans-serif;backdrop-filter:blur(6px)}
+    @media(max-width:720px){
+      .shell{top:auto;right:8px;bottom:8px;left:8px;width:auto;max-height:47dvh;border-radius:14px}
+      .top{padding:8px 10px}.brand-icon{width:27px;height:27px}.top h1{font-size:14px}
+      .content{padding:9px}.intro{display:none}.guide{grid-template-columns:1fr}.steps{grid-template-columns:repeat(4,minmax(0,1fr));padding:5px}.step{min-height:39px}.number{width:21px;height:21px}.lesson{padding:9px 11px}.lesson-kicker{font-size:8px}.lesson h3{font-size:16px;margin:4px 0}.lesson p{font-size:10px;line-height:1.4}.lesson-tip{margin-top:6px;padding:5px 7px;font-size:9px}.bottom{margin-top:7px}.nav,.primary{min-height:33px;font-size:10px}
+      .game-label{left:8px;top:8px;padding:6px 8px;font-size:9px}
+    }
   </style>
 </head>
 <body>
+  <iframe id="realGame" src="../../index.html?mute=1&amp;tutorial-preview=1" title="宝可梦幸存者实机游戏画面" aria-label="真实游戏场景预览"></iframe>
+  <div class="game-label">实机画面 · 教程演示　🔇</div>
   <main class="shell" aria-labelledby="pageTitle">
     <header class="top"><div class="brand"><span class="brand-icon" aria-hidden="true">✦</span><div><div class="eyebrow">POKÉMON SURVIVOR · FIELD GUIDE</div><h1 id="pageTitle">冒险指南</h1></div></div><button class="close" id="close" type="button" aria-label="关闭教程">✕</button></header>
     <section class="content">
@@ -79,6 +96,22 @@
       prev.addEventListener('click', () => select(current - 1));
       next.addEventListener('click', () => current === steps.length ? select(1) : select(current + 1));
       document.getElementById('close').addEventListener('click', () => { window.location.href = '../../index.html'; });
+      // Start the muted embedded game once its real asset-loading screen is ready.
+      // This makes the tutorial visibly correspond to actual gameplay without modifying game state or source.
+      const gameFrame = document.getElementById('realGame');
+      let startAttempts = 0;
+      const startRealGame = window.setInterval(() => {
+        startAttempts += 1;
+        try {
+          const gameDoc = gameFrame.contentDocument;
+          const startButton = gameDoc?.getElementById('startAdventure');
+          if (startButton && !startButton.disabled && !gameDoc.getElementById('titleScreen')?.hidden) {
+            window.clearInterval(startRealGame);
+            startButton.click();
+          }
+        } catch (_) { /* Wait for the embedded same-origin game page to finish loading. */ }
+        if (startAttempts > 120) window.clearInterval(startRealGame);
+      }, 500);
       select(current);
     })();
   </script>
