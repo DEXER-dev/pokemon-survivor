@@ -100,27 +100,39 @@
       height: 100%;
       pointer-events: none;
     }
-    .sky-base { z-index: 0; background: linear-gradient(180deg, #5eabfc 0%, #74b7f2 58%, #7ab9ea 100%); }
+    .sky-base {
+      z-index: 0;
+      background:
+        radial-gradient(ellipse at 4% 18%, #fff2cf62 0, #fff7e921 24%, transparent 60%),
+        radial-gradient(ellipse at 96% 14%, #fff3d954 0, #fff7e91c 27%, transparent 62%),
+        linear-gradient(180deg, #8bcaff 0%, #70b6ee 48%, #85c1e6 100%);
+    }
     .clouds { z-index: 1; overflow: hidden; }
     .cloud {
       position: absolute;
-      left: 0;
+      left: var(--cloud-left, 0);
       top: var(--cloud-top);
       width: var(--cloud-width);
       height: auto;
       object-fit: contain;
-      opacity: .88;
+      opacity: var(--cloud-opacity, .88);
       image-rendering: auto;
       filter: drop-shadow(0 3px 2px #456b8a32);
       animation: var(--cloud-motion) var(--cloud-duration) var(--cloud-easing) var(--cloud-delay) infinite alternate;
       will-change: transform, opacity;
     }
-    .cloud-1 { left: -8%; --cloud-top: 3%; --cloud-width: 20%; --cloud-duration: 16s; --cloud-delay: -7s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: 2%; }
-    .cloud-2 { left: 86%; --cloud-top: 1%; --cloud-width: 19%; --cloud-duration: 21s; --cloud-delay: -13s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: -10%; }
-    .cloud-3 { left: -9%; --cloud-top: 25%; --cloud-width: 20%; --cloud-duration: 18s; --cloud-delay: -8s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: 2%; }
-    .cloud-4 { left: 86%; --cloud-top: 23%; --cloud-width: 19%; --cloud-duration: 15s; --cloud-delay: -12s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: -10%; }
-    .cloud-5 { left: -9%; --cloud-top: 57%; --cloud-width: 22%; --cloud-duration: 20s; --cloud-delay: -5s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: 0%; }
-    .cloud-6 { left: 84%; --cloud-top: 61%; --cloud-width: 20%; --cloud-duration: 17s; --cloud-delay: -16s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: -8%; }
+    .cloud-1 { --cloud-left: -4%; --cloud-top: -6%; --cloud-width: 22%; --cloud-duration: 19s; --cloud-delay: -7s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: 1%; --cloud-opacity: .92; }
+    .cloud-2 { --cloud-left: 84%; --cloud-top: -5%; --cloud-width: 22%; --cloud-duration: 24s; --cloud-delay: -13s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: -9%; --cloud-opacity: .90; }
+    .cloud-3 { --cloud-left: -8%; --cloud-top: 11%; --cloud-width: 20%; --cloud-duration: 17s; --cloud-delay: -8s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: 2%; --cloud-opacity: .90; }
+    .cloud-4 { --cloud-left: 86%; --cloud-top: 13%; --cloud-width: 18%; --cloud-duration: 22s; --cloud-delay: -12s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: -10%; --cloud-opacity: .88; }
+    .cloud-5 { --cloud-left: -6%; --cloud-top: 28%; --cloud-width: 17%; --cloud-duration: 20s; --cloud-delay: -5s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: 1%; --cloud-opacity: .84; }
+    .cloud-6 { --cloud-left: 83%; --cloud-top: 30%; --cloud-width: 20%; --cloud-duration: 16s; --cloud-delay: -16s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: -8%; --cloud-opacity: .90; }
+    .cloud-7 { --cloud-left: -7%; --cloud-top: 44%; --cloud-width: 21%; --cloud-duration: 25s; --cloud-delay: -11s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: 1%; --cloud-opacity: .78; }
+    .cloud-8 { --cloud-left: 85%; --cloud-top: 46%; --cloud-width: 20%; --cloud-duration: 18s; --cloud-delay: -15s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: -9%; --cloud-opacity: .82; }
+    .cloud-9 { --cloud-left: -6%; --cloud-top: 59%; --cloud-width: 19%; --cloud-duration: 21s; --cloud-delay: -10s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: 1%; --cloud-opacity: .86; }
+    .cloud-10 { --cloud-left: 83%; --cloud-top: 60%; --cloud-width: 20%; --cloud-duration: 23s; --cloud-delay: -5s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: -8%; --cloud-opacity: .78; }
+    .cloud-11 { --cloud-left: -4%; --cloud-top: 74%; --cloud-width: 16%; --cloud-duration: 28s; --cloud-delay: -8s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-left; --cloud-still-x: 1%; --cloud-opacity: .72; }
+    .cloud-12 { --cloud-left: 86%; --cloud-top: 76%; --cloud-width: 17%; --cloud-duration: 26s; --cloud-delay: -19s; --cloud-easing: ease-in-out; --cloud-motion: cloud-float-right; --cloud-still-x: -8%; --cloud-opacity: .78; }
     @keyframes cloud-float-right {
       from { transform: translate3d(-18px, 3px, 0); }
       to { transform: translate3d(28px, -5px, 0); }
@@ -132,7 +144,7 @@
     .scene { z-index: 2; object-fit: cover; }
     .stage.motion-off .cloud {
       animation: none;
-      opacity: .88;
+      opacity: var(--cloud-opacity, .88);
       transform: translate3d(var(--cloud-still-x), 0, 0);
     }
     .shade {
@@ -424,7 +436,7 @@
     </header>
     <section class="body">
       <div class="lead">
-        <div><h2>铃之塔顶层 · 云上屋脊</h2><p>六朵独立云分别从塔后飘过，各自拥有不同的方向、速度与高度；塔身和战斗平台保持静止。</p></div>
+        <div><h2>铃之塔顶层 · 云上屋脊</h2><p>十二朵独立云层叠在塔后，亮云与远云交错分布，各自以不同节奏漂浮；塔和平台保持静止。</p></div>
         <div class="controls">
           <button id="encounter" type="button" aria-pressed="true">遭遇构图</button>
           <button id="clean" type="button" aria-pressed="false">纯场地</button>
@@ -443,6 +455,12 @@
             <img class="cloud cloud-4" src="assets/hooh-cloud-4.png?v=independent-clouds" alt="">
             <img class="cloud cloud-5" src="assets/hooh-cloud-5.png?v=independent-clouds" alt="">
             <img class="cloud cloud-6" src="assets/hooh-cloud-6.png?v=independent-clouds" alt="">
+            <img class="cloud cloud-7" src="assets/hooh-cloud-7.png?v=independent-clouds-02" alt="">
+            <img class="cloud cloud-8" src="assets/hooh-cloud-8.png?v=independent-clouds-02" alt="">
+            <img class="cloud cloud-9" src="assets/hooh-cloud-9.png?v=independent-clouds-02" alt="">
+            <img class="cloud cloud-10" src="assets/hooh-cloud-10.png?v=independent-clouds-02" alt="">
+            <img class="cloud cloud-11" src="assets/hooh-cloud-11.png?v=independent-clouds-02" alt="">
+            <img class="cloud cloud-12" src="assets/hooh-cloud-12.png?v=independent-clouds-02" alt="">
           </div>
           <img class="scene" src="assets/hooh-tower-foreground.webp?v=cloud-pixels-v2" alt="铃之塔顶层外部平台与下方塔身">
           <div class="shade"></div><div class="sunbeam"></div>
@@ -462,7 +480,7 @@
         </div>
         <aside class="side">
           <section class="card"><h3>场地布局</h3><p>战斗平台下方露出格窗立面、承重梁柱和层叠瓦檐；这些塔身结构作为背景，不侵入平台的走位空间。</p></section>
-          <section class="card"><h3>云层动效</h3><p>六朵单独绘制的像素云分布在塔顶外侧，各自以不同节奏轻轻漂浮；云不会互相拼成一整张移动背景，塔和屋脊保持静止。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
+          <section class="card"><h3>云海与天光</h3><p>十二朵独立像素云以大小、明暗和速度形成层次，环绕铃之塔缓慢漂浮；晨光从云隙透出，让场景重新有云上圣境的氛围。</p><div class="palette" aria-label="场景配色"><i class="swatch s1"></i><i class="swatch s2"></i><i class="swatch s3"></i><i class="swatch s4"></i><i class="swatch s5"></i></div></section>
           <section class="card"><h3>战斗可读性</h3><p>开阔的顶层屋脊提供环绕走位空间；下方塔身只承担地标识别，实装时不参与角色走位。</p></section>
           <section class="card"><h3>设计依据</h3><p>借用铃之塔与凤王的城都意象，重做成适配本游戏俯视战斗的原创场景；玩家与凤王用现有游戏素材展示。</p></section>
         </aside>
