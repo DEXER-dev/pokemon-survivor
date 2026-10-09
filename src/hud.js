@@ -46,11 +46,11 @@ function legendaryEnergyPalette (name) {
 
 function drawBossGauge (g, cc, progress, trailing, tint, highlight, segments = 1) {
     g.clear();
-    const x = -278, y = -8, width = 556, height = 18;
+    const x = -260, y = -6, width = 520, height = 12;
     g.fillColor = color(cc, '#15273a', 95);
-    g.roundRect(x - 3, y - 3, width + 6, height + 6, 12); g.fill();
+    g.roundRect(x - 2, y - 2, width + 4, height + 4, 8); g.fill();
     g.fillColor = color(cc, '#ced9cc');
-    g.roundRect(x, y, width, height, 9); g.fill();
+    g.roundRect(x, y, width, height, 6); g.fill();
     const innerWidth = width - 4;
     const shown = Math.max(0, Math.min(1, trailing)) * innerWidth;
     const fill = Math.max(0, Math.min(1, progress)) * innerWidth;
@@ -60,9 +60,9 @@ function drawBossGauge (g, cc, progress, trailing, tint, highlight, segments = 1
     }
     if (fill > 0) {
         g.fillColor = color(cc, tint);
-        g.roundRect(x + 2, y + 2, fill, height - 4, Math.min(7, fill / 2)); g.fill();
+        g.roundRect(x + 2, y + 2, fill, height - 4, Math.min(5, fill / 2)); g.fill();
         g.fillColor = color(cc, '#ffffff', 115);
-        g.roundRect(x + 5, y + 3, Math.max(0, fill - 8), 3, 2); g.fill();
+        g.roundRect(x + 5, y + 3, Math.max(0, fill - 8), 2, 1); g.fill();
     }
     // The center marker foreshadows the half-health escalation; party bosses keep their segment ticks.
     g.strokeColor = color(cc, '#fff0b0', 230);
@@ -79,8 +79,8 @@ function drawBossGauge (g, cc, progress, trailing, tint, highlight, segments = 1
         g.stroke();
     }
     g.strokeColor = color(cc, '#20364b');
-    g.lineWidth = 1.7;
-    g.roundRect(x, y, width, height, 9); g.stroke();
+    g.lineWidth = 1.4;
+    g.roundRect(x, y, width, height, 6); g.stroke();
 }
 
 function bossPixel (g, cc, x, y, width, height, tint, alpha = 255) {
@@ -386,25 +386,10 @@ export class Hud {
         this.bossRoot = new cc.Node('BossHealth');
         this.bossRoot.layer = cc.Layers.Enum.UI_2D;
         root.addChild(this.bossRoot);
-        const bossPanelNode = new cc.Node('BossPanel');
-        bossPanelNode.layer = cc.Layers.Enum.UI_2D;
-        bossPanelNode.setPosition(0, 210, 0);
-        this.bossRoot.addChild(bossPanelNode);
-        this.bossPanel = bossPanelNode.addComponent(cc.Graphics);
-        this.bossPanelTheme = '';
         this.bossTrail = null;
         this.bossTrailName = '';
-        this.bossLegendaryLayout = null;
-        this.bossTitle = makeLabel(cc, this.bossRoot, 'BossTitle', 251, 19, HUD.ink, 'center', 0, 520);
-        this.bossTitle.overflow = cc.Label.Overflow.SHRINK;
-        this.bossDetail = makeLabel(cc, this.bossRoot, 'BossDetail', 226, 11, HUD.muted, 'center', 0, 520);
-        this.bossDetail.overflow = cc.Label.Overflow.SHRINK;
-        this.bossHp = makeLabel(cc, this.bossRoot, 'BossHP', 196, 12, HUD.ink, 'left', -270, 410);
-        this.bossHp.overflow = cc.Label.Overflow.SHRINK;
-        this.bossPhase = makeLabel(cc, this.bossRoot, 'BossPhase', 196, 11, '#a05037', 'right', 258, 105);
         const gaugeNode = new cc.Node('BossGauge');
         gaugeNode.layer = cc.Layers.Enum.UI_2D;
-        gaugeNode.setPosition(0, 169, 0);
         this.bossRoot.addChild(gaugeNode);
         this.bossGauge = gaugeNode.addComponent(cc.Graphics);
         this.bossRoot.active = false;
@@ -985,48 +970,17 @@ export class Hud {
         gauge(this.progressGauge, this.cc, -160, -9, 320, 8, kills / Math.max(1, threshold), '#f5cb65');
     }
 
-    setBoss (name, hp, maxHp, detail = 'BOSS · 不可捕捉', segments = 1, verticalOffset = 0) {
+    setBoss (name, hp, maxHp, _detail = '', segments = 1, _verticalOffset = 0) {
         const energyPalette = legendaryEnergyPalette(name);
         const isLegendary = !!energyPalette;
-        this.bossRoot.setPosition(0, isLegendary ? 0 : verticalOffset, 0);
+        // Keep the thin bar below the top-center EXP HUD. The former 600×128 trainer panel
+        // pushed its gauge outside the visible area and buried the fight under unused text.
+        this.bossRoot.setPosition(0, VIEW.H / 2 - 100, 0);
         const show = maxHp > 0;
         this.bossRoot.active = show;
         if (!show) return;
         const p = Math.max(0, Math.min(1, hp / maxHp));
-        const [accent, highlight, phaseTint] = bossPalette(name);
-        this.bossPanel.node.active = !isLegendary;
-        if (this.bossLegendaryLayout !== isLegendary) {
-            this.bossLegendaryLayout = isLegendary;
-            const setLabelLayout = (label, x, y, width, align) => {
-                label.node.setPosition(x, y, 0);
-                label.node.getComponent(this.cc.UITransform).setContentSize(width, Math.round(label.fontSize * 1.6));
-                label.horizontalAlign = align;
-            };
-            const A = this.cc.Label.HorizontalAlign;
-            setLabelLayout(this.bossTitle, isLegendary ? -278 : 0, 251,
-                isLegendary ? 220 : 520, isLegendary ? A.LEFT : A.CENTER);
-            setLabelLayout(this.bossDetail, isLegendary ? -278 : 0, 226,
-                isLegendary ? 340 : 520, isLegendary ? A.LEFT : A.CENTER);
-            setLabelLayout(this.bossHp, isLegendary ? 278 : -270, 251,
-                isLegendary ? 76 : 410, isLegendary ? A.RIGHT : A.LEFT);
-        }
-        this.bossPhase.node.active = !isLegendary;
-        if (!isLegendary && this.bossPanelTheme !== accent) {
-            this.bossPanelTheme = accent;
-            card(this.bossPanel, this.cc, -300, -64, 600, 128, accent);
-        }
-        this.bossTitle.string = name;
-        const titleColor = isLegendary ? energyPalette[3] : HUD.ink;
-        this.bossTitle.color = new this.cc.Color(...hexToRgb(titleColor), 255);
-        this.bossDetail.string = detail;
-        if (isLegendary) {
-            this.bossHp.string = String(Math.round(p * 100)) + '%';
-        } else {
-            this.bossHp.string = `${Math.ceil(hp).toLocaleString('zh-CN')} / ${Math.ceil(maxHp).toLocaleString('zh-CN')} HP`;
-            this.bossPhase.string = `${p <= 0.5 ? 'PHASE II' : 'PHASE I'} · ${Math.round(p * 100)}%`;
-            const phaseColor = p <= 0.5 ? phaseTint : accent;
-            this.bossPhase.color = new this.cc.Color(...hexToRgb(phaseColor), 255);
-        }
+        const [accent, highlight] = bossPalette(name);
         if (this.bossTrailName !== name) {
             this.bossTrailName = name;
             this.bossTrail = p;
@@ -1039,7 +993,7 @@ export class Hud {
                 energyPalette, name.includes('凤王'), Date.now());
         } else {
             drawBossGauge(this.bossGauge, this.cc, p, this.bossTrail,
-                phaseColor, highlight, Math.max(1, segments));
+                accent, highlight, Math.max(1, segments));
         }
     }
 }

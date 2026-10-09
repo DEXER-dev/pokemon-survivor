@@ -2,6 +2,12 @@
 export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-09',
+        category: '战斗 HUD',
+        title: 'BOSS 血条改为顶端紧凑显示',
+        description: '修复训练家 BOSS 血条被挤出画面的问题；移除大信息窗、训练家与队伍名单、阶段文字，只保留一条专属样式血条。',
+    },
+    {
+        date: '2026-10-09',
         category: '神兽 HUD',
         title: '九只神兽改用专属无框能量血条',
         description: '以像素端饰和专属槽内纹样呈现九只神兽特征：凤王羽翼、烈空坐龙纹、盖欧卡鳍形等；凤王半血技能刻度保留。',
