@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>神兽 BOSS 血条 · 三种视觉方案</title>
+  <style>
+    @font-face { font-family:FusionPixel; src:url('../../assets/fonts/fusion-pixel/fusion-pixel-12px-proportional-zh_hans.otf.woff2') format('woff2'); font-display:swap; }
+    :root { --ink:#252b37; --paper:#f6f0df; --line:#d0c6ad; --accent:#e6ab46; --bright:#fff1a0; --deep:#984936; --track:#442f32; --halo:#e6ab4630; --font:FusionPixel,'Microsoft YaHei',sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#e8e4d6; font-family:var(--font); }
+    button,input,select { font:inherit; }
+    .page { width:min(1100px,calc(100% - 28px)); margin:20px auto 42px; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:15px 18px; color:#fff4d8; background:#302b3a; border:2px solid #4d4356; border-radius:12px 12px 4px 4px; box-shadow:0 4px 0 #aaa18e; }
+    .eyebrow { color:#ddc581; font:10px/1.4 system-ui,sans-serif; letter-spacing:.1em; }
+    h1 { margin:2px 0 0; font-size:20px; }
+    .tag { padding:6px 9px; border:1px solid #b99b60; border-radius:5px; color:#f9e7b1; font-size:10px; white-space:nowrap; }
+    .intro { padding:17px 3px 13px; }
+    .intro h2 { margin:0 0 5px; font-size:17px; }
+    .intro p { margin:0; color:#697277; font:12px/1.6 system-ui,sans-serif; }
+    .controls { display:flex; flex-wrap:wrap; align-items:center; gap:14px 24px; margin:5px 0 15px; padding:11px 13px; border:1px solid var(--line); border-radius:7px; background:#fff9eb; box-shadow:0 2px 0 #d1c6b1; }
+    .control { display:flex; align-items:center; gap:8px; color:#667176; font:11px system-ui,sans-serif; }
+    .control strong { color:var(--ink); font-family:var(--font); }
+    select { min-width:108px; padding:5px 8px; border:1px solid #c7b995; border-radius:4px; color:#3d4650; background:#fffdf6; }
+    input[type=range] { width:min(300px,38vw); accent-color:#b96c48; }
+    .pct { min-width:38px; color:var(--deep); font:700 12px system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+    .options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:12px; }
+    .option { min-width:0; padding:13px 13px 12px; border:1px solid #c9c0ad; border-radius:7px; background:#fbf7ec; box-shadow:0 3px 0 #bdb29c; }
+    .option-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding-bottom:8px; border-bottom:1px solid #e3dac6; }
+    .option h3 { margin:0; font-size:14px; }
+    .number { color:#a5987c; font:10px system-ui,sans-serif; }
+    .blurb { min-height:34px; margin:8px 0 5px; color:#6c7576; font:10px/1.5 system-ui,sans-serif; }
+    .sample { min-height:106px; display:flex; align-items:center; padding:14px 5px; }
+    canvas { display:block; width:100%; height:58px; image-rendering:pixelated; }
+    .pixel-sample { background:#e8ebdc; border-block:1px solid #d6ddc7; }
+    .energy-sample { background:#2e3340; border-radius:4px; }
+    .energy-sample canvas { height:44px; }
+    .crest-sample { gap:9px; background:#edf0e3; border-block:1px solid #d6ddc7; }
+    .crest { width:48px; height:48px; flex:none; display:grid; place-items:center; border:2px solid var(--deep); background:#fff6da; box-shadow:0 2px 0 #5a3c36; image-rendering:pixelated; }
+    .crest-sprite { width:40px; height:40px; display:block; background-position:left top; background-repeat:no-repeat; background-size:80px 40px; image-rendering:pixelated; }
+    .crest-data { min-width:0; flex:1; }
+    .crest-top { display:flex; justify-content:space-between; align-items:baseline; gap:5px; margin:0 1px 4px; }
+    .crest-name { font-size:11px; white-space:nowrap; }
+    .crest-title { color:#74807e; font:9px system-ui,sans-serif; }
+    .crest-pct { color:var(--deep); font:700 10px system-ui,sans-serif; }
+    .crest-data canvas { height:36px; }
+    .label { display:flex; align-items:center; gap:7px; margin-top:11px; color:#4d5b60; font:10px/1.4 system-ui,sans-serif; }
+    .swatch { width:9px; height:9px; background:var(--accent); border:1px solid var(--deep); }
+    .note { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; }
+    .note article { padding:12px 13px; border:1px solid #d3c8b2; border-radius:6px; background:#f7f1e3; }
+    .note h4 { margin:0 0 4px; font-size:11px; }
+    .note p { margin:0; color:#677276; font:10px/1.5 system-ui,sans-serif; }
+    .footer { margin-top:13px; color:#81847d; text-align:right; font:9px system-ui,sans-serif; }
+    @media (max-width:820px) { .options { grid-template-columns:1fr; } .option { display:grid; grid-template-columns:minmax(170px,.8fr) minmax(0,1.2fr); column-gap:14px; align-items:center; } .option-head,.blurb { grid-column:1; } .sample { grid-column:2; grid-row:1/3; } .label { grid-column:1/-1; margin-top:3px; } }
+    @media (max-width:520px) { .page { width:calc(100% - 18px); margin:9px auto 25px; } .top { padding:10px; gap:8px; } h1 { font-size:15px; }.tag { white-space:normal; max-width:110px; text-align:center; font-size:8px; } .intro h2 { font-size:15px; }.intro p { font-size:11px; } .controls { gap:9px 14px; padding:9px; } .control { flex-wrap:wrap; } input[type=range] { width:110px; } .options { gap:9px; } .option { grid-template-columns:1fr; padding:10px; } .option-head,.blurb,.sample,.label { grid-column:1; grid-row:auto; } .blurb { min-height:0; } .sample { min-height:88px; padding:9px 5px; } .note { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="top"><div><div class="eyebrow">LEGENDARY BOSS · ART DIRECTION STUDY</div><h1>神兽 BOSS 血条 · 三种视觉方案</h1></div><div class="tag">像素绘制 / 无 SVG</div></header>
+    <section class="intro"><h2>把装饰从外框移回像素本身</h2><p>三种完全不同的表达方式并排对比：块状像素框、无框能量芯、精灵徽记与短铭牌。调节首领和血量，比较它们在战斗画面里的辨识度。</p></section>
+    <section class="controls" aria-label="预览控制">
+      <label class="control"><strong>首领</strong><select id="boss"></select></label>
+      <label class="control"><strong>生命值</strong><input id="hp" type="range" min="0" max="100" value="68"><span class="pct" id="hpText">68%</span></label>
+    </section>
+    <section class="options" aria-label="血条视觉方案">
+      <article class="option">
+        <div class="option-head"><h3>像素铸框</h3><span class="number">方案 01</span></div>
+        <p class="blurb">用手绘像素块做台阶边缘和分段填充，靠像素形状传递重量感。</p>
+        <div class="sample pixel-sample"><canvas id="pixelBar" aria-label="像素铸框血条"></canvas></div>
+        <div class="label"><i class="swatch"></i><span id="pixelLabel">Ho-Oh · 68% HP</span></div>
+      </article>
+      <article class="option">
+        <div class="option-head"><h3>无框能量芯</h3><span class="number">方案 02</span></div>
+        <p class="blurb">去掉面板与大外框，只保留一条核心能量和清楚的剩余长度。</p>
+        <div class="sample energy-sample"><canvas id="energyBar" aria-label="无框能量血条"></canvas></div>
+        <div class="label"><i class="swatch"></i><span id="energyLabel">Ho-Oh · 68% HP</span></div>
+      </article>
+      <article class="option">
+        <div class="option-head"><h3>精灵徽记槽</h3><span class="number">方案 03</span></div>
+        <p class="blurb">让首领像素头像成为血条起点；短铭牌给名称，长条专注显示生命。</p>
+        <div class="sample crest-sample"><div class="crest"><span class="crest-sprite" id="bossIcon" role="img" aria-label="凤王像素头像"></span></div><div class="crest-data"><div class="crest-top"><strong class="crest-name" id="bossName">凤王</strong><span class="crest-title" id="bossTitle">虹色之翼</span><span class="crest-pct" id="crestPct">68%</span></div><canvas id="crestBar" aria-label="精灵徽记血条"></canvas></div></div>
+        <div class="label"><i class="swatch"></i><span id="crestLabel">精灵头像 + 无冗余框体</span></div>
+      </article>
+    </section>
+    <section class="note">
+      <article><h4>视觉目标</h4><p>条形轮廓只承担读数；首领特征通过可辨认的像素头像、材质纹样和配色表达，不堆叠尖刺、光环或大面板。</p></article>
+      <article><h4>操作测试</h4><p>滑动血量观察三种样式同步变化。凤王在 50% 刻度进入特殊状态；其它首领不显示虚构的阶段提示。</p></article>
+    </section>
+    <div class="footer">概念预览 · 三种方向都使用 Canvas 像素块绘制，不含 SVG，也未接入正式战斗 HUD</div>
+  </main>
+  <script>
+    const bosses = [
+      {id:'mewtwo',name:'超梦',title:'超能次元',file:'MEWTWO',accent:'#d896fa',bright:'#f0ceff',deep:'#72439a',track:'#372843',mark:'#fff4dc'},
+      {id:'lugia',name:'洛奇亚',title:'海神气旋',file:'LUGIA',accent:'#67cce5',bright:'#c6f8ff',deep:'#286c83',track:'#203945',mark:'#f4ffff'},
+      {id:'hooh',name:'凤王',title:'虹色之翼',file:'HOOH',accent:'#e6ab46',bright:'#fff1a0',deep:'#984936',track:'#442f32',mark:'#fff5bf'},
+      {id:'rayquaza',name:'烈空坐',title:'天空之柱',file:'RAYQUAZA',accent:'#57d495',bright:'#b2f8a1',deep:'#236956',track:'#1e3735',mark:'#edffd3'},
+      {id:'kyogre',name:'盖欧卡',title:'海之霸主',file:'KYOGRE',accent:'#53b6ec',bright:'#b8eeff',deep:'#245a8f',track:'#1f344c',mark:'#effbff'},
+      {id:'groudon',name:'固拉多',title:'大地熔炉',file:'GROUDON',accent:'#e77c4b',bright:'#ffc17e',deep:'#873f2e',track:'#402a2a',mark:'#fff0cc'},
+      {id:'dialga',name:'帝牙卢卡',title:'时间之龙',file:'DIALGA',accent:'#73c9d8',bright:'#d5fffb',deep:'#315b82',track:'#243949',mark:'#f1ffff'},
+      {id:'palkia',name:'帕路奇亚',title:'空间裂隙',file:'PALKIA',accent:'#d38ce2',bright:'#ffd0f0',deep:'#714a9f',track:'#342b4c',mark:'#fff3ff'},
+      {id:'arceus',name:'阿尔宙斯',title:'创世之环',file:'ARCEUS',accent:'#e2c568',bright:'#fff3b5',deep:'#846226',track:'#463d2b',mark:'#fffbe1'},
+    ];
+    const bossSelect = document.getElementById('boss');
+    const hpInput = document.getElementById('hp');
+    let activeBoss = bosses[2];
+    let hp = 68;
+    for (const boss of bosses) { const option=document.createElement('option'); option.value=boss.id; option.textContent=boss.name; bossSelect.append(option); }
+    bossSelect.value=activeBoss.id;
+    const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+    function setupCanvas(canvas) {
+      const rect=canvas.getBoundingClientRect();
+      const scale=2;
+      const width=Math.max(1,Math.floor(rect.width));
+      const height=Math.max(1,Math.floor(rect.height));
+      if(canvas.width!==width*scale||canvas.height!==height*scale){canvas.width=width*scale;canvas.height=height*scale;}
+      const ctx=canvas.getContext('2d'); ctx.setTransform(scale,0,0,scale,0,0); ctx.imageSmoothingEnabled=false;
+      return {ctx,w:width,h:height};
+    }
+    function pixelRect(ctx,x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(Math.round(x),Math.round(y),Math.max(0,Math.round(w)),Math.max(0,Math.round(h)));}
+    function drawPixelFrame(canvas,boss,value){
+      const {ctx,w,h}=setupCanvas(canvas); ctx.clearRect(0,0,w,h);
+      const outerX=4, outerY=9, outerW=w-8, outerH=40;
+      pixelRect(ctx,outerX+6,outerY,outerW-12,outerH,boss.deep);
+      pixelRect(ctx,outerX+2,outerY+4,outerW-4,outerH-8,boss.deep);
+      pixelRect(ctx,outerX,outerY+10,outerW,outerH-20,boss.deep);
+      pixelRect(ctx,outerX+7,outerY+3,outerW-14,3,boss.bright);
+      pixelRect(ctx,outerX+3,outerY+8,outerW-6,3,boss.accent);
+      pixelRect(ctx,outerX+3,outerY+29,outerW-6,3,'#171c29aa');
+      pixelRect(ctx,outerX+7,outerY+34,outerW-14,3,'#201e28');
+      const x=outerX+12,y=outerY+13,tw=outerW-24,th=15;
+      pixelRect(ctx,x,y,tw,th,boss.track);
+      const fw=Math.round(tw*value/100);
+      pixelRect(ctx,x,y,fw,th,boss.accent);
+      pixelRect(ctx,x,y,fw,4,boss.bright);
+      pixelRect(ctx,x,y+th-3,fw,3,boss.deep);
+      for(let sx=x+24;sx<x+fw;sx+=24) pixelRect(ctx,sx,y+2,2,th-4,boss.deep+'99');
+      if(boss.id==='hooh') drawDiamond(ctx,x+Math.round(tw*.5),y+th/2,boss.mark,boss.deep);
+      pixelRect(ctx,outerX+10,outerY+6,4,4,boss.mark);
+      pixelRect(ctx,outerX+outerW-14,outerY+6,4,4,boss.mark);
+    }
+    function drawDiamond(ctx,cx,cy,light,dark){pixelRect(ctx,cx-2,cy-6,4,4,dark);pixelRect(ctx,cx-4,cy-2,8,4,light);pixelRect(ctx,cx-2,cy+2,4,4,dark);pixelRect(ctx,cx-1,cy-1,2,2,'#fff');}
+    function drawEnergy(canvas,boss,value,time){
+      const {ctx,w,h}=setupCanvas(canvas); ctx.clearRect(0,0,w,h);
+      const x=12, y=Math.round(h/2), lineW=w-24, filled=lineW*value/100;
+      ctx.lineCap='round'; ctx.strokeStyle='#ffffff20'; ctx.lineWidth=13; ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+lineW,y);ctx.stroke();
+      ctx.strokeStyle=boss.track;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+lineW,y);ctx.stroke();
+      if(filled>0){ctx.shadowColor=boss.accent;ctx.shadowBlur=9;ctx.strokeStyle=boss.accent;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+filled,y);ctx.stroke();ctx.shadowBlur=0;
+        ctx.strokeStyle=boss.bright;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,y-1);ctx.lineTo(x+filled,y-1);ctx.stroke();
+        const spark=x+((time/1700)%1)*filled;ctx.fillStyle=boss.mark;ctx.shadowColor=boss.bright;ctx.shadowBlur=8;ctx.fillRect(Math.round(spark)-2,y-3,4,6);ctx.shadowBlur=0;
+      }
+      if(boss.id==='hooh'){const markX=x+lineW*.5;ctx.strokeStyle=boss.mark;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(markX,y-12);ctx.lineTo(markX,y+12);ctx.stroke();drawDiamond(ctx,Math.round(markX),y,boss.mark,boss.deep);}
+    }
+    function drawCrestBar(canvas,boss,value){
+      const {ctx,w,h}=setupCanvas(canvas);ctx.clearRect(0,0,w,h);
+      const x=3,y=Math.round(h/2)-6,tw=w-6,th=12;
+      pixelRect(ctx,x,y+2,tw,th-4,boss.deep);
+      pixelRect(ctx,x+3,y,tw-6,th,boss.deep);
+      pixelRect(ctx,x+6,y+2,tw-12,th-4,boss.track);
+      const ix=x+7, iw=tw-14, fw=Math.round(iw*value/100);
+      pixelRect(ctx,ix,y+3,fw,th-6,boss.accent);
+      pixelRect(ctx,ix,y+3,fw,2,boss.bright);
+      pixelRect(ctx,ix,y+th-4,fw,1,boss.deep);
+      for(let sx=ix+18;sx<ix+fw;sx+=18) pixelRect(ctx,sx,y+3,1,th-6,boss.deep+'99');
+      if(boss.id==='hooh') drawDiamond(ctx,ix+Math.round(iw*.5),y+th/2,boss.mark,boss.deep);
+      pixelRect(ctx,x+1,y+th+4,tw-2,1,boss.accent+'99');
+    }
+    function renderStatic(){
+      document.documentElement.style.setProperty('--accent',activeBoss.accent);
+      document.documentElement.style.setProperty('--bright',activeBoss.bright);
+      document.documentElement.style.setProperty('--deep',activeBoss.deep);
+      document.documentElement.style.setProperty('--track',activeBoss.track);
+      document.documentElement.style.setProperty('--halo',activeBoss.accent+'30');
+      document.getElementById('bossIcon').style.backgroundImage=`url('../../assets/icons/${activeBoss.file}.png')`;
+      document.getElementById('bossIcon').setAttribute('aria-label',`${activeBoss.name}像素头像`);
+      document.getElementById('bossName').textContent=activeBoss.name;
+      document.getElementById('bossTitle').textContent=activeBoss.title;
+      document.getElementById('hpText').textContent=`${hp}%`;
+      document.getElementById('crestPct').textContent=`${hp}%`;
+      for(const id of ['pixelLabel','energyLabel']) document.getElementById(id).textContent=`${activeBoss.name} · ${hp}% HP`;
+      drawPixelFrame(document.getElementById('pixelBar'),activeBoss,hp);
+      drawCrestBar(document.getElementById('crestBar'),activeBoss,hp);
+    }
+    function animate(time){drawEnergy(document.getElementById('energyBar'),activeBoss,hp,time);requestAnimationFrame(animate);}
+    function update(){renderStatic();drawEnergy(document.getElementById('energyBar'),activeBoss,hp,performance.now());}
+    bossSelect.addEventListener('change',()=>{activeBoss=bosses.find(b=>b.id===bossSelect.value)||bosses[2];update();});
+    hpInput.addEventListener('input',()=>{hp=clamp(Number(hpInput.value),0,100);update();});
+    new ResizeObserver(()=>update()).observe(document.querySelector('.options'));
+    update();requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
