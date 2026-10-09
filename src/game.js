@@ -4040,14 +4040,6 @@ export function createGame (cc) {
                                 this.pal.get(COL.gold, ready ? 230 : 175));
                         }
                     }
-                    // Keep a local range readout above the boss in addition to the dedicated HUD bar;
-                    // the screen bar tracks exact HP while this one keeps the target tied to its body.
-                    const f = Math.max(0, e.hp[i] / e.maxhp[i]);
-                    const bw = e.r[i] * 2.4;
-                    const by = bossVisualY + e.r[i] + 20;
-                    b.draw('square', e.x[i], by, bw / 48, 10 / 48, 0, this.pal.get(COL.ink, 205));
-                    b.draw('square', e.x[i] - bw * (1 - f) / 2, by, bw * f / 48, 6.5 / 48, 0,
-                        this.pal.get(COL.gold, 255));
                     if (e.bph[i] === 1 && !e.legendaryReady[i] && !e.wildBossReady[i]) {
                         // 蓄力: one ring collapsing onto the body over exactly `BOSS.windup`, i.e. the
                         // dodge window drawn as an object. It is gold so it reads with the 晋升 glow family

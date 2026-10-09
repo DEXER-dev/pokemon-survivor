@@ -4,7 +4,7 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
         date: '2026-10-09',
         category: '战斗 HUD',
         title: 'BOSS 血条改为顶端紧凑显示',
-        description: '修复训练家 BOSS 血条被挤出画面的问题；移除大信息窗、训练家与队伍名单、阶段文字，只保留一条专属样式血条。',
+        description: '修复训练家 BOSS 血条被挤出画面的问题；移除大信息窗、训练家与队伍名单、阶段文字和精灵头顶重复血条，只保留一条专属样式血条。',
     },
     {
         date: '2026-10-09',
