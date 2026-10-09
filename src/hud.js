@@ -18,11 +18,30 @@ const BOSS_ACCENTS = Object.freeze([
     ['超梦', '#a77de0', '#ead7ff', '#f39bd4'], ['洛奇亚', '#4bbdd5', '#d7f8ff', '#76b7ff'],
     ['凤王', '#e99744', '#fff0ad', '#ff775d'], ['固拉多', '#e96355', '#ffd2a1', '#f4b15c'],
     ['盖欧卡', '#428de0', '#c3e4ff', '#60dbe2'], ['阿尔宙斯', '#c9a844', '#fff0b0', '#edda7d'],
+    ['帝牙卢卡', '#73c9d8', '#d5fffb', '#8bd9ee'], ['帕路奇亚', '#d38ce2', '#ffd0f0', '#f0a9e7'],
+]);
+
+const LEGENDARY_ENERGY_PALETTES = Object.freeze([
+    ['超梦', '#d896fa', '#f0ceff', '#72439a', '#372843', '#fff4dc'],
+    ['洛奇亚', '#67cce5', '#c6f8ff', '#286c83', '#203945', '#f4ffff'],
+    ['凤王', '#e6ab46', '#fff1a0', '#984936', '#442f32', '#fff5bf'],
+    ['烈空坐', '#57d495', '#b2f8a1', '#236956', '#1e3735', '#edffd3'],
+    ['裂空座', '#57d495', '#b2f8a1', '#236956', '#1e3735', '#edffd3'],
+    ['盖欧卡', '#53b6ec', '#b8eeff', '#245a8f', '#1f344c', '#effbff'],
+    ['固拉多', '#e77c4b', '#ffc17e', '#873f2e', '#402a2a', '#fff0cc'],
+    ['帝牙卢卡', '#73c9d8', '#d5fffb', '#315b82', '#243949', '#f1ffff'],
+    ['帕路奇亚', '#d38ce2', '#ffd0f0', '#714a9f', '#342b4c', '#fff3ff'],
+    ['阿尔宙斯', '#e2c568', '#fff3b5', '#846226', '#463d2b', '#fffbe1'],
 ]);
 
 function bossPalette (name) {
     const match = BOSS_ACCENTS.find(([key]) => name.includes(key));
     return match ? match.slice(1) : [HUD.red, '#ffe2c5', '#f5cb65'];
+}
+
+function legendaryEnergyPalette (name) {
+    if (name.includes('野生强敌')) return null;
+    return LEGENDARY_ENERGY_PALETTES.find(([key]) => name.includes(key)) || null;
 }
 
 function drawBossGauge (g, cc, progress, trailing, tint, highlight, segments = 1) {
@@ -62,6 +81,51 @@ function drawBossGauge (g, cc, progress, trailing, tint, highlight, segments = 1
     g.strokeColor = color(cc, '#20364b');
     g.lineWidth = 1.7;
     g.roundRect(x, y, width, height, 9); g.stroke();
+}
+
+function drawBossEnergy (g, cc, progress, trailing, palette, isHoOh, time) {
+    const [, accent, highlight, deep, track, mark] = palette;
+    const x = -278, y = 0, width = 556;
+    const fillWidth = width * Math.max(0, Math.min(1, progress));
+    const trailWidth = width * Math.max(0, Math.min(1, trailing));
+    const pulse = 0.68 + Math.sin(time / 320) * 0.12;
+    g.clear();
+
+    // A slim dark core and a soft, boss-colored bloom keep the line legible without a panel.
+    g.fillColor = color(cc, '#ffffff', 22);
+    g.roundRect(x - 2, y - 7, width + 4, 14, 7); g.fill();
+    g.fillColor = color(cc, track, 235);
+    g.roundRect(x, y - 3, width, 6, 3); g.fill();
+    g.fillColor = color(cc, deep, 150);
+    g.roundRect(x + 1, y - 1, width - 2, 2, 1); g.fill();
+
+    if (trailWidth > fillWidth) {
+        g.fillColor = color(cc, accent, 92);
+        g.roundRect(x, y - 3, trailWidth, 6, 3); g.fill();
+    }
+    if (fillWidth > 0) {
+        g.fillColor = color(cc, accent, Math.round(52 + pulse * 30));
+        g.roundRect(x - 1, y - 8, fillWidth + 2, 16, 8); g.fill();
+        g.fillColor = color(cc, accent);
+        g.roundRect(x, y - 3, fillWidth, 6, 3); g.fill();
+        g.fillColor = color(cc, highlight, 235);
+        g.roundRect(x + 1, y - 1, Math.max(0, fillWidth - 2), 2, 1); g.fill();
+
+        // A small traveling glint makes the living energy line read as active, not a static rule.
+        const sparkX = x + ((time / 1750) % 1) * fillWidth;
+        g.fillColor = color(cc, mark);
+        g.moveTo(sparkX, y + 5); g.lineTo(sparkX + 3, y); g.lineTo(sparkX, y - 5);
+        g.lineTo(sparkX - 3, y); g.close(); g.fill();
+    }
+
+    if (isHoOh) {
+        const markerX = x + width * 0.5;
+        g.fillColor = color(cc, mark, 225);
+        g.roundRect(markerX - 1, y - 11, 2, 22, 1); g.fill();
+        g.fillColor = color(cc, highlight);
+        g.moveTo(markerX, y + 5); g.lineTo(markerX + 4, y); g.lineTo(markerX, y - 5);
+        g.lineTo(markerX - 4, y); g.close(); g.fill();
+    }
 }
 
 export function makeLabel (cc, parent, name, y, size, hex, align, x = 0, width = VIEW.W - 36) {
@@ -245,6 +309,8 @@ export class Hud {
         this.bossPanel = bossPanelNode.addComponent(cc.Graphics);
         this.bossPanelTheme = '';
         this.bossTrail = null;
+        this.bossTrailName = '';
+        this.bossLegendaryLayout = null;
         this.bossTitle = makeLabel(cc, this.bossRoot, 'BossTitle', 251, 19, HUD.ink, 'center', 0, 520);
         this.bossTitle.overflow = cc.Label.Overflow.SHRINK;
         this.bossDetail = makeLabel(cc, this.bossRoot, 'BossDetail', 226, 11, HUD.muted, 'center', 0, 520);
@@ -836,27 +902,58 @@ export class Hud {
     }
 
     setBoss (name, hp, maxHp, detail = 'BOSS · 不可捕捉', segments = 1, verticalOffset = 0) {
-        this.bossRoot.setPosition(0, verticalOffset, 0);
+        const energyPalette = legendaryEnergyPalette(name);
+        const isLegendary = !!energyPalette;
+        this.bossRoot.setPosition(0, isLegendary ? 0 : verticalOffset, 0);
         const show = maxHp > 0;
         this.bossRoot.active = show;
         if (!show) return;
         const p = Math.max(0, Math.min(1, hp / maxHp));
         const [accent, highlight, phaseTint] = bossPalette(name);
-        if (this.bossPanelTheme !== accent) {
+        this.bossPanel.node.active = !isLegendary;
+        if (this.bossLegendaryLayout !== isLegendary) {
+            this.bossLegendaryLayout = isLegendary;
+            const setLabelLayout = (label, x, y, width, align) => {
+                label.node.setPosition(x, y, 0);
+                label.node.getComponent(this.cc.UITransform).setContentSize(width, Math.round(label.fontSize * 1.6));
+                label.horizontalAlign = align;
+            };
+            const A = this.cc.Label.HorizontalAlign;
+            setLabelLayout(this.bossTitle, isLegendary ? -278 : 0, 251,
+                isLegendary ? 220 : 520, isLegendary ? A.LEFT : A.CENTER);
+            setLabelLayout(this.bossDetail, isLegendary ? -278 : 0, 226,
+                isLegendary ? 240 : 520, isLegendary ? A.LEFT : A.CENTER);
+            setLabelLayout(this.bossHp, isLegendary ? -278 : -270, 196,
+                isLegendary ? 240 : 410, A.LEFT);
+        }
+        if (!isLegendary && this.bossPanelTheme !== accent) {
             this.bossPanelTheme = accent;
             card(this.bossPanel, this.cc, -300, -64, 600, 128, accent);
         }
         this.bossTitle.string = name;
+        const titleColor = isLegendary ? energyPalette[3] : HUD.ink;
+        this.bossTitle.color = new this.cc.Color(...hexToRgb(titleColor), 255);
         this.bossDetail.string = detail;
         this.bossHp.string = `${Math.ceil(hp).toLocaleString('zh-CN')} / ${Math.ceil(maxHp).toLocaleString('zh-CN')} HP`;
         this.bossPhase.string = `${p <= 0.5 ? 'PHASE II' : 'PHASE I'} · ${Math.round(p * 100)}%`;
-        const phaseColor = p <= 0.5 ? phaseTint : accent;
+        const phaseColor = isLegendary
+            ? (p <= 0.5 ? energyPalette[5] : energyPalette[1])
+            : (p <= 0.5 ? phaseTint : accent);
         const rgb = hexToRgb(phaseColor);
         this.bossPhase.color = new this.cc.Color(...rgb, 255);
+        if (this.bossTrailName !== name) {
+            this.bossTrailName = name;
+            this.bossTrail = p;
+        }
         if (this.bossTrail == null || p >= this.bossTrail) this.bossTrail = p;
         else this.bossTrail += (p - this.bossTrail) * 0.075;
         if (Math.abs(this.bossTrail - p) < 0.003) this.bossTrail = p;
-        drawBossGauge(this.bossGauge, this.cc, p, this.bossTrail,
-            phaseColor, highlight, Math.max(1, segments));
+        if (isLegendary) {
+            drawBossEnergy(this.bossGauge, this.cc, p, this.bossTrail,
+                energyPalette, name.includes('凤王'), Date.now());
+        } else {
+            drawBossGauge(this.bossGauge, this.cc, p, this.bossTrail,
+                phaseColor, highlight, Math.max(1, segments));
+        }
     }
 }
