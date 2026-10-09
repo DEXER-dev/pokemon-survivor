@@ -379,6 +379,92 @@
       .hud-foot { font-size:8px; }
     }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition-duration:.01ms!important; animation-duration:.01ms!important; } }
+
+    /* Clean gauge pass: keep the species identity in the portrait and color, not oversized trim. */
+    .hud {
+      width:min(640px,calc(100% - 36px));
+      grid-template-columns:30px minmax(68px,auto) minmax(0,1fr) 40px;
+      gap:8px;
+      margin-top:18px;
+      padding:2px 5px;
+    }
+    .hud::before { display:none; }
+    .portrait {
+      width:28px; height:28px; overflow:hidden;
+      border:1px solid var(--accent); border-radius:50%; clip-path:none!important;
+      background:#fffaf0; box-shadow:0 0 0 2px #fff9;
+    }
+    .avatar-sprite { width:24px; height:24px; background-size:48px 24px; }
+    .theme-lugia .portrait { transform:none; }
+    .boss-copy { padding:0; }
+    .boss-line { gap:2px; }
+    .boss-name { font-size:12px; }
+    .boss-epithet { color:#77817e; font-size:8px; }
+    .hp-readout { min-width:0; padding-left:6px; border-left:1px solid var(--accent); }
+    .hp-percent { font-size:13px; }
+    .bar-row { min-height:20px; height:20px; margin:0; padding:0; }
+    .bar-ornament { display:none!important; }
+    .hp-track {
+      height:16px; border:1px solid var(--accent); border-radius:4px;
+      clip-path:none!important;
+      background:linear-gradient(180deg,color-mix(in srgb,var(--deep) 70%,#303840),var(--deep));
+      box-shadow:0 0 0 1px var(--halo),inset 0 1px 0 #ffffff35,inset 0 -1px 0 #1118;
+    }
+    .hp-fill {
+      inset:1px auto 1px 1px; border-radius:2px;
+      background-image:linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent));
+      box-shadow:none;
+    }
+    .hp-fill::before { opacity:.32!important; animation:none!important; background-size:auto!important; }
+    .hp-fill::after { width:2px; background:#fff8d9aa; box-shadow:none; }
+    .damage-trail { opacity:.42; box-shadow:none; }
+    .impact-flash { background:linear-gradient(90deg,transparent,#fff9 48% 52%,transparent); }
+    .hud.critical .hp-track { box-shadow:0 0 0 1px #df493d66,inset 0 1px 2px #151d25aa; }
+    .theme-mewtwo .hp-track { border-radius:2px; }
+    .theme-mewtwo .hp-fill::before { background:radial-gradient(circle,#fffbdc 0 1px,transparent 1.5px),repeating-linear-gradient(135deg,transparent 0 8px,#fff7 8px 9px,transparent 9px 16px); background-size:13px 10px,auto!important; }
+    .theme-lugia .hp-track,.theme-kyogre .hp-track,.theme-arceus .hp-track { border-radius:999px; }
+    .theme-lugia .hp-fill::before { background:repeating-linear-gradient(180deg,transparent 0 4px,#efffffaa 4px 5px,transparent 5px 9px); }
+    .theme-kyogre .hp-fill::before { background:repeating-linear-gradient(180deg,transparent 0 5px,#e6faffaa 5px 6px,transparent 6px 10px); }
+    .theme-hooh .hp-track { border-color:#a54c32; border-radius:5px; }
+    .theme-hooh .hp-fill::before { background:linear-gradient(110deg,transparent 0 38%,#fffbdcaa 39% 43%,transparent 44% 100%),linear-gradient(70deg,transparent 0 55%,#fff1b277 56% 59%,transparent 60% 100%); background-size:24px 100%,24px 100%!important; }
+    .theme-rayquaza .hp-track,.theme-dialga .hp-track { border-radius:2px; }
+    .theme-rayquaza .hp-fill::before { background:repeating-linear-gradient(90deg,transparent 0 13px,#174f4366 13px 14px,transparent 14px 16px),linear-gradient(180deg,#efffc455,transparent 50%,#174f4355); }
+    .theme-groudon .hp-track { border-radius:2px; }
+    .theme-groudon .hp-fill::before { background:repeating-linear-gradient(145deg,transparent 0 14px,#6b332688 14px 15px,transparent 15px 28px),repeating-linear-gradient(35deg,transparent 0 21px,#ffe0a244 21px 22px,transparent 22px 42px); }
+    .theme-dialga .hp-fill::before { background:repeating-linear-gradient(90deg,transparent 0 17px,#efffffb5 17px 18px,transparent 18px 21px),linear-gradient(180deg,#f4ffff99 0 2px,transparent 2px calc(100% - 2px),#123b4a66 calc(100% - 2px)); }
+    .theme-palkia .hp-track { border-radius:5px; }
+    .theme-palkia .hp-fill::before { background:repeating-linear-gradient(135deg,transparent 0 9px,#fff9 9px 10px,transparent 10px 19px),linear-gradient(45deg,transparent 47%,#673d8266 48% 50%,transparent 51%); }
+    .theme-arceus .hp-track { box-shadow:0 0 0 1px #fff8d466,inset 0 1px 2px #151d25aa; }
+    .theme-arceus .hp-fill::before { background:radial-gradient(circle,#fffbdc 0 1.1px,transparent 1.6px),linear-gradient(180deg,#fff9 0 1px,transparent 1px calc(100% - 1px),#a77a2e44 calc(100% - 1px)); background-size:19px 10px,auto!important; }
+    .theme-hooh .phase-marker { top:0; bottom:0; width:1px; background:#fff3b7; box-shadow:0 0 0 1px #803a2d,0 0 5px #fff1a0; }
+    .theme-hooh .phase-marker i { top:50%; width:7px; height:7px; border-width:1px; transform:translate(-50%,-50%) rotate(45deg); box-shadow:0 0 0 1px #803a2d; }
+    .mini-track {
+      height:10px; border:1px solid var(--accent); border-radius:4px;
+      clip-path:none!important; background:linear-gradient(180deg,color-mix(in srgb,var(--deep) 70%,#303840),var(--deep));
+    }
+    .mini-fill { border-radius:3px; background-image:linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent)); }
+    .theme-mewtwo .mini-fill { background-image:radial-gradient(circle,#fffbdc 0 .8px,transparent 1.2px),repeating-linear-gradient(135deg,transparent 0 10px,#fff5 10px 10.5px,transparent 10.5px 20px),linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent))!important; background-size:14px 10px,auto,auto; }
+    .theme-lugia .mini-fill { background-image:repeating-linear-gradient(180deg,transparent 0 3px,#efffff99 3px 4px,transparent 4px 8px),linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent))!important; }
+    .theme-hooh .mini-fill { background-image:repeating-linear-gradient(110deg,transparent 0 17px,#fffbdc88 17px 18px,transparent 18px 30px),linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent))!important; }
+    .theme-rayquaza .mini-fill { background-image:repeating-linear-gradient(90deg,transparent 0 20px,#174f4355 20px 21px,transparent 21px 24px),linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent))!important; }
+    .theme-kyogre .mini-fill { background-image:repeating-linear-gradient(180deg,transparent 0 4px,#effaff88 4px 5px,transparent 5px 9px),linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent))!important; }
+    .theme-groudon .mini-fill { background-image:repeating-linear-gradient(145deg,transparent 0 23px,#6b332655 23px 24px,transparent 24px 46px),linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent))!important; }
+    .theme-dialga .mini-fill { background-image:repeating-linear-gradient(90deg,transparent 0 24px,#efffffa8 24px 25px,transparent 25px 28px),linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent))!important; }
+    .theme-palkia .mini-fill { background-image:repeating-linear-gradient(135deg,transparent 0 21px,#fff8 21px 22px,transparent 22px 42px),linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent))!important; }
+    .theme-arceus .mini-fill { background-image:radial-gradient(circle,#fffbdc 0 1px,transparent 1.5px),linear-gradient(180deg,#fff8d9,var(--bright) 42%,var(--accent))!important; background-size:19px 10px,auto; }
+    .boss-card { border:1px solid #d4c9b4; border-left:3px solid var(--accent); border-radius:8px; box-shadow:0 2px 0 #3c394022; }
+    .boss-card[aria-pressed=true] { border-color:var(--accent); box-shadow:0 0 0 2px var(--halo),0 2px 0 #3c394022; }
+    .boss-card:hover { box-shadow:0 3px 0 #3c394022; }
+    .theme-hooh .mini-track,.theme-groudon .mini-track,.theme-dialga .mini-track,.theme-palkia .mini-track { border-radius:4px; }
+    .theme-arceus .mini-track { box-shadow:0 0 0 1px #fff6d8; }
+    @media (max-width:760px) {
+      .hud { width:calc(100% - 18px); grid-template-columns:27px minmax(58px,auto) minmax(0,1fr) 36px; gap:5px; padding:2px 4px; margin-top:48px; }
+      .portrait { width:25px; height:25px; }
+      .avatar-sprite { width:21px; height:21px; background-size:42px 21px; }
+      .boss-name { font-size:11px; }
+      .hp-percent { font-size:12px; }
+      .bar-row { min-height:19px; height:19px; }
+    }
   </style>
 </head>
 <body>
@@ -387,7 +473,7 @@
       <div class="brand"><div class="brand-mark" aria-hidden="true">✦</div><div><div class="eyebrow">LEGENDARY · BOSS HUD STUDY</div><h1>神兽 BOSS 专属血条</h1></div></div>
       <div class="concept-tag">独立交互预览 · 尚未接入游戏</div>
     </header>
-    <section class="intro"><h2>收紧框体，让血条成为主角</h2><p>只保留小头像、首领名称、专属血槽和血量读数；凤王到达真实的 50% 技能阈值时，再显示一行简短状态提示。</p></section>
+    <section class="intro"><h2>血量清晰，个性留在细节</h2><p>统一用简洁的像素血槽显示生命值，首领差异由头像、配色和轻量纹理表达；凤王到达真实的 50% 技能阈值时，再显示一行简短状态提示。</p></section>
     <main>
       <section class="battle-stage" aria-label="神兽 BOSS 血条场景预览">
         <div class="cloud left"></div><div class="cloud right"></div><div class="grass"></div>
@@ -412,22 +498,22 @@
       <section class="roster" id="roster" aria-label="神兽血条选项"></section>
       <section class="detail-grid">
         <article class="detail"><h3 id="designTitle">凤王 · 虹色之翼</h3><p id="designText">金红渐层和羽焰形血槽强调凤王身份；填充比例保持连续清楚，半血标记对应真实技能阈值。</p></article>
-        <article class="detail"><h3>统一的战斗可读性</h3><p>小头像负责辨认首领，血槽负责呈现生命比例。不同首领通过血槽轮廓、纹理和颜色区分；凤王的技能状态仅在阈值触发后出现。</p><div class="rules"><span class="rule">紧凑单行</span><span class="rule">专属血槽</span><span class="rule">清晰读数</span><span class="rule">手机端自适应</span></div></article>
+        <article class="detail"><h3>统一的战斗可读性</h3><p>小头像负责辨认首领，血槽负责呈现生命比例。统一轮廓保证读数稳定，专属配色和轻纹理保留每只首领的个性；凤王的技能状态仅在阈值触发后出现。</p><div class="rules"><span class="rule">紧凑单行</span><span class="rule">统一轮廓</span><span class="rule">专属材质</span><span class="rule">手机端自适应</span></div></article>
       </section>
       <div class="footer">像素字体与精灵图使用项目素材 · 概念预览，未修改正式战斗 HUD</div>
     </main>
   </div>
   <script>
     const bosses = [
-      { id:'mewtwo', name:'超梦', file:'MEWTWO', title:'超能次元', sigil:'Ψ', end:'◇', trait:'念力晶框 · 悬浮晶核', text:'双层外轨和悬浮晶核把超梦的精神力场做成结构；内槽保持平直，超能纹理不遮挡血量边界。' },
-      { id:'lugia', name:'洛奇亚', file:'LUGIA', title:'海神气旋', sigil:'≋', end:'≈', trait:'双层潮线 · 水滴端饰', text:'两侧弧浪托住细长水槽，内侧用平行潮线表现气旋；波纹围着血量走，不把血槽切成断续小段。' },
-      { id:'hooh', name:'凤王', file:'HOOH', title:'虹色之翼', sigil:'✦', end:'✦', trait:'羽焰轮廓 · 半血觉醒', specialAt:50, specialTitle:'神圣烈焰 · 云海加速', text:'金红渐层和羽焰形血槽强调凤王身份；填充比例保持连续清楚，半血标记对应真实技能阈值。' },
-      { id:'rayquaza', name:'烈空坐', file:'RAYQUAZA', title:'天空之柱', sigil:'⌁', end:'⌁', trait:'盘龙鳞节 · 甲片连环', text:'连续短鳞片像盘绕龙躯的护甲，端部延伸为分叉尾形；外轮廓仍稳定，避免做成普通绿色进度条。' },
-      { id:'kyogre', name:'盖欧卡', file:'KYOGRE', title:'海之霸主', sigil:'〰', end:'〰', trait:'鲸背厚甲 · 双鳍外展', text:'厚实的水滴椭圆槽配双鳍端饰，顶底双层潮纹强调深海压迫感，与洛奇亚的细浪长框拉开轮廓差异。' },
-      { id:'groudon', name:'固拉多', file:'GROUDON', title:'大地熔炉', sigil:'ϟ', end:'◆', trait:'断层岩甲 · 岩浆裂线', text:'四角像岩甲板片错接，填充带内留有发光裂隙；硬边和厚暗框传达重量，不用尖刺破坏读数。' },
-      { id:'dialga', name:'帝牙卢卡', file:'DIALGA', title:'时间之龙', sigil:'⌛', end:'◷', trait:'机械表框 · 时序刻度', text:'阶梯状钢制表框、两端表盘和精确刻线突出时间主题；刻度只做外框装饰，不代表额外阶段。' },
-      { id:'palkia', name:'帕路奇亚', file:'PALKIA', title:'空间裂隙', sigil:'◇', end:'◈', trait:'空间裂隙 · 悬浮菱晶', text:'两端菱晶像撕开的空间门，双层边缘让血槽悬在裂隙中央；内槽不弯曲，低血量仍能准确判断。' },
-      { id:'arceus', name:'阿尔宙斯', file:'ARCEUS', title:'创世之环', sigil:'◎', end:'◎', trait:'创世双环 · 轨道光点', text:'血槽被完整的象牙金双环托住，圆形徽记和两侧光点呈现祭坛感；装饰保持稀疏，压住画面重心。' },
+      { id:'mewtwo', name:'超梦', file:'MEWTWO', title:'超能次元', sigil:'Ψ', end:'◇', trait:'念能微粒 · 紫晶斜纹', text:'冷紫渐层、稀疏能量微粒与斜向晶纹表现超梦的念力；纹理压低亮度，确保剩余血量一眼可读。' },
+      { id:'lugia', name:'洛奇亚', file:'LUGIA', title:'海神气旋', sigil:'≋', end:'≈', trait:'海蓝渐层 · 轻柔潮纹', text:'银蓝填充带两道低对比横纹，像气旋掠过海面；平滑胶囊边缘保留洛奇亚的轻盈感。' },
+      { id:'hooh', name:'凤王', file:'HOOH', title:'虹色之翼', sigil:'✦', end:'✦', trait:'羽焰细纹 · 半血觉醒', specialAt:50, specialTitle:'神圣烈焰 · 云海加速', text:'金红渐层与交错羽焰细线传达虹色之翼；中央刻度精确标出 50% 技能阈值，凤王进入特殊状态时再点亮提示。' },
+      { id:'rayquaza', name:'烈空坐', file:'RAYQUAZA', title:'天空之柱', sigil:'⌁', end:'⌁', trait:'翡翠渐层 · 盘龙鳞节', text:'翡翠绿填充以窄竖节分出鳞片节奏，暗绿细线保留烈空坐的盘龙质感，同时让血量保持连续。' },
+      { id:'kyogre', name:'盖欧卡', file:'KYOGRE', title:'海之霸主', sigil:'〰', end:'〰', trait:'深海蓝 · 潮汐横纹', text:'深海蓝槽底衬托亮青填充，两道横向浪纹缓慢掠过，强调盖欧卡的厚重海流。' },
+      { id:'groudon', name:'固拉多', file:'GROUDON', title:'大地熔炉', sigil:'ϟ', end:'◆', trait:'熔岩橙 · 岩层裂纹', text:'熔岩橙填充叠上克制的交错岩层裂纹，暗红槽底增加重量感，不用外扩尖刺遮挡血量。' },
+      { id:'dialga', name:'帝牙卢卡', file:'DIALGA', title:'时间之龙', sigil:'⌛', end:'◷', trait:'钢蓝渐层 · 时序刻度', text:'钢蓝金属渐层配稀疏短刻线，像精密计时刻度；刻线只做材质细节，不暗示额外阶段。' },
+      { id:'palkia', name:'帕路奇亚', file:'PALKIA', title:'空间裂隙', sigil:'◇', end:'◈', trait:'星紫渐层 · 空间斜纹', text:'星紫填充上交错的细斜线模拟空间裂纹，淡色亮边保持优雅，血量仍由连续长度表达。' },
+      { id:'arceus', name:'阿尔宙斯', file:'ARCEUS', title:'创世之环', sigil:'◎', end:'◎', trait:'象牙金渐层 · 创世光点', text:'象牙金填充点缀稀疏光点与双层细亮边，呈现克制的创世感，避免外框和粒子抢走读数。' },
     ];
     const slider = document.getElementById('hpSlider');
     const heroHud = document.getElementById('heroHud');
