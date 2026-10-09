@@ -277,6 +277,37 @@
     @keyframes threshold-flare { from { opacity:.68; } to { opacity:1; box-shadow:0 0 0 2px #fff0a0,0 0 14px #fff0a0; } }
     @keyframes cloud-surge-left { from { transform:translateX(0) rotate(-12deg); } to { transform:translateX(230px) rotate(-5deg); } }
     @keyframes cloud-surge-right { from { transform:translateX(0) rotate(14deg); } to { transform:translateX(-230px) rotate(7deg); } }
+    /* Compact pass: one slim identity-and-HP row instead of a multi-part boss card. */
+    .hud { display:grid; grid-template-columns:32px minmax(66px,auto) minmax(0,1fr) auto; align-items:center; gap:8px; width:min(700px,calc(100% - 44px)); margin:22px auto 0; padding:4px 9px; border-width:2px; border-radius:8px 3px 8px 3px; background:#fff8e9e8; box-shadow:0 3px 0 #26344155,inset 0 0 0 1px #fff9; }
+    .hud::before { inset:3px; z-index:0; border:0; border-radius:5px; background:linear-gradient(90deg,var(--halo),transparent 28% 80%,#fff6); pointer-events:none; }
+    .hud-head { display:contents; }
+    .portrait { grid-column:1; grid-row:1; position:relative; width:30px; height:30px; border:1.5px solid var(--deep); border-radius:8px 3px 8px 3px; background:linear-gradient(145deg,#fffdf0,var(--halo)); box-shadow:0 0 0 2px #fff8; }
+    .avatar-sprite { width:25px; height:25px; background-size:50px 25px; }
+    .boss-copy { grid-column:2; grid-row:1; min-width:0; padding:0; }
+    .boss-kicker,.boss-rank { display:none; }
+    .boss-line { display:flex; flex-direction:column; align-items:flex-start; gap:1px; white-space:nowrap; }
+    .boss-name { font-size:12px; line-height:1.1; }
+    .boss-epithet { padding:0; border:0; color:#728080; background:none; font:8px/1.1 system-ui,sans-serif; }
+    .hp-readout { grid-column:4; grid-row:1; min-width:0; padding:0 2px 0 4px; border:0; background:none; text-align:right; }
+    .hp-percent { color:var(--deep); font:800 14px/1 system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+    .hp-numbers { display:none; }
+    .bar-row { grid-column:3; grid-row:1; grid-template-columns:minmax(0,1fr); gap:0; min-height:25px; margin:0; padding:0; }
+    .bar-sigil,.bar-end { display:none; }
+    .bar-ornament { inset:-2px 5px; }
+    .hp-track { height:14px; border-width:2px; border-radius:4px; box-shadow:inset 0 1px 2px #111c26aa,0 1px 0 #fff; }
+    .phase-marker { top:-4px; bottom:-4px; width:2px; }
+    .phase-marker i { top:-4px; width:7px; height:7px; border-width:1.5px; box-shadow:0 0 0 1px #803a2d; }
+    .hud-foot { display:none; grid-column:1/-1; grid-row:2; margin:0; padding:2px 1px 0; border:0; font:8px/1.2 system-ui,sans-serif; }
+    .hud.special-active .hud-foot { display:flex; }
+    .phase { gap:5px; padding:0; border:0; border-radius:0; background:none; }
+    .phase-dot { flex:none; width:6px; height:6px; }
+    .hud { padding:0; border:0; background:transparent; box-shadow:none; }
+    .hud::before { display:none; }
+    .theme-hooh .hud,.theme-groudon .hud,.theme-dialga .hud,.theme-arceus .hud { border:0; border-radius:0; background:transparent; box-shadow:none; }
+    .hud.special-active { border:0; background:transparent; box-shadow:none; }
+    .hud.special-active .portrait { box-shadow:0 0 0 2px #fff4d0,0 0 0 4px #e35a3f77,0 0 11px #ff794f99; }
+    .hud.special-active .phase { color:#8e342b; }
+    .hud.special-active .hp-readout { background:none; }
     .detail-grid { display:grid; grid-template-columns:1.2fr .8fr; gap:12px; margin-top:16px; }
     .detail { padding:14px 16px; border:1px solid #dacdb3; border-radius:10px; background:#fff8e9; box-shadow:0 2px 0 #d7cbb6; }
     .detail h3 { margin:0 0 7px; font-size:12px; }
@@ -289,13 +320,12 @@
       .topbar { min-height:62px; padding:10px 12px; }
       h1 { font-size:16px; }.concept-tag { padding:5px 7px; font-size:9px; }
       .battle-stage { min-height:360px; }
-      .hud { width:calc(100% - 22px); padding:6px 6px 5px; margin-top:34px; }
-      .hud-head { grid-template-columns:61px minmax(0,1fr) auto; gap:7px; min-height:65px; padding:2px 4px 6px; background-size:auto 100%; background:linear-gradient(90deg,var(--deep) 0 61px,transparent 61px); }
-      .portrait { width:55px; height:55px; }.avatar-sprite { width:46px;height:46px;background-size:92px 46px; }
-      .boss-name { font-size:15px; }.boss-epithet { font-size:8px; padding:2px 4px; }.boss-kicker { font-size:7px; }.boss-rank { font-size:7px; }
-      .hp-readout { min-width:82px; padding:5px 4px 4px 6px; }.hp-percent { font-size:18px; }.hp-numbers { font-size:7px; }
-      .hud-foot { gap:5px; }.phase { max-width:78%; font-size:8px; }
-      .bar-row { grid-template-columns:25px minmax(0,1fr) 25px; gap:4px; }
+      .hud { width:calc(100% - 18px); grid-template-columns:27px minmax(52px,auto) minmax(0,1fr) auto; gap:5px; padding:3px 5px; margin-top:34px; }
+      .portrait { width:26px; height:26px; }.avatar-sprite { width:22px;height:22px;background-size:44px 22px; }
+      .boss-name { font-size:11px; }.boss-epithet { font-size:7px; }
+      .hp-percent { font-size:12px; }
+      .bar-row { min-height:22px; }
+      .hud-foot { gap:4px; }.phase { max-width:100%; font-size:8px; }
       .boss-display { top:63%; width:106px; height:106px; }.stage-sprite { width:90px;height:90px;background-size:180px 90px; }
       .trainer-display { left:18%; }.stage-caption { left:calc(18% + 49px); }
       .controls { align-items:flex-start; }
@@ -323,7 +353,7 @@
       <div class="brand"><div class="brand-mark" aria-hidden="true">✦</div><div><div class="eyebrow">LEGENDARY · BOSS HUD STUDY</div><h1>神兽 BOSS 专属血条</h1></div></div>
       <div class="concept-tag">独立交互预览 · 尚未接入游戏</div>
     </header>
-    <section class="intro"><h2>把 Boss 身份、铭牌与血量做成一个整体</h2><p>不再只给同一张卡片换边框：徽记成为铭牌的一部分，血槽围绕首领身份展开；只有真实触发的战斗机制才改变面板状态。</p></section>
+    <section class="intro"><h2>收紧框体，让血条成为主角</h2><p>只保留小头像、首领名称、专属血槽和血量读数；凤王到达真实的 50% 技能阈值时，再显示一行简短状态提示。</p></section>
     <main>
       <section class="battle-stage" aria-label="神兽 BOSS 血条场景预览">
         <div class="cloud left"></div><div class="cloud right"></div><div class="grass"></div>
@@ -331,24 +361,24 @@
         <div class="stage-label">神兽出没地 · 战斗画面 HUD</div><div class="battle-chip" id="battleChip">BOSS 遭遇 · 凤王</div>
         <div class="hud theme-hooh" id="heroHud">
           <div class="hud-head">
-            <div class="portrait" aria-hidden="true"><span id="heroIcon" class="avatar-sprite"></span><i class="portrait-gem"></i></div>
-            <div class="boss-copy"><div class="boss-kicker" id="heroKicker">LEGENDARY ENCOUNTER · ACTIVE</div><div class="boss-line"><strong class="boss-name" id="heroName">凤王</strong><span class="boss-epithet" id="heroEpithet">虹色之翼</span></div><div class="boss-rank">传说级首领 · 不可捕捉</div></div>
-            <div class="hp-readout"><div class="hp-percent" id="heroPercent">68%</div><div class="hp-numbers" id="heroNumbers">68,000 / 100,000 HP</div></div>
+            <div class="portrait" aria-hidden="true"><span id="heroIcon" class="avatar-sprite"></span></div>
+            <div class="boss-copy"><div class="boss-line"><strong class="boss-name" id="heroName">凤王</strong><span class="boss-epithet" id="heroEpithet">虹色之翼</span></div></div>
+            <div class="hp-readout"><div class="hp-percent" id="heroPercent" aria-label="BOSS生命值">68%</div></div>
           </div>
-          <div class="bar-row"><span class="bar-ornament" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><div class="bar-sigil" id="heroSigil" aria-hidden="true">✦</div><div class="hp-track"><div class="hp-fill" id="heroFill"></div><span class="phase-marker" aria-hidden="true"><i></i></span><div class="bar-notches" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div><div class="bar-end"><span id="heroEnd">✦</span></div></div>
-          <div class="hud-foot"><span class="phase"><i class="phase-dot"></i><span id="heroPhase">半血触发 · 凤王天穹</span></span><span class="hud-foot-key"><span>HP</span><span id="heroRatio">68%</span></span></div>
+          <div class="bar-row"><span class="bar-ornament" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><div class="bar-sigil" aria-hidden="true">✦</div><div class="hp-track"><div class="hp-fill" id="heroFill"></div><span class="phase-marker" aria-hidden="true"><i></i></span><div class="bar-notches" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div><div class="bar-end" aria-hidden="true"><span>✦</span></div></div>
+          <div class="hud-foot" id="phaseNotice" aria-live="polite"><span class="phase"><i class="phase-dot"></i><span id="heroPhase">神圣烈焰 · 暂时无法攻击</span></span></div>
         </div>
         <div class="boss-display"><span id="stageSprite" class="stage-sprite" role="img" aria-label="凤王精灵图"></span></div>
         <div class="trainer-display" role="img" aria-label="训练家精灵图"></div>
         <div class="stage-caption" id="stageCaption">血条固定在上方安全区<br>不遮挡玩家与战斗区域</div>
       </section>
       <div class="controls"><div class="range-copy"><strong>测试生命比例</strong><span id="rangeText">68%</span></div><div class="range-control"><span class="range-label">0 HP</span><input id="hpSlider" type="range" min="0" max="100" value="68" aria-label="测试BOSS生命比例"><span class="range-label">满血</span></div></div>
-      <p class="system-note">交互规则：铭牌承担身份识别，血槽承担连续读数。凤王血量降至 50% 时才触发真实的觉醒反馈；其他首领不显示虚构阶段。</p>
+      <p class="system-note">凤王血量降至 50% 时，血条短暂提示特殊技能与免疫状态；其他首领只显示血量，不添加虚构阶段。</p>
       <div class="roster-head"><h2>九只神兽 · 专属血条一览</h2><span>点击卡片切换主预览</span></div>
       <section class="roster" id="roster" aria-label="神兽血条选项"></section>
       <section class="detail-grid">
-        <article class="detail"><h3 id="designTitle">凤王 · 虹色之翼</h3><p id="designText">羽焰形收口与金红色槽体呼应虹色之翼；血量读数仍保持清晰，较低血量时以更深的赤色提示危险。</p></article>
-        <article class="detail"><h3>统一的战斗可读性</h3><p>统一数字层级，徽记和框架采用首领专属形态。阶段标记只出现在真实阈值上；窄屏仍优先显示头像、名字、血量与机制状态。</p><div class="rules"><span class="rule">读数固定</span><span class="rule">专属轮廓</span><span class="rule">低血量警示</span><span class="rule">手机端自适应</span></div></article>
+        <article class="detail"><h3 id="designTitle">凤王 · 虹色之翼</h3><p id="designText">金红渐层和羽焰形血槽强调凤王身份；填充比例保持连续清楚，半血标记对应真实技能阈值。</p></article>
+        <article class="detail"><h3>统一的战斗可读性</h3><p>小头像负责辨认首领，血槽负责呈现生命比例。不同首领通过血槽轮廓、纹理和颜色区分；凤王的技能状态仅在阈值触发后出现。</p><div class="rules"><span class="rule">紧凑单行</span><span class="rule">专属血槽</span><span class="rule">清晰读数</span><span class="rule">手机端自适应</span></div></article>
       </section>
       <div class="footer">像素字体与精灵图使用项目素材 · 概念预览，未修改正式战斗 HUD</div>
     </main>
@@ -357,7 +387,7 @@
     const bosses = [
       { id:'mewtwo', name:'超梦', file:'MEWTWO', title:'超能次元', sigil:'Ψ', end:'◇', trait:'念力晶框 · 悬浮晶核', text:'双层外轨和悬浮晶核把超梦的精神力场做成结构；内槽保持平直，超能纹理不遮挡血量边界。' },
       { id:'lugia', name:'洛奇亚', file:'LUGIA', title:'海神气旋', sigil:'≋', end:'≈', trait:'双层潮线 · 水滴端饰', text:'两侧弧浪托住细长水槽，内侧用平行潮线表现气旋；波纹围着血量走，不把血槽切成断续小段。' },
-      { id:'hooh', name:'凤王', file:'HOOH', title:'虹色之翼', sigil:'✦', end:'✦', trait:'羽焰徽章 · 半血觉醒', specialAt:50, specialTitle:'神圣烈焰 · 云海加速', text:'羽焰纹章与铭牌连成整体；50% 阈值对应凤王实际的特殊技能，发动时面板转为赤金觉醒态，并提示免疫攻击与云海加速。' },
+      { id:'hooh', name:'凤王', file:'HOOH', title:'虹色之翼', sigil:'✦', end:'✦', trait:'羽焰轮廓 · 半血觉醒', specialAt:50, specialTitle:'神圣烈焰 · 云海加速', text:'金红渐层和羽焰形血槽强调凤王身份；填充比例保持连续清楚，半血标记对应真实技能阈值。' },
       { id:'rayquaza', name:'烈空坐', file:'RAYQUAZA', title:'天空之柱', sigil:'⌁', end:'⌁', trait:'盘龙鳞节 · 甲片连环', text:'连续短鳞片像盘绕龙躯的护甲，端部延伸为分叉尾形；外轮廓仍稳定，避免做成普通绿色进度条。' },
       { id:'kyogre', name:'盖欧卡', file:'KYOGRE', title:'海之霸主', sigil:'〰', end:'〰', trait:'鲸背厚甲 · 双鳍外展', text:'厚实的水滴椭圆槽配双鳍端饰，顶底双层潮纹强调深海压迫感，与洛奇亚的细浪长框拉开轮廓差异。' },
       { id:'groudon', name:'固拉多', file:'GROUDON', title:'大地熔炉', sigil:'ϟ', end:'◆', trait:'断层岩甲 · 岩浆裂线', text:'四角像岩甲板片错接，填充带内留有发光裂隙；硬边和厚暗框传达重量，不用尖刺破坏读数。' },
@@ -369,20 +399,18 @@
     const heroHud = document.getElementById('heroHud');
     let active = bosses[2];
     const battleStage = document.querySelector('.battle-stage');
-    const number = (n) => Math.round(n * 1000).toLocaleString('zh-CN');
     function updateHp() {
       const hp = Number(slider.value);
       document.getElementById('rangeText').textContent = `${hp}%`;
       document.getElementById('heroPercent').textContent = `${hp}%`;
-      document.getElementById('heroRatio').textContent = `${hp}%`;
-      document.getElementById('heroNumbers').textContent = `${number(hp)} / 100,000 HP`;
+      document.getElementById('heroPercent').setAttribute('aria-label', `${hp}% 生命值`);
       document.getElementById('heroFill').style.width = `${hp}%`;
       const specialActive = Number.isFinite(active.specialAt) && hp <= active.specialAt;
       const battleChip = document.getElementById('battleChip');
       const heroPhase = document.getElementById('heroPhase');
       battleChip.textContent = specialActive ? '特殊技发动 · 暂时无法攻击' : `BOSS 遭遇 · ${active.name}`;
       heroPhase.textContent = active.specialAt
-        ? (specialActive ? `${active.specialTitle} · 免疫攻击` : `觉醒阈值 ${active.specialAt}% · ${active.specialTitle}`)
+        ? (specialActive ? `${active.specialTitle} · 暂时无法攻击` : `${active.specialAt}% · ${active.specialTitle}`)
         : `传说首领 · ${active.title}`;
       heroHud.classList.toggle('special-active', specialActive);
       battleStage.classList.toggle('special-active', specialActive);
@@ -403,9 +431,6 @@
       document.getElementById('stageSprite').setAttribute('aria-label', `${boss.name}精灵图`);
       document.getElementById('heroName').textContent = boss.name;
       document.getElementById('heroEpithet').textContent = boss.title;
-      document.getElementById('heroSigil').textContent = boss.sigil;
-      document.getElementById('heroEnd').textContent = boss.end;
-      document.getElementById('heroKicker').textContent = `LEGENDARY ENCOUNTER · ${boss.title.toUpperCase()}`;
       document.getElementById('designTitle').textContent = `${boss.name} · ${boss.title}`;
       document.getElementById('designText').textContent = boss.text;
       document.querySelectorAll('.boss-card').forEach((card) => {
