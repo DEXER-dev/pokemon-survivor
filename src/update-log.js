@@ -1,6 +1,12 @@
 /** Player-facing release notes. Add the newest, concise entry here with every shipped update. */
 export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
+        date: '2026-10-09',
+        category: '神兽 HUD',
+        title: '九只神兽改用专属无框能量血条',
+        description: '以轻薄发光的能量芯取代大面板；九只神兽各有专属色，凤王半血刻度与战斗状态提示保留。',
+    },
+    {
         date: '2026-10-08',
         category: '神兽关卡',
         title: '已解锁神兽地点可自由选择挑战',
