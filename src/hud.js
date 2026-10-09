@@ -22,16 +22,16 @@ const BOSS_ACCENTS = Object.freeze([
 ]);
 
 const LEGENDARY_ENERGY_PALETTES = Object.freeze([
-    ['超梦', '#d896fa', '#f0ceff', '#72439a', '#372843', '#fff4dc'],
-    ['洛奇亚', '#67cce5', '#c6f8ff', '#286c83', '#203945', '#f4ffff'],
-    ['凤王', '#e6ab46', '#fff1a0', '#984936', '#442f32', '#fff5bf'],
-    ['烈空坐', '#57d495', '#b2f8a1', '#236956', '#1e3735', '#edffd3'],
-    ['裂空座', '#57d495', '#b2f8a1', '#236956', '#1e3735', '#edffd3'],
-    ['盖欧卡', '#53b6ec', '#b8eeff', '#245a8f', '#1f344c', '#effbff'],
-    ['固拉多', '#e77c4b', '#ffc17e', '#873f2e', '#402a2a', '#fff0cc'],
-    ['帝牙卢卡', '#73c9d8', '#d5fffb', '#315b82', '#243949', '#f1ffff'],
-    ['帕路奇亚', '#d38ce2', '#ffd0f0', '#714a9f', '#342b4c', '#fff3ff'],
-    ['阿尔宙斯', '#e2c568', '#fff3b5', '#846226', '#463d2b', '#fffbe1'],
+    ['超梦', '#ad83df', '#ead5ff', '#51375d', '#30273b', '#fff4dc', 'psychic'],
+    ['洛奇亚', '#65b9d5', '#e0faff', '#375b74', '#263c50', '#f4ffff', 'wing'],
+    ['凤王', '#e4a548', '#fff1b0', '#774331', '#493332', '#fff5bf', 'feather'],
+    ['烈空坐', '#60b581', '#ccf5a7', '#2a5849', '#233d39', '#edffd3', 'dragon'],
+    ['裂空座', '#60b581', '#ccf5a7', '#2a5849', '#233d39', '#edffd3', 'dragon'],
+    ['盖欧卡', '#599bd4', '#c3ecff', '#304d79', '#27374e', '#effbff', 'fin'],
+    ['固拉多', '#d46c4c', '#ffd89e', '#543a38', '#332e34', '#fff0cc', 'rock'],
+    ['帝牙卢卡', '#6db7c8', '#dafbff', '#3a536e', '#293b4a', '#f1ffff', 'steel'],
+    ['帕路奇亚', '#bc8dbd', '#ffe0ef', '#674a71', '#392f45', '#fff3ff', 'pearl'],
+    ['阿尔宙斯', '#cbb064', '#fff6d0', '#75613a', '#433c32', '#fffbe1', 'ring'],
 ]);
 
 function bossPalette (name) {
@@ -83,48 +83,132 @@ function drawBossGauge (g, cc, progress, trailing, tint, highlight, segments = 1
     g.roundRect(x, y, width, height, 9); g.stroke();
 }
 
+function bossPixel (g, cc, x, y, width, height, tint, alpha = 255) {
+    g.fillColor = color(cc, tint, alpha);
+    g.rect(x, y, width, height); g.fill();
+}
+
+function bossGem (g, cc, x, y, radius, tint) {
+    g.fillColor = color(cc, tint);
+    g.moveTo(x, y + radius); g.lineTo(x + radius, y); g.lineTo(x, y - radius);
+    g.lineTo(x - radius, y); g.close(); g.fill();
+}
+
+function drawBossEnd (g, cc, palette, x, y, side) {
+    const [, accent, light, deep, , mark, motif] = palette;
+    const px = (out, yy, w, h, tint) => {
+        const left = side > 0 ? x + out : x - out - w;
+        bossPixel(g, cc, left, y + yy, w, h, tint);
+    };
+    switch (motif) {
+    case 'feather':
+    case 'wing': {
+        const rows = motif === 'feather' ? [-7, 0, 7] : [-6, 0, 6];
+        rows.forEach((row, i) => {
+            px(7 + i * 2, row - 2, 7, 2, deep);
+            px(13 + i, row - 1, 7, 2, accent);
+            px(19 - i, row, 6, 2, light);
+        });
+        if (motif === 'feather') {
+            px(2, -3, 4, 6, '#bd5d60');
+            bossPixel(g, cc, x - 1, y - 1, 2, 2, mark);
+        }
+        break;
+    }
+    case 'dragon':
+        px(13, -8, 12, 4, deep); px(19, -4, 6, 8, deep); px(13, 4, 12, 4, deep);
+        px(9, -5, 11, 3, accent); px(15, -2, 4, 4, '#d8c572'); px(9, 2, 11, 3, accent);
+        px(9, -1, 3, 2, mark); break;
+    case 'fin':
+        px(16, -5, 10, 10, deep); px(21, -9, 6, 4, deep); px(21, 5, 6, 4, deep);
+        px(11, -3, 10, 6, accent); px(13, -1, 9, 2, light);
+        px(8, -6, 3, 2, '#dc7270'); px(9, 4, 4, 2, '#dc7270'); break;
+    case 'rock':
+        px(8, -8, 5, 12, deep); px(12, -11, 5, 18, deep); px(17, -7, 5, 13, deep);
+        px(9, -4, 3, 5, accent); px(14, -7, 2, 7, accent); px(18, -3, 2, 4, accent);
+        px(10, 1, 2, 2, light); px(15, -2, 2, 2, light); break;
+    case 'steel':
+        px(8, -6, 5, 12, deep); px(13, -10, 5, 20, deep); px(18, -7, 5, 14, deep);
+        px(9, -3, 3, 6, accent); px(14, -7, 3, 14, light); px(19, -4, 3, 8, accent);
+        bossGem(g, cc, x + side * 10, y, 4, mark); break;
+    case 'pearl':
+        px(9, -7, 4, 4, deep); px(13, -10, 6, 6, accent); px(19, -6, 6, 6, light);
+        px(13, 4, 6, 6, light); px(19, 1, 6, 6, accent); px(9, 3, 4, 4, deep);
+        px(17, -2, 4, 4, mark); break;
+    case 'ring':
+        px(8, -8, 4, 16, deep); px(12, -12, 12, 4, deep); px(12, 8, 12, 4, deep);
+        px(9, -6, 2, 12, accent); px(13, -9, 10, 2, accent); px(13, 7, 10, 2, accent);
+        px(21, -5, 2, 10, accent); px(14, -1, 2, 2, light); px(20, 3, 2, 2, light); break;
+    default:
+        bossGem(g, cc, x + side * 14, y, 9, deep);
+        bossGem(g, cc, x + side * 14, y, 6, accent);
+        bossGem(g, cc, x + side * 14, y, 3, light);
+        px(9, -10, 3, 3, mark); px(9, 7, 3, 3, mark); break;
+    }
+}
+
 function drawBossEnergy (g, cc, progress, trailing, palette, isHoOh, time) {
-    const [, accent, highlight, deep, track, mark] = palette;
-    const x = -278, y = 0, width = 556;
+    const [, accent, highlight, deep, track, mark, motif] = palette;
+    const x = -243, y = 0, width = 486, height = 10;
     const fillWidth = width * Math.max(0, Math.min(1, progress));
     const trailWidth = width * Math.max(0, Math.min(1, trailing));
-    const pulse = 0.68 + Math.sin(time / 320) * 0.12;
     g.clear();
 
-    // A slim dark core and a soft, boss-colored bloom keep the line legible without a panel.
-    g.fillColor = color(cc, '#ffffff', 22);
-    g.roundRect(x - 2, y - 7, width + 4, 14, 7); g.fill();
-    g.fillColor = color(cc, track, 235);
-    g.roundRect(x, y - 3, width, 6, 3); g.fill();
-    g.fillColor = color(cc, deep, 150);
-    g.roundRect(x + 1, y - 1, width - 2, 2, 1); g.fill();
+    // A narrow pixel channel carries the HP; the end pieces carry the legendary identity.
+    bossPixel(g, cc, x - 2, y - 6, width + 4, height + 12, deep);
+    bossPixel(g, cc, x, y - 4, width, height + 8, track);
+    bossPixel(g, cc, x + 2, y + 5, width - 4, 2, accent, 175);
+    bossPixel(g, cc, x + 2, y - 7, width - 4, 1, highlight, 180);
+    bossPixel(g, cc, x + 2, y - 4, width - 4, height - 4, '#172332', 190);
 
     if (trailWidth > fillWidth) {
-        g.fillColor = color(cc, accent, 92);
-        g.roundRect(x, y - 3, trailWidth, 6, 3); g.fill();
+        bossPixel(g, cc, x + fillWidth, y - 3, trailWidth - fillWidth, height - 2, mark, 175);
     }
     if (fillWidth > 0) {
-        g.fillColor = color(cc, accent, Math.round(52 + pulse * 30));
-        g.roundRect(x - 1, y - 8, fillWidth + 2, 16, 8); g.fill();
-        g.fillColor = color(cc, accent);
-        g.roundRect(x, y - 3, fillWidth, 6, 3); g.fill();
-        g.fillColor = color(cc, highlight, 235);
-        g.roundRect(x + 1, y - 1, Math.max(0, fillWidth - 2), 2, 1); g.fill();
+        bossPixel(g, cc, x, y - 5, fillWidth, height + 10, accent, 38);
+        bossPixel(g, cc, x + 2, y - 3, Math.max(0, fillWidth - 4), height - 2, accent);
+        bossPixel(g, cc, x + 2, y + 1, Math.max(0, fillWidth - 4), 2, highlight);
+        bossPixel(g, cc, x + 2, y - 3, Math.max(0, fillWidth - 4), 1, deep, 210);
 
-        // A small traveling glint makes the living energy line read as active, not a static rule.
-        const sparkX = x + ((time / 1750) % 1) * fillWidth;
-        g.fillColor = color(cc, mark);
-        g.moveTo(sparkX, y + 5); g.lineTo(sparkX + 3, y); g.lineTo(sparkX, y - 5);
-        g.lineTo(sparkX - 3, y); g.close(); g.fill();
+        for (let offset = 24; offset < fillWidth - 8; offset += 54) {
+            if (motif === 'dragon') {
+                bossPixel(g, cc, x + offset, y - 2, 5, 2, mark, 235);
+                bossPixel(g, cc, x + offset + 4, y - 1, 2, 4, mark, 235);
+            } else if (motif === 'rock') {
+                bossPixel(g, cc, x + offset, y - 2, 2, 4, deep);
+                bossPixel(g, cc, x + offset + 2, y - 1, 4, 2, deep);
+            } else if (motif === 'fin') {
+                bossPixel(g, cc, x + offset, y, 8, 1, '#dc7270');
+            } else if (motif === 'steel') {
+                bossPixel(g, cc, x + offset, y - 2, 1, 5, mark, 200);
+            } else if (motif === 'pearl') {
+                bossPixel(g, cc, x + offset, y - 2, 3, 3, mark, 210);
+            } else if (motif === 'ring') {
+                bossPixel(g, cc, x + offset, y - 2, 2, 1, mark, 220);
+            } else if (motif === 'psychic') {
+                bossGem(g, cc, x + offset, y, 2, highlight);
+            }
+        }
+        const sparkX = x + ((time / 2200) % 1) * fillWidth;
+        bossPixel(g, cc, sparkX, y - 5, 2, height + 10, highlight, 205);
+    }
+
+    drawBossEnd(g, cc, palette, x, y, -1);
+    drawBossEnd(g, cc, palette, x + width, y, 1);
+    if (motif === 'steel') {
+        bossGem(g, cc, x + width / 2, y + 9, 5, deep);
+        bossGem(g, cc, x + width / 2, y + 9, 3, highlight);
+    } else if (motif === 'ring') {
+        [-width / 4, 0, width / 4].forEach((offset) => bossPixel(g, cc, x + width / 2 + offset, y + 8, 3, 2, mark));
+    } else if (motif === 'pearl') {
+        [-width / 4, width / 4].forEach((offset) => bossPixel(g, cc, x + width / 2 + offset, y + 7, 3, 3, highlight));
     }
 
     if (isHoOh) {
         const markerX = x + width * 0.5;
-        g.fillColor = color(cc, mark, 225);
-        g.roundRect(markerX - 1, y - 11, 2, 22, 1); g.fill();
-        g.fillColor = color(cc, highlight);
-        g.moveTo(markerX, y + 5); g.lineTo(markerX + 4, y); g.lineTo(markerX, y - 5);
-        g.lineTo(markerX - 4, y); g.close(); g.fill();
+        bossPixel(g, cc, markerX - 1, y - 9, 2, height + 18, mark);
+        bossGem(g, cc, markerX, y, 5, deep);
+        bossGem(g, cc, markerX, y, 3, highlight);
     }
 }
 
@@ -922,10 +1006,11 @@ export class Hud {
             setLabelLayout(this.bossTitle, isLegendary ? -278 : 0, 251,
                 isLegendary ? 220 : 520, isLegendary ? A.LEFT : A.CENTER);
             setLabelLayout(this.bossDetail, isLegendary ? -278 : 0, 226,
-                isLegendary ? 240 : 520, isLegendary ? A.LEFT : A.CENTER);
-            setLabelLayout(this.bossHp, isLegendary ? -278 : -270, 196,
-                isLegendary ? 240 : 410, A.LEFT);
+                isLegendary ? 340 : 520, isLegendary ? A.LEFT : A.CENTER);
+            setLabelLayout(this.bossHp, isLegendary ? 278 : -270, 251,
+                isLegendary ? 76 : 410, isLegendary ? A.RIGHT : A.LEFT);
         }
+        this.bossPhase.node.active = !isLegendary;
         if (!isLegendary && this.bossPanelTheme !== accent) {
             this.bossPanelTheme = accent;
             card(this.bossPanel, this.cc, -300, -64, 600, 128, accent);
@@ -934,13 +1019,14 @@ export class Hud {
         const titleColor = isLegendary ? energyPalette[3] : HUD.ink;
         this.bossTitle.color = new this.cc.Color(...hexToRgb(titleColor), 255);
         this.bossDetail.string = detail;
-        this.bossHp.string = `${Math.ceil(hp).toLocaleString('zh-CN')} / ${Math.ceil(maxHp).toLocaleString('zh-CN')} HP`;
-        this.bossPhase.string = `${p <= 0.5 ? 'PHASE II' : 'PHASE I'} · ${Math.round(p * 100)}%`;
-        const phaseColor = isLegendary
-            ? (p <= 0.5 ? energyPalette[5] : energyPalette[1])
-            : (p <= 0.5 ? phaseTint : accent);
-        const rgb = hexToRgb(phaseColor);
-        this.bossPhase.color = new this.cc.Color(...rgb, 255);
+        if (isLegendary) {
+            this.bossHp.string = String(Math.round(p * 100)) + '%';
+        } else {
+            this.bossHp.string = `${Math.ceil(hp).toLocaleString('zh-CN')} / ${Math.ceil(maxHp).toLocaleString('zh-CN')} HP`;
+            this.bossPhase.string = `${p <= 0.5 ? 'PHASE II' : 'PHASE I'} · ${Math.round(p * 100)}%`;
+            const phaseColor = p <= 0.5 ? phaseTint : accent;
+            this.bossPhase.color = new this.cc.Color(...hexToRgb(phaseColor), 255);
+        }
         if (this.bossTrailName !== name) {
             this.bossTrailName = name;
             this.bossTrail = p;

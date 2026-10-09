@@ -4,7 +4,7 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
         date: '2026-10-09',
         category: '神兽 HUD',
         title: '九只神兽改用专属无框能量血条',
-        description: '以轻薄发光的能量芯取代大面板；九只神兽各有专属色，凤王半血刻度与战斗状态提示保留。',
+        description: '以像素端饰和专属槽内纹样呈现九只神兽特征：凤王羽翼、烈空坐龙纹、盖欧卡鳍形等；凤王半血技能刻度保留。',
     },
     {
         date: '2026-10-08',
