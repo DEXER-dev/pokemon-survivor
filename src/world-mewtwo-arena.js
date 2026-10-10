@@ -9,6 +9,8 @@ export const KYOGRE_ARENA_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 3
 export const KYOGRE_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 941 / 1672 });
 export const KYOGRE_ARENA_SQUARE_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 550 });
 export const KYOGRE_ARENA_SQUARE_SIZE = Object.freeze({ width: 1200, height: 1200 });
+export const GROUDON_ARENA_BOUNDS = Object.freeze({ halfWidth: 500, halfHeight: 270 });
+export const GROUDON_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 941 / 1672 });
 const ARENA_WORLD_WIDTH = 1200;
 
 // Inner blue-water edge, traced in normalized image coordinates. Keep the player on the sand,
@@ -215,6 +217,13 @@ export class WorldKyogreArena extends WorldArenaBackdrop {
             this.setBackdrop(this.backdrops[layout]);
         }
         super.update(camera, center, enabled);
+    }
+}
+
+/** Finite Terra Cave chamber for Groudon's legendary encounter. */
+export class WorldGroudonArena extends WorldArenaBackdrop {
+    constructor (cc, gameRoot) {
+        super(cc, gameRoot, 'GroudonTerraCaveBackdrop');
     }
 }
 

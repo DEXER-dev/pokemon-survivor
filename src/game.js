@@ -8,7 +8,7 @@ import {
     PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, WILD_BOSSES, family,
 } from './config.js';
 import { SpriteBatch, Palette } from './batch.js';
-import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLugiaArenaBackdrop, loadRayquazaArenaBackdrop, loadKyogreArenaBackdrop, loadHoOhArenaAssets, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
+import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLugiaArenaBackdrop, loadRayquazaArenaBackdrop, loadKyogreArenaBackdrop, loadGroudonArenaBackdrop, loadHoOhArenaAssets, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
 import { WorldFlora } from './world-flora.js';
 import { WorldTrees } from './world-trees.js';
 import { WorldPond } from './world-pond.js';
@@ -16,6 +16,7 @@ import { WorldMewtwoArena, WorldLugiaArena, WorldRayquazaArena, MEWTWO_ARENA_BOU
     LUGIA_ARENA_BOUNDS, LUGIA_ARENA_SIZE, RAYQUAZA_ARENA_BOUNDS, RAYQUAZA_ARENA_SIZE,
     WorldKyogreArena, KYOGRE_ARENA_BOUNDS, KYOGRE_ARENA_SIZE,
     KYOGRE_ARENA_SQUARE_BOUNDS, KYOGRE_ARENA_SQUARE_SIZE,
+    WorldGroudonArena, GROUDON_ARENA_BOUNDS, GROUDON_ARENA_SIZE,
     constrainKyogrePlayerToShore } from './world-mewtwo-arena.js';
 import { WorldHoOhArena } from './world-mewtwo-arena.js';
 import { createHoOhSpecialState, startHoOhSpecial, stepHoOhSpecial } from './hooh-special.js';
@@ -357,6 +358,10 @@ export function createGame (cc) {
             this.kyogreArenaPromise = loadKyogreArenaBackdrop(cc).then((assets) => {
                 this.kyogreArena.setBackdrops(assets);
             }).catch((err) => console.warn('[kyogre-map] using fallback cave ground:', err && err.message));
+            this.groudonArena = new WorldGroudonArena(cc, this.node);
+            this.groudonArenaPromise = loadGroudonArenaBackdrop(cc).then((assets) => {
+                this.groudonArena.setBackdrop(assets);
+            }).catch((err) => console.warn('[groudon-map] using fallback cave ground:', err && err.message));
             this.hoohArena = new WorldHoOhArena(cc, this.node);
             this.hoohArenaPromise = loadHoOhArenaAssets(cc).then((assets) => {
                 this.hoohArena.setAssets(assets);
@@ -988,10 +993,12 @@ export function createGame (cc) {
             const lugiaEncounter = site.species === 'legend-lugia';
             const rayquazaEncounter = site.species === 'legend-rayquaza';
             const kyogreEncounter = site.species === 'legend-kyogre';
+            const groudonEncounter = site.species === 'legend-groudon';
             const hoohEncounter = site.species === 'legend-hooh';
             this.legendaryMap.active = true;
             this.legendaryMap.x = this.player.x + (mewtwoEncounter ? 170 : hoohEncounter ? 150 : 0);
             this.legendaryMap.y = this.player.y + (mewtwoEncounter ? 75 : lugiaEncounter ? 130 : kyogreEncounter ? 160
+                : groudonEncounter ? 55
                 : rayquazaEncounter ? 100 : hoohEncounter ? 55 : 0);
             this.legendaryMap.famIdx = famIdx;
             this.legendaryMap.species = site.species;
@@ -1008,12 +1015,13 @@ export function createGame (cc) {
             this.build.balls += 5;
             const bossX = mewtwoEncounter ? this.legendaryMap.x + 260
                 : lugiaEncounter || hoohEncounter ? this.legendaryMap.x : rayquazaEncounter ? this.legendaryMap.x + 64
-                    : kyogreEncounter ? this.legendaryMap.x : this.player.x + 250;
+                    : kyogreEncounter || groudonEncounter ? this.legendaryMap.x : this.player.x + 250;
             const bossY = mewtwoEncounter ? this.legendaryMap.y + 100
                     : lugiaEncounter ? this.legendaryMap.y + 150
                     : rayquazaEncounter ? this.legendaryMap.y + 110
                         : hoohEncounter ? this.legendaryMap.y + 40
                     : kyogreEncounter ? this.legendaryMap.y + 140
+                    : groudonEncounter ? this.legendaryMap.y + 65
                     : this.player.y + 24;
             const boss = this.enemies.spawn(bossX, bossY,
                 famIdx, 1, false, this.time / 60, 1, -1, BOSS.party.length, BOSS.hpMul, true);
@@ -2642,7 +2650,8 @@ export function createGame (cc) {
                         : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_BOUNDS
                             : this.legendaryMap.species === 'legend-hooh' ? HOOH_ARENA_BOUNDS
                                 : this.legendaryMap.species === 'legend-kyogre'
-                                    ? (kyogreSquareView ? KYOGRE_ARENA_SQUARE_BOUNDS : KYOGRE_ARENA_BOUNDS) : null;
+                                    ? (kyogreSquareView ? KYOGRE_ARENA_SQUARE_BOUNDS : KYOGRE_ARENA_BOUNDS)
+                                : this.legendaryMap.species === 'legend-groudon' ? GROUDON_ARENA_BOUNDS : null;
                 if (arenaBounds) {
                     const boundedX = Math.max(-arenaBounds.halfWidth, Math.min(arenaBounds.halfWidth, dx));
                     const boundedY = Math.max(-arenaBounds.halfHeight, Math.min(arenaBounds.halfHeight, dy));
@@ -2986,7 +2995,8 @@ export function createGame (cc) {
                     : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_SIZE
                         : this.legendaryMap.species === 'legend-hooh' ? HOOH_ARENA_SIZE
                             : this.legendaryMap.species === 'legend-kyogre'
-                                ? (kyogreSquareView ? KYOGRE_ARENA_SQUARE_SIZE : KYOGRE_ARENA_SIZE) : null;
+                                ? (kyogreSquareView ? KYOGRE_ARENA_SQUARE_SIZE : KYOGRE_ARENA_SIZE)
+                            : this.legendaryMap.species === 'legend-groudon' ? GROUDON_ARENA_SIZE : null;
             const fixedArenaCamera = this.legendaryMap.active && fixedArenaSize;
             this.cam.x = fixedArenaCamera ? this.legendaryMap.x : p.x;
             this.cam.y = fixedArenaCamera ? this.legendaryMap.y : p.y;
@@ -3018,10 +3028,12 @@ export function createGame (cc) {
                 if (this.legendaryMap.species === 'legend-mewtwo'
                     || this.legendaryMap.species === 'legend-lugia'
                     || this.legendaryMap.species === 'legend-rayquaza'
-                    || this.legendaryMap.species === 'legend-hooh') {
+                    || this.legendaryMap.species === 'legend-hooh'
+                    || this.legendaryMap.species === 'legend-groudon') {
                     const arenaGround = this.legendaryMap.species === 'legend-lugia' ? '#101f32'
                         : this.legendaryMap.species === 'legend-rayquaza' ? '#182943'
-                            : this.legendaryMap.species === 'legend-hooh' ? '#68aaf1' : '#19233a';
+                            : this.legendaryMap.species === 'legend-hooh' ? '#68aaf1'
+                                : this.legendaryMap.species === 'legend-groudon' ? '#9a5a32' : '#19233a';
                     g.fillColor = this.pal.get(arenaGround);
                     g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
                     g.fill();
@@ -4720,6 +4732,8 @@ export function createGame (cc) {
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-rayquaza');
             this.kyogreArena.update(this.cam, this.legendaryMap,
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-kyogre');
+            this.groudonArena.update(this.cam, this.legendaryMap,
+                this.legendaryMap.active && this.legendaryMap.species === 'legend-groudon');
             this.hoohArena.update(this.cam, this.legendaryMap,
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-hooh', dt,
                 this.legendaryMap.hoohSpecial.active ? 9 : 1);

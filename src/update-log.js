@@ -3,6 +3,12 @@ export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
         date: '2026-10-10',
         category: '神兽关卡',
+        title: '固拉多加入陆之窟专属战场',
+        description: '挑战固拉多时进入干燥岩土洞窟，岩壁围出有限的战斗区域，玩家可在中央空地自由走位。',
+    },
+    {
+        date: '2026-10-10',
+        category: '神兽关卡',
         title: '盖欧卡加入海之洞窟专属战场',
         description: '战斗切换到中央水池与环绕沙岸组成的有限场地；盖欧卡会沿水域巡游，并在招式预警时停下。',
     },

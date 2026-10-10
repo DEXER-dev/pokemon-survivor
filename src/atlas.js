@@ -627,6 +627,18 @@ export async function loadKyogreArenaBackdrop (cc) {
     return { landscape, square };
 }
 
+/** Terra Cave artwork for Groudon's dedicated legendary battle. */
+export async function loadGroudonArenaBackdrop (cc) {
+    const image = await loadPng('assets/maps/terra-cave-groudon-arena.png');
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    const frame = cc.SpriteFrame.createWithImage(canvas);
+    if (frame.texture && typeof frame.texture.setFilters === 'function') frame.texture.setFilters(1, 1);
+    return { frame, width: image.width, height: image.height };
+}
+
 /** Individually layered Ho-Oh summit clouds plus the transparent Bell Tower foreground. */
 export async function loadHoOhArenaAssets (cc) {
     const paths = [
