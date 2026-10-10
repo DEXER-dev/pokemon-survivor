@@ -49,7 +49,7 @@ const gearOf = (seg) => seg.sk || (seg.sk = {
     cd: 0, bank: 0, ph: 0, t: 0, dur: 0, dist: 0, dx: 1, dy: 0, hop: 0, hops: 1, owe: 0,
     // A beam's own steering angle, seeded backwards so 2 阶's second柱 starts 180° off and the pair
     // reads as one sweep before either one has hunted anything.
-    a0: 0, a1: Math.PI, seeded: 0,
+    a0: 0, a1: Math.PI, seeded: 0, plantCd: 1.5, plantPhase: 0,
 });
 
 export class SkillSystem {
@@ -276,7 +276,7 @@ export class SkillSystem {
         this.killBoost = Math.min(2.5, this.killBoost + 0.08);
     }
 
-    step (dt, chain, enemies, dmgMul, ref, sizeMul = 1, sizeMulForSegment = null, cdMul = 1) {
+    step (dt, chain, enemies, dmgMul, ref, sizeMul = 1, sizeMulForSegment = null, cdMul = 1, flora = null) {
         // 飞轮回落：没有击杀喂它，充能速率指数滑回基础值。
         this.killBoost += (1 - this.killBoost) * Math.min(1, dt * 0.8);
         const segs = chain.segments;
@@ -321,7 +321,9 @@ export class SkillSystem {
             const take = Math.max(0, Math.min(budget * s, budget * s * cfg.cd * (sk.cdMul || 1) / dt - sk.bank));
             sk.bank += take;
             seg.keep = budget > 0 ? 1 - take / budget : 1;
-            if (cfg.fire === 'lunge') this._lunge(dt, chain, enemies, seg, cfg, lo, hi, sk, dmgMul, segmentSizeMul);
+            if (cfg.fire === 'garden') this._garden(dt, chain, enemies, seg, cfg, hi, sk, dmgMul,
+                segmentSizeMul, flora);
+            else if (cfg.fire === 'lunge') this._lunge(dt, chain, enemies, seg, cfg, lo, hi, sk, dmgMul, segmentSizeMul);
             else if (cfg.fire === 'field') this._field(chain, enemies, seg, cfg, lo, hi, sk, dmgMul, segmentSizeMul);
             else if (cfg.fire === 'beam') this._beam(dt, chain, enemies, seg, cfg, hi, sk, dmgMul, segmentSizeMul);
             else this._aim(chain, enemies, seg, cfg, hi, sk, dmgMul, segmentSizeMul);
@@ -392,6 +394,75 @@ export class SkillSystem {
         if (!projectileModule && fire < shots) this.m.lost += (carry * (shots - fire)) * dmgMul;
         this._burst(projectileModule?.launchEvent || familyModule?.launchEvent || 'shot', seg.fam, x, y, base);
         sk.cd = cfg.cd * (sk.cdMul || 1);
+    }
+
+    /** Existing meadow plants become paired flower/leaf emitters; the same atlas also supplies new seedlings. */
+    _garden (dt, chain, enemies, seg, cfg, tail, sk, dmgMul, sizeMul, flora) {
+        const tier = seg.tier - 1;
+        const x = chain.nx[tail];
+        const y = chain.ny[tail];
+        sk.plantCd -= dt;
+        if (sk.plantCd <= 0) {
+            const spread = tAt(cfg.plantSpread, tier);
+            const angle = sk.plantPhase++ * 2.399963229728653;
+            const radius = spread * (0.42 + ((sk.plantPhase * 17) % 59) / 100);
+            flora?.plant(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+            sk.plantCd += tAt(cfg.plantCd, tier);
+        }
+
+        if (sk.cd > 0 || sk.bank <= 0 || this.n + 2 > this.cfg.live) return;
+        const plants = flora?.firingPlants(x, y, cfg.range,
+            Math.min(8, Math.floor((this.cfg.live - this.n) / 2)), sk.plantCursor || 0) || [];
+        if (plants.total > 0 && plants.length > 0) {
+            sk.plantCursor = ((sk.plantCursor || 0) + plants.length) % plants.total;
+        }
+        const fallback = plants.length ? null : { x, y };
+        const emitters = plants.length ? plants : [fallback];
+        let fired = 0;
+        const speed = tAt(cfg.speed, tier);
+        const range = tAt(cfg.reach, tier);
+        const radius = tAt(cfg.r, tier) * sizeMul;
+        for (const plant of emitters) {
+            if (this.n + 2 > this.cfg.live) break;
+            const target = this._nearest(enemies, plant.x, plant.y, range);
+            if (target < 0) continue;
+            const usable = this._price(sk, enemies, target, 2, dmgMul);
+            if (usable <= 0) continue;
+            this.m.spent += usable * dmgMul;
+            const dx = enemies.x[target] - plant.x;
+            const dy = enemies.y[target] - plant.y;
+            const base = Math.atan2(dy, dx);
+            for (let variant = 1; variant <= 2; variant++) {
+                const n = this.n++;
+                const angle = base + (variant === 1 ? -0.07 : 0.07);
+                this.px[n] = plant.x;
+                this.py[n] = plant.y;
+                this.pvx[n] = Math.cos(angle) * speed;
+                this.pvy[n] = Math.sin(angle) * speed;
+                this.pleft[n] = range;
+                this.pr[n] = radius;
+                this.pdmg[n] = usable * dmgMul / 2;
+                this.pbounce[n] = 0;
+                this.pavoid[n] = -1;
+                this.pavoid2[n] = -1;
+                this.pMode[n] = 0;
+                this.pStage[n] = seg.tier;
+                this.pShiny[n] = seg.shiny ? 1 : 0;
+                this.pLegHit[n] = 0;
+                this.pOriginX[n] = plant.x;
+                this.pOriginY[n] = plant.y;
+                this.pfam[n] = seg.fam;
+                this.pmega[n] = null;
+                this.pvariant[n] = variant;
+            }
+            fired += 2;
+            this._burst('shot', seg.fam, plant.x, plant.y, base);
+        }
+        if (fired > 0) {
+            this.m.volleys += fired / 2;
+            this.m.fired += fired;
+            sk.cd = cfg.cd * (sk.cdMul || 1);
+        }
     }
 
     /** A Mega's signature fan is a deliberately separate bonus channel: huge, readable projectiles. */
@@ -766,13 +837,16 @@ export class SkillSystem {
             let sp = Math.sqrt(this.pvx[i] * this.pvx[i] + this.pvy[i] * this.pvy[i]) || 1;
             const cfg = SKILLS[this.pfam[i]];
             const projectileModule = projectileModuleForShot(this.pMode[i], this.pfam[i]);
-            if (!(projectileModule?.steer?.(this, i, dt, sp)) && !projectileModule && cfg && cfg.homingTurn > 0) {
+            const homingTurn = cfg?.homingTurn > 0
+                && !(this.pfam[i] === 'chikorita' && this.pvariant[i] === 2)
+                ? cfg.homingTurn : 0;
+            if (!(projectileModule?.steer?.(this, i, dt, sp)) && !projectileModule && homingTurn > 0) {
                 const target = this._nearest(enemies, this.px[i], this.py[i], cfg.seek);
                 if (target >= 0) {
                     const current = Math.atan2(this.pvy[i], this.pvx[i]);
                     const want = Math.atan2(enemies.y[target] - this.py[i], enemies.x[target] - this.px[i]);
                     const delta = Math.atan2(Math.sin(want - current), Math.cos(want - current));
-                    const next = current + Math.max(-cfg.homingTurn * dt, Math.min(cfg.homingTurn * dt, delta));
+                    const next = current + Math.max(-homingTurn * dt, Math.min(homingTurn * dt, delta));
                     this.pvx[i] = Math.cos(next) * sp;
                     this.pvy[i] = Math.sin(next) * sp;
                 }

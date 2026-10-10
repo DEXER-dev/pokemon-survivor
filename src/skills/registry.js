@@ -1,8 +1,10 @@
 import { megaSkillForForm } from '../mega.js';
+import * as venusaur from './active/mega/venusaur.js';
 import { gigantamaxSkillForForm } from '../gigantamax.js';
 import { GIGANTAMAX_MODULES } from '../gigantamax.js';
 import {
     castBlastoise, stepBlastoise, drawBlastoisePreview, drawBlastoiseEffect,
+    playerDrive as driveBlastoise,
 } from './active/mega/blastoise.js';
 import charizardXSkill, {
     cast as castCharizardX, step as stepCharizardX, drawPreview as drawCharizardXPreview,
@@ -118,6 +120,7 @@ import { drawCakes } from './active/roster/alcremie.js';
 
 const blastoise = Object.freeze({
     cast: castBlastoise,
+    playerDrive: driveBlastoise,
     step: stepBlastoise,
     drawPreview: drawBlastoisePreview,
     drawEffect: drawBlastoiseEffect,
@@ -213,6 +216,7 @@ export function activeSkillForForm (form) {
 
 export function activeSkillModuleForForm (form) {
     if (!form) return null;
+    if (form.id === 'venusaur') return venusaur;
     if (form.id === 'charizard-x') return charizardX;
     if (form.id === 'blastoise') return blastoise;
     if (form.id === 'gardevoir') return gardevoir;

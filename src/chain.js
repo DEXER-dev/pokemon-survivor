@@ -10,7 +10,8 @@ import { segDps } from './combat.js';
 import { evoCeil, stepOf, condText } from './species.js';
 import { gigantamaxLocksEvolution } from './gigantamax.js';
 
-const isLegendaryFamily = (famId) => typeof famId === 'string' && famId.startsWith('legend-');
+export const isSlotExemptFamily = (famId) => typeof famId === 'string'
+    && (famId.startsWith('legend-') || famId.startsWith('wildboss-'));
 
 /**
  * 「这一族的图鉴线还有没有下一步」 - `evolveGate`'s `top`, lifted out because v0.9.8 gives it a second
@@ -245,7 +246,7 @@ export class ChainSystem {
 
     get normalSegmentCount () {
         let n = 0;
-        for (const s of this.segments) if (!s.shiny && !isLegendaryFamily(s.fam)) n++;
+        for (const s of this.segments) if (!s.shiny && !isSlotExemptFamily(s.fam)) n++;
         return n;
     }
 
@@ -256,7 +257,7 @@ export class ChainSystem {
     }
 
     add (famId, tier = 1, count = 1, shiny = false) {
-        if (!shiny && !isLegendaryFamily(famId) && this.normalSegmentCount >= this.cap) return false;
+        if (!shiny && !isSlotExemptFamily(famId) && this.normalSegmentCount >= this.cap) return false;
         if (shiny && this.segments.some((s) => s.fam === famId && s.shiny)) return false;
         this.segments.push({ fam: famId, tier, count, shiny: !!shiny, kind: family(famId).kind, affixes: [], age: 0,
             ...(famId === 'tandemaus' ? { companions: count } : {}) });
@@ -311,7 +312,7 @@ export class ChainSystem {
         let result = this._feedFamily(famId, tier, !!shiny);
         if (!result) {
             if (shiny) result = this.add(famId, tier, 1, true) ? 'new' : 'overflow';
-            else if (isLegendaryFamily(famId) || this.normalSegmentCount < this.cap) {
+            else if (isSlotExemptFamily(famId) || this.normalSegmentCount < this.cap) {
                 result = this.add(famId, tier) ? 'new' : 'overflow';
             }
             else result = 'overflow';

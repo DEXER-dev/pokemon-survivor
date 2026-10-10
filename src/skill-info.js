@@ -1,8 +1,10 @@
 /* Player-facing names for each roster line's signature system at every evolution stage. */
 export const SKILL_INFO = {
     chikorita: {
-        line: '芳香治愈叶环',
-        forms: [['芳香叶环', '以花叶环带扫过附近敌群。'], ['大竺葵花阵', '展开更大的芳香叶阵，拦截更多敌人。'], ['治愈之风', '大竺葵释放广阔的花叶领域并束缚敌群。']],
+        line: '花草共鸣',
+        forms: [['撒播种子', '周期在身边种下草簇；附近场景花草会发射花朵与树叶弹幕。'],
+            ['花草齐射', '种植更快，更多附近花草同时发射花朵与树叶弹幕。'],
+            ['大竺葵花园', '持续种植草簇与混合花丛；附近每株花草都会成对发射花朵和树叶弹幕。']],
     },
     cyndaquil: {
         line: '烈焰喷射',

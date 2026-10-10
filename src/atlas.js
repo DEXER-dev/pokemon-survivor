@@ -13,7 +13,8 @@ const PAD = 4;
 const GLYPHS = ['circle', 'ring', 'square', 'diamond', 'hex', 'star', 'blob', 'pill', 'cross', 'dot', 'aura', 'ball', 'field', 'beam', 'feather', 'flame', 'spark', 'shard', 'leaf', 'claw', 'cannon', 'wave', 'shadow', 'crescent', 'needle', 'bolt', 'ember', 'boulder', 'leafblade', 'dragon', 'fang', 'spear', 'meteor', 'heart', 'coin', 'cake', 'dust', 'legendSeal', 'legendRay', 'legendArc', 'legendRift'];
 
 // Glyphs whose holes are the design: everything else is a solid silhouette.
-const EVENODD = new Set(['ring', 'ball', 'field', 'beam', 'coin', 'legendSeal']);
+GLYPHS.push('waterBubble');
+const EVENODD = new Set(['ring', 'waterBubble', 'ball', 'field', 'beam', 'coin', 'legendSeal']);
 
 /** Rounded bar with half-extents `hx, hy`; the corner radius is the short side, so it is a capsule. */
 function capsulePath (ctx, cx, cy, hx, hy) {
@@ -76,6 +77,10 @@ function glyphPath (ctx, name, cx, cy, r) {
         case 'ring':
             ctx.arc(cx, cy, r * 0.92, 0, Math.PI * 2);
             ctx.arc(cx, cy, r * 0.58, 0, Math.PI * 2);
+            break;
+        case 'waterBubble':
+            ctx.arc(cx, cy, r * 0.96, 0, Math.PI * 2);
+            ctx.arc(cx, cy, r * 0.88, 0, Math.PI * 2);
             break;
         case 'square': {
             const s = r * 0.86;
@@ -461,6 +466,7 @@ const MAX_ZOOM = 4;
 
 const PNG_CACHE = new Map();
 const PNG_LOAD_TIMEOUT_MS = 12000;
+const ICON_LOAD_CONCURRENCY = 8;
 
 function loadPng (src) {
     if (PNG_CACHE.has(src)) return PNG_CACHE.get(src);
@@ -895,8 +901,7 @@ export async function loadMegaStoneAtlas (cc, forms) {
 /** Load real Pokémon item icons for the level-up cards, keyed by the upgrade's icon id. */
 export async function loadUpgradeItemAtlas (cc, upgrades) {
     const ids = [...new Set(upgrades.map((entry) => entry.icon).filter(Boolean))];
-    const images = await Promise.all(ids.map((id) => id === 'ZPOWERBAND'
-        ? null : loadPng(id === 'POKEBALL'
+    const images = await Promise.all(ids.map((id) => loadPng(id === 'POKEBALL'
         ? 'assets/items/POKEBALL.png' : id === 'AUSTRALIANMOUSE'
             ? 'assets/icons/TANDEMAUS.png' : `assets/items/upgrades/${id}.png`)));
     const frames = {};
@@ -1044,14 +1049,24 @@ export async function loadMegaMewtwoYIcon (cc) {
  *          for the shiny half - merged into the greybox atlas by the caller, not by this function.
  */
 export async function loadIconAtlas (cc, keys, outlineKeys = []) {
-    const imgs = await Promise.all(keys.map(async (key) => {
-        try {
-            return await loadPng(`${ICON_DIR}${key}.png`);
-        } catch (err) {
-            console.warn(`[icons] ${key} unavailable; keeping its fallback glyph:`, err && err.message);
-            return null;
+    // An image request starts its timeout as soon as it is created. Starting all 291 requests at
+    // once lets browser-queued icons time out before they ever reach the network, leaving random
+    // species on greybox glyphs. Keep a small fixed number in flight and preserve key order.
+    const imgs = new Array(keys.length);
+    let next = 0;
+    const loadWorker = async () => {
+        while (next < keys.length) {
+            const index = next++;
+            const key = keys[index];
+            try {
+                imgs[index] = await loadPng(`${ICON_DIR}${key}.png`);
+            } catch (err) {
+                console.warn(`[icons] ${key} unavailable; keeping its fallback glyph:`, err && err.message);
+                imgs[index] = null;
+            }
         }
-    }));
+    };
+    await Promise.all(Array.from({ length: Math.min(ICON_LOAD_CONCURRENCY, keys.length) }, loadWorker));
     const scratch = document.createElement('canvas');
     scratch.width = 128;
     scratch.height = 64;

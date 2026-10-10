@@ -131,7 +131,7 @@ function startingGroveTrees (layout) {
                 groveStyle: (extraHash >>> 23) % TREE_FAMILY_PALETTES.length,
             }))
             .filter((point) => Math.hypot(point.x, point.y) >= 205
-                && !inPondClearing(point.x, point.y, 62, layout.pond)));
+                && !inPondClearing(point.x, point.y, 62, layout)));
     }
     return trees;
 }
@@ -300,7 +300,7 @@ export class WorldTrees {
 
         // In this y-up world, lower trees sit in front and must draw last. Nearby
         // forest cells can merge visually, but their trunk blockers must stay separate.
-        const ordered = trees.filter((tree) => !inPondClearing(tree.x, tree.y, 62, this.layout.pond))
+        const ordered = trees.filter((tree) => !inPondClearing(tree.x, tree.y, 62, this.layout))
             .sort((a, b) => b.y - a.y || a.x - b.x);
         const roots = [];
         const minDistanceSq = TREE_ROOT_CLEARANCE * TREE_ROOT_CLEARANCE;

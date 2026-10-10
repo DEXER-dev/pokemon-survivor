@@ -231,11 +231,12 @@ export const ENEMY = {
     // built a strong team. Early rates are unchanged; the field can now keep accumulating mobs.
     spawnLatePerMin: 3,
     hpBase: 6,
-    hpGrowth: 1.07,
+    // Late-run pressure comes from spawn density; elapsed time must not inflate health.
+    hpGrowth: 1,
     // The horde's HP is derived from the chain's own DPS: `clearSec` is the promise that a full field
     // always takes this long to erase, whatever the player has grown into. Kill count cannot be the
     // signal because 晋升 multiplies DPS without adding a single kill - the sim's merge bot hit 0.3 s
-    // clears for two whole minutes on exactly that mistake. Time still ramps it, which is what ends runs.
+    // clears for two whole minutes on exactly that mistake. Health stays constant over elapsed time.
     clearSec: 2.5,
     eliteHpMul: 12,
     eliteEvery: 45,
@@ -344,13 +345,13 @@ export const BOSS = {
     projectileWarning: 0.72,
     // The three partners orbit the arena and periodically answer the trainer's command together.
     formationOrbitSpeed: 0.14,
-    phaseTwoOrbitSpeed: 0.28,
+    phaseTwoOrbitSpeed: 0.34,
     commandPeriod: 10,
-    phaseTwoCommandPeriod: 7,
+    phaseTwoCommandPeriod: 5.6,
     commandWarning: 1.05,
-    phaseTwoAt: 0.5,
-    phaseTwoPeriodMul: 0.82,
-    phaseTwoSpeedMul: 1.16,
+    phaseTwoAt: 0.55,
+    phaseTwoPeriodMul: 0.74,
+    phaseTwoSpeedMul: 1.22,
     phaseTwoDamageMul: 1.15,
     // Two close perimeter bands; enough wilds to make the trainer arena feel encircled without
     // placing them inside the clear fighting floor. Keep about one sprite-width of breathing room:
@@ -467,8 +468,10 @@ export const PROJ = { cap: 96, live: 48, overkill: 1.15 };
  */
 export const SKILLS = {
     chikorita: {
-        fire: 'field', cd: 0.9, ring: [2.0, 2.45, 2.9], max: [4, 6, 8],
-        root: [0.10, 0.18, 0.28],
+        fire: 'garden', cd: 2.7, plantCd: [8.5, 6.5, 4.8],
+        plantSpread: [112, 140, 168], range: 920, homingTurn: 2.4, seek: 7 * PPM,
+        speed: [13 * PPM, 14 * PPM, 15 * PPM], reach: [7, 8, 9].map((v) => v * PPM),
+        r: [10, 11, 12],
     },
     cyndaquil: {
         fire: 'bullet', cd: 1.22, shots: [1, 2, 4], spread: 0.24,

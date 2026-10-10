@@ -136,7 +136,8 @@ function fitFrame () {
     const cssW = Math.round(usableW);
     const dpr = Math.min(2, cc.screen.devicePixelRatio || 1);
     cc.screen.windowSize = new cc.Size(cssW * dpr, cssH * dpr);
-    cc.view.setDesignResolutionSize(VIEW.W, VIEW.H, cc.ResolutionPolicy.FIXED_HEIGHT);
+    cc.view.setDesignResolutionSize(VIEW.W, VIEW.H, document.body.classList.contains('dex-opened')
+        ? cc.ResolutionPolicy.SHOW_ALL : cc.ResolutionPolicy.FIXED_HEIGHT);
     const frame = document.getElementById('GameDiv');
     frame.style.width = cssW + 'px';
     frame.style.height = cssH + 'px';
@@ -165,6 +166,7 @@ try {
         });
     };
     window.addEventListener('resize', queueFitFrame, { passive: true });
+    window.addEventListener('dex-viewport-change', fitFrame);
     window.addEventListener('orientationchange', queueFitFrame, { passive: true });
     document.addEventListener('fullscreenchange', queueFitFrame);
     if (window.visualViewport) window.visualViewport.addEventListener('resize', queueFitFrame, { passive: true });

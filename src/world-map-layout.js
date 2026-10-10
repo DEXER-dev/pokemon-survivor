@@ -73,40 +73,73 @@ export function createWorldLayout (seed) {
         turn: rng.int(0, 3),
     };
 
-    const size = pickPondSize(rng);
-    const pondScale = rng.range(0.88, 1.10);
-    const pondShapeSeed = rng.int(1, 0x7fffffff);
-    const pondDraft = { ...size, scale: pondScale, shapeSeed: pondShapeSeed };
-    const pondMinRadius = 132 + maxPondRadius(pondDraft, 'x') + 24;
-    let pond = null;
-    for (let attempt = 0; attempt < 64; attempt++) {
-        // Put the lake in a seeded diagonal sector near the opening area so the whole landmark
-        // can be discovered on the first screen without covering the safe spawn patch.
-        const diagonal = rng.int(0, 3) * Math.PI / 2 + Math.PI / 4;
-        const angle = diagonal + rng.range(-0.12, 0.12);
-        const candidate = roundedPoint(angle, rng.range(pondMinRadius, Math.min(470, pondMinRadius + 28)));
-        // Keep the bank outside the safe starting patch and away from the landmark grove.
-        if (Math.hypot(candidate.x, candidate.y) < pondMinRadius) continue;
-        if (Math.hypot(candidate.x - grove.x, candidate.y - grove.y) < 540) continue;
-        pond = candidate;
-        break;
-    }
-    if (!pond) {
-        // Opposite the grove is always a safe, reachable fallback within the opening viewport.
-        pond = roundedPoint(groveAngle + Math.PI, Math.max(320, pondMinRadius + 32));
-    }
-
     return Object.freeze({
         seed: worldSeed,
-        pond: Object.freeze({ ...pond, ...size, scale: pondScale, shapeSeed: pondShapeSeed }),
+        waterCellSize: 1200,
         grove: Object.freeze(grove),
     });
 }
 
 export const DEFAULT_WORLD_LAYOUT = createWorldLayout(0);
-export const POND = DEFAULT_WORLD_LAYOUT.pond;
+const POND_CACHE = new WeakMap();
 
-export function inPondClearing (x, y, margin = 0, pond = POND) {
+/** Each region rolls independently of exploration order; remember only a bounded working set. */
+export function pondForCell (layout, gx, gy) {
+    let cache = POND_CACHE.get(layout);
+    if (!cache) { cache = new Map(); POND_CACHE.set(layout, cache); }
+    const id = `${gx},${gy}`;
+    if (cache.has(id)) return cache.get(id);
+    const seed = (layout.seed ^ Math.imul(gx, 0x1e35a7bd)
+        ^ Math.imul(gy, 0x94d049bb) ^ 0x65d8a931) >>> 0;
+    const rng = makeRng(seed);
+    let pond = null;
+    if (rng.chance(0.42)) {
+        const size = pickPondSize(rng);
+        const position = gx === 0 && gy === 0
+            ? roundedPoint(rng.range(0, TAU), rng.range(420, 470))
+            : { x: gx * layout.waterCellSize + rng.int(-160, 160),
+                y: gy * layout.waterCellSize + rng.int(-160, 160) };
+        const draft = { id, ...position, ...size, scale: rng.range(0.88, 1.10),
+            shapeSeed: rng.int(1, 0x7fffffff) };
+        const spawnClearance = 180 + Math.max(maxPondRadius(draft, 'x'), maxPondRadius(draft, 'y'));
+        if (Math.hypot(draft.x, draft.y) >= spawnClearance
+            && Math.hypot(draft.x - layout.grove.x, draft.y - layout.grove.y) >= 540) {
+            pond = Object.freeze(draft);
+        }
+    }
+    if (cache.size >= 256) cache.delete(cache.keys().next().value);
+    cache.set(id, pond);
+    return pond;
+}
+
+/** Include shores whose center lies outside the requested rectangle. No visited-world list needed. */
+export function pondsInBounds (layout, bounds, margin = 0) {
+    const cell = layout.waterCellSize;
+    const padding = 320 + margin;
+    const gx0 = Math.floor((bounds.left - padding + cell / 2) / cell);
+    const gx1 = Math.floor((bounds.right + padding + cell / 2) / cell);
+    const gy0 = Math.floor((bounds.bottom - padding + cell / 2) / cell);
+    const gy1 = Math.floor((bounds.top + padding + cell / 2) / cell);
+    const ponds = [];
+    for (let gx = gx0; gx <= gx1; gx++) {
+        for (let gy = gy0; gy <= gy1; gy++) {
+            const pond = pondForCell(layout, gx, gy);
+            if (!pond) continue;
+            const rx = maxPondRadius(pond, 'x') + margin + 60;
+            const ry = maxPondRadius(pond, 'y') + margin + 60;
+            if (pond.x + rx >= bounds.left && pond.x - rx <= bounds.right
+                && pond.y + ry >= bounds.bottom && pond.y - ry <= bounds.top) ponds.push(pond);
+        }
+    }
+    return ponds;
+}
+
+export function inPondClearing (x, y, margin = 0, pond = DEFAULT_WORLD_LAYOUT) {
+    if (!pond) return false;
+    if (pond.waterCellSize) {
+        return pondsInBounds(pond, { left: x, right: x, bottom: y, top: y }, margin)
+            .some((entry) => inPondClearing(x, y, margin, entry));
+    }
     const rx = maxPondRadius(pond, 'x') + margin;
     const ry = maxPondRadius(pond, 'y') + margin;
     const nx = (x - pond.x) / rx;

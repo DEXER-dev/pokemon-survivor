@@ -7,6 +7,7 @@ import {
     skillParticlePresetForEvent,
 } from './skills/registry.js';
 import { SHINY_GOLD } from './shiny.js';
+import { BLASTOISE_SKILL } from './skills/active/mega/blastoise.js';
 
 const POOL_SIZE = 64;
 const SIGNATURE_SKILL_FORMS = new Set(['blastoise', 'blaziken', 'gardevoir', 'legend-hooh']);
@@ -518,7 +519,7 @@ export class NativeParticleBursts {
         }
         this.zTrailTimer -= dt;
         if (this.zTrailTimer > 0) return;
-        this.zTrailTimer = 0.065;
+        this.zTrailTimer = 0.035;
         this.burst('mush', shot.x, shot.y, Math.atan2(shot.dy, shot.dx), `z-${shot.id}-trail`);
     }
 
@@ -580,6 +581,7 @@ export class NativeParticleBursts {
             let particleAngle = angle;
             let burstOptions = null;
             if (fx.form.id === 'blastoise') {
+                if (fx.age < BLASTOISE_SKILL.charge) continue;
                 // Distribute small forward-moving droplets through the lane; the continuous beam
                 // silhouette is drawn by the skill module instead of relying on random cannon icons.
                 const alongSlot = (phase * 5) % 12;

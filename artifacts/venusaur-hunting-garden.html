@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MEGA 妙蛙花 · 巨花猎场预览</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111d20;color:#eef4df;font-family:system-ui,"Microsoft YaHei",sans-serif}main{max-width:1120px;margin:28px auto;padding:0 24px}header{display:flex;justify-content:space-between;align-items:center;gap:16px}small{color:#a8c495;letter-spacing:2px}h1{margin:6px 0 12px;font-size:30px}p{color:#b4c3b7;margin:6px 0 20px;line-height:1.7}button{background:#d4e89e;border:0;border-radius:9px;padding:12px 20px;color:#253c2a;cursor:pointer;font-weight:700}button.secondary{background:#263b36;color:#d5e2cb;margin-left:8px}canvas{display:block;width:100%;border:1px solid #486149;border-radius:16px;background:#dce9ba;image-rendering:pixelated;cursor:crosshair}.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}.phase{border:1px solid #34493c;border-radius:10px;padding:12px;color:#9bb29e;transition:.2s}.phase.active{border-color:#e8bf77;background:#304631;color:#fff2c9}.phase b{display:block;margin-bottom:6px}.phase span{font-size:12px}footer{margin:15px 0;color:#a8b5aa;font-size:13px}.bar{height:3px;background:#324537;margin:18px 0 0}.bar div{height:100%;background:#efaabb;width:0} @media(max-width:700px){header{display:block}.phases{grid-template-columns:1fr 1fr}h1{font-size:24px}}
+</style>
+<main>
+<header><div><small>MEGA VENUSAUR / 技能视觉提案 01</small><h1>巨花猎场</h1></div><div><button id="replay">重新释放</button><button class="secondary" id="speed">慢速观看</button></div></header>
+<p>投下花苞，让巨花扎根猎敌。藤蔓把敌人拖向花心，毒粉持续侵蚀，最后合拢、绽放。点击草地可以更换释放位置。</p>
+<canvas id="view" width="1080" height="610"></canvas>
+<div class="bar"><div id="progress"></div></div>
+<div class="phases"><div class="phase"><b>01 · 花苞落地</b><span>抛物线投种 / 扎根扬尘</span></div><div class="phase"><b>02 · 藤蔓捕猎</b><span>粗藤抓敌 / 拖向花心</span></div><div class="phase"><b>03 · 毒粉花域</b><span>间歇喷粉 / 困敌持续伤害</span></div><div class="phase"><b>04 · 合拢绽放</b><span>花瓣内收 / 花浪终结</span></div></div>
+<footer>独立动画概念预览 · 约 8 秒一轮 · 实际技能尚未替换。巨花是临时召唤物，敌人拉动与伤害数字为演示。</footer>
+</main>
+<script>
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
+const hero=new Image();hero.src='../assets/icons/VENUSAUR_1.png';
+const foe=new Image();foe.src='../assets/icons/PIKACHU.png';
+let t=0,rate=1,last=0,target={x:645,y:305},enemies=[],running=true;
+const phases=[...document.querySelectorAll('.phase')];
+const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));const ease=n=>1-(1-clamp(n))**3;
+function reset(){t=0;running=true;enemies=Array.from({length:9},(_,i)=>{const a=i*Math.PI*2/9;return{x:target.x+Math.cos(a)*(155+i%3*29),y:target.y+Math.sin(a)*(115+i%3*20),a};});}
+document.querySelector('#replay').onclick=reset;
+document.querySelector('#speed').onclick=e=>{rate=rate===1?.45:1;e.target.textContent=rate===1?'慢速观看':'正常速度';};
+canvas.onclick=e=>{const r=canvas.getBoundingClientRect();target={x:clamp((e.clientX-r.left)*1080/r.width,420,830),y:clamp((e.clientY-r.top)*610/r.height,190,400)};reset();};
+function ellipse(x,y,rx,ry,color,rotation=0){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(.01,rx),Math.max(.01,ry),rotation,0,Math.PI*2);ctx.fill();}
+function line(points,color,width){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(...points[0]);for(let i=1;i<points.length;i++)ctx.lineTo(...points[i]);ctx.stroke();}
+function sprite(image,x,y,size){if(!image.complete||!image.naturalWidth)return;ctx.imageSmoothingEnabled=false;const sw=image.naturalWidth/2;ctx.drawImage(image,0,0,sw,image.naturalHeight,x-size/2,y-size/2,size,size);}
+function petal(a,length,width,color){ctx.save();ctx.rotate(a);ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,10);ctx.bezierCurveTo(-width, -length*.35,-width*.8,-length*.9,0,-length);ctx.bezierCurveTo(width*.8,-length*.9,width,-length*.35,0,10);ctx.fill();ctx.strokeStyle='#a23f64';ctx.lineWidth=3;ctx.stroke();line([[0,-18],[0,-length*.76]],'#ffc3cc',3);ctx.restore();}
+function flower(x,y,openness,scale=1){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ellipse(0,30,78,20,'#446f3c55');for(let i=0;i<6;i++){const a=i*Math.PI/3;ellipse(Math.cos(a)*44,22+Math.sin(a)*14,42,13,i%2?'#436e35':'#628f38',a);}line([[0,30],[0,-28]],'#2f6535',24);line([[-4,25],[-4,-24]],'#83ac48',6);ctx.translate(0,-27);ctx.scale(1,.78);for(let i=0;i<7;i++)petal(i*Math.PI*2/7,40+openness*61,16+openness*24,i%2?'#ed7393':'#f08da3');for(let i=0;i<5;i++)petal(i*Math.PI*2/5+.4,28+openness*35,13+openness*12,'#ffc0c5');ellipse(0,0,24,24,'#813753');ellipse(0,-2,18,18,'#e5bc59');for(let i=0;i<9;i++)ellipse(Math.cos(i*2.4)*12,Math.sin(i*2.4)*12,3,3,'#fff0a7');ctx.restore();}
+function background(){ctx.fillStyle='#dce9ba';ctx.fillRect(0,0,1080,610);for(let i=0;i<60;i++){const x=(i*137+48)%1080,y=(i*83+31)%610;ellipse(x,y,25+i%7*7,12,'#b5cf912a');line([[x-3,y+5],[x-5,y],[x-3,y+5],[x+2,y-2]],'#97b57555',1);}for(let i=0;i<12;i++){const x=35+i*91,y=i%2?575:40;ellipse(x,y,30,15,'#6f99496b');for(let j=0;j<4;j++)ellipse(x-18+j*12,y-5,12,18,'#86ab52');}ellipse(235,340,62,19,'#5c734044');sprite(hero,235,295,112);ctx.font='bold 16px system-ui';ctx.fillStyle='#3a5738';ctx.textAlign='center';ctx.fillText('MEGA 妙蛙花',235,380);}
+function render(){background();const x=target.x,y=target.y;
+let phase=t<1.2?0:t<3.2?1:t<6.2?2:3;
+phases.forEach((p,i)=>p.classList.toggle('active',i===phase&&t<8.4));document.querySelector('#progress').style.width=clamp(t/8.4)*100+'%';
+const grow=ease((t-.85)/.6),pull=ease((t-1.5)/2),fade=1-clamp((t-7.6)/.8);
+if(t>.85&&t<8.4){ctx.globalAlpha=fade;ellipse(x,y+15,210*grow,145*grow,'#75834320');ctx.strokeStyle='#6b97465c';ctx.lineWidth=3;ctx.setLineDash([8,12]);ctx.beginPath();ctx.ellipse(x,y+15,205*grow,140*grow,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;}
+for(let i=0;i<enemies.length;i++){const e=enemies[i];const release=ease((t-6.85)/.6);const px=e.x+(x+Math.cos(e.a)*96-e.x)*pull+Math.cos(e.a)*release*82;const py=e.y+(y+Math.sin(e.a)*72-e.y)*pull+Math.sin(e.a)*release*60;
+if(t>1.15&&t<6.7){const reach=ease((t-1.15-i*.055)/.5);const ex=x+(px-x)*reach,ey=y+(py-y)*reach;const mx=(x+ex)/2+Math.sin(i*2)*22,my=(y+ey)/2-30;ctx.strokeStyle='#345930';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(x,y+20);ctx.quadraticCurveTo(mx,my,ex,ey);ctx.stroke();ctx.strokeStyle='#88ac42';ctx.lineWidth=6;ctx.stroke();ellipse(ex,ey,14,10,'#558335',e.a);}
+ctx.globalAlpha=t>7?1-clamp((t-7)/.7):1;ellipse(px,py+20,20,7,'#50643b44');sprite(foe,px,py,40);ctx.fillStyle='#527047';ctx.fillRect(px-18,py-29,36,4);ctx.fillStyle=t>3.2?'#cd7694':'#a8ca58';ctx.fillRect(px-18,py-29,36*(1-clamp((t-2)/5.4)),4);ctx.globalAlpha=1;
+if(t>3.2&&t<6.1){const cycle=(t-3.2+i*.08)%.85;if(cycle<.55){ctx.globalAlpha=1-cycle/.55;ctx.fillStyle='#97447c';ctx.font='bold 16px system-ui';ctx.fillText('毒',px,py-40-cycle*28);ctx.globalAlpha=1;}}}
+if(t<1){const p=clamp(t);const bx=235+(x-235)*p,by=280+(y-280)*p-Math.sin(p*Math.PI)*145;ellipse(bx,by+10,14,22,'#487a36',p*5);ellipse(bx,by,10,18,'#ef85a2',p*5);}
+if(t>.85&&t<8.4){ctx.globalAlpha=fade;const close=t<6.2?1:1-ease((t-6.2)/.55);flower(x,y,grow*close,grow*(t>6.75?1+.14*Math.sin(clamp((t-6.75)/.55)*Math.PI):1));ctx.globalAlpha=1;}
+if(t>2.8&&t<6.5){for(let i=0;i<36;i++){const age=(t*.5+i*.073)%1;const a=i*2.399+t*.16;const r=age*170;ctx.globalAlpha=Math.sin(age*Math.PI)*.45;ellipse(x+Math.cos(a)*r,y-27+Math.sin(a)*r*.6-age*18,8+age*12,6+age*8,i%2?'#ab6dbe':'#d1a0cb');}ctx.globalAlpha=1;}
+if(t>6.75&&t<8.4){const p=clamp((t-6.75)/1.4);const radius=ease(p)*240;ctx.globalAlpha=(1-p)*.9;ctx.strokeStyle='#ec91ae';ctx.lineWidth=15*(1-p)+2;ctx.beginPath();ctx.ellipse(x,y,radius,radius*.68,0,0,Math.PI*2);ctx.stroke();for(let i=0;i<24;i++){const a=i*Math.PI/12;ctx.save();ctx.translate(x+Math.cos(a)*radius,y+Math.sin(a)*radius*.68-20);ctx.rotate(a+p*4);ellipse(0,0,13,6,i%2?'#f69bb6':'#ffdbb8');ctx.restore();}ctx.globalAlpha=1;}
+ctx.textAlign='left';ctx.fillStyle='#2d4735';ctx.font='bold 23px system-ui';ctx.fillText(['花苞投落 · 巨花扎根','藤蔓捕猎 · 拖入花心','毒粉喷涌 · 持续侵蚀','合拢蓄势 · 终焉绽放'][phase],30,540);ctx.font='14px system-ui';ctx.fillStyle='#5c7352';ctx.fillText(t>8.4?'演示结束 · 点击重新释放，或点击草地更换位置':'技能动画概念 / 不代表最终数值',30,567);}
+function tick(now){if(last&&running)t+=Math.min((now-last)/1000,.05)*rate;last=now;render();requestAnimationFrame(tick);}reset();requestAnimationFrame(tick);
+</script>
+</html>

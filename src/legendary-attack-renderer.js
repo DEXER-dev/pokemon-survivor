@@ -1,3 +1,5 @@
+import { lugiaImpactAreas } from './lugia-attacks.js';
+
 const corners = (shape) => {
     const ux = Math.cos(shape.angle);
     const uy = Math.sin(shape.angle);
@@ -58,12 +60,34 @@ export function drawLegendaryAttackPattern (g, attack, pal, pulse, impact) {
     const fill = pal.get(familyColor, impact ? 118 : Math.round(42 + 25 * pulse));
     const edge = pal.get(impact ? '#fff0c2' : familyColor, impact ? 255 : Math.round(185 + 55 * pulse));
     const lineWidth = impact ? 6 : 4;
-    for (const shape of attack.areas || []) {
+    const areas = impact && attack.family === 'legend-lugia'
+        ? lugiaImpactAreas(attack, attack.impactDuration - Math.max(0, attack.timeLeft)) : attack.areas || [];
+    for (const shape of areas) {
+        // Lugia's moving bolts have their own wind sprites. Collision rectangles are
+        // invisible during flight; outlining them turns each bolt into a boxed arrow.
+        if (impact && attack.family === 'legend-lugia' && shape.shape === 'rect') continue;
         if (shape.telegraph === 'meteor-column') {
             drawRect(g, shape, pal.get('#39c985', impact ? 74 : 25),
                 pal.get(impact ? '#eafff0' : '#6bf0a8', impact ? 245 : 185), lineWidth);
+        } else if (shape.shape === 'ring') {
+            g.strokeColor = fill;
+            g.lineWidth = shape.radius - shape.innerRadius;
+            g.circle(shape.x, shape.y, (shape.radius + shape.innerRadius) / 2);
+            g.stroke();
+            g.strokeColor = edge;
+            g.lineWidth = lineWidth;
+            g.circle(shape.x, shape.y, shape.radius);
+            g.stroke();
+            g.circle(shape.x, shape.y, shape.innerRadius);
+            g.stroke();
         } else if (shape.shape === 'circle') drawCircle(g, shape, fill, edge, lineWidth);
-        else drawRect(g, shape, fill, edge, lineWidth);
+        else if (attack.family === 'legend-lugia') {
+            const progress = Math.max(0, Math.min(1, 1 - attack.timeLeft / attack.windupDuration));
+            // Later volleys stay visible but quieter, making the attack order readable.
+            const later = (shape.delay || 0) > 0;
+            drawRect(g, shape, pal.get('#72def2', (later ? 14 : 22) + progress * 22),
+                pal.get(later ? '#6da5bc' : '#b5f4ff', (later ? 85 : 140) + progress * 65), 2);
+        } else drawRect(g, shape, fill, edge, lineWidth);
     }
     for (const shape of attack.safeAreas || []) {
         if (shape.shape === 'circle') drawCircle(g, shape, pal.get('#42f2e7', impact ? 74 : 30),

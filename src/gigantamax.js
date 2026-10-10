@@ -57,7 +57,7 @@ export function gigantamaxCardsFor (chain, build) {
             const id = `gigantamax-${form.id}`;
             if ((build.stacks[id] || 0) > 0) continue;
             cards.push({
-                id, max: 1, name: form.label,
+                id, max: 1, name: form.label, icon: 'GIGANTAMAX',
                 note: form.evolutionLocked ? '超极巨化期间不能进化 · 保留喵喵形态与专属技能'
                     : '解锁超极巨形态 · 体型大幅成长 · 专属区域技能',
                 delta: () => `变为${form.name} · 按 Q 选择、X 释放`,

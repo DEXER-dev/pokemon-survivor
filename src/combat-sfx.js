@@ -31,6 +31,9 @@ const Z_AUDIO_ELEMENT = Object.freeze({
 });
 
 const RAYQUAZA_ENTRY_SOUND = 'rayquaza-cloud-opening.ogg';
+const LUGIA_ATTACK_SOUNDS = Object.freeze([
+    'aeroblast', 'wing-gust', 'tidal-ring', 'wing-sweep', 'cross-current',
+]);
 const LUGIA_ENTRY_AUDIO_PLAN = Object.freeze([
     Object.freeze({ delay: 0, file: 'lugia-opening/water-emerge-whoosh.mp3', volume: 0.30,
         key: 'lugia-water-rise' }),
@@ -53,6 +56,15 @@ const CHARIZARD_X_AUDIO_PLAN = Object.freeze([
 const resolveSound = (event) => {
     if (!event) return null;
     const kind = event.kind || '';
+    if (kind === 'lugia-boss-charge' || kind === 'lugia-boss-release') {
+        const move = LUGIA_ATTACK_SOUNDS[event.moveIndex];
+        if (!move) return null;
+        const charge = kind === 'lugia-boss-charge';
+        const file = charge ? 'charge' : event.moveIndex === 4 && event.cue > 0 ? 'cross-reply' : move;
+        return { key: `lugia-boss-${charge ? 'charge' : `${move}-${event.cue || 0}`}`,
+            file: `lugia-boss/${file}.ogg`, volume: charge ? 0.18 : [0.40, 0.29, 0.38, 0.24, 0.30][event.moveIndex],
+            priority: 3, cooldown: 0, globalCooldown: 0, sequence: true, maxAge: 220 };
+    }
     if (kind === 'legendary-lair-entry') {
         return event.fam === 'legend-rayquaza'
             ? { key: 'rayquaza-lair-opening', file: RAYQUAZA_ENTRY_SOUND, volume: 0.64,
@@ -124,6 +136,7 @@ export class CombatSfx {
         this.roundRobin = 0;
         this.pending = new Array(12);
         this.nPending = 0;
+        this.lugiaAudio = null;
 
         if (this.muted) return;
 
@@ -133,6 +146,7 @@ export class CombatSfx {
         sounds.add(RAYQUAZA_ENTRY_SOUND);
         for (const cue of CHARIZARD_X_AUDIO_PLAN) sounds.add(cue.file);
         for (const cue of LUGIA_ENTRY_AUDIO_PLAN) sounds.add(cue.file);
+        for (const file of [...LUGIA_ATTACK_SOUNDS, 'charge', 'cross-reply']) sounds.add(`lugia-boss/${file}.ogg`);
         for (const file of sounds) {
             const ext = file.slice(file.lastIndexOf('.'));
             cc.assetManager.loadRemote(`assets/audio/${file}`, { ext }, (err, clip) => {
@@ -142,6 +156,35 @@ export class CombatSfx {
                 }
                 if (!this.destroyed) this.clips[file] = clip;
             });
+        }
+    }
+
+    /** Read the simulation clock, so pausing never advances future volley sounds. */
+    syncLugiaAttack (attack) {
+        if (!attack?.active || attack.family !== 'legend-lugia' || attack.phase === 'idle') {
+            this.lugiaAudio = null;
+            let kept = 0;
+            for (let i = 0; i < this.nPending; i++) {
+                if (!this.pending[i].key.startsWith('lugia-boss-')) this.pending[kept++] = this.pending[i];
+            }
+            this.nPending = kept;
+            return;
+        }
+        if (!this.lugiaAudio || this.lugiaAudio.count !== attack.attackCount) {
+            this.lugiaAudio = { count: attack.attackCount, next: 0,
+                delays: [...new Set(attack.areas.flatMap((route) =>
+                    attack.lugiaShots.map((shot) => shot + (route.delay || 0))))].sort((a, b) => a - b) };
+            if (attack.phase === 'warning') this.enqueue({ kind: 'lugia-boss-charge', moveIndex: attack.moveIndex });
+        }
+        if (attack.phase !== 'impact') return;
+        const elapsed = attack.impactDuration - Math.max(0, attack.timeLeft);
+        const audio = this.lugiaAudio;
+        while (audio.next < audio.delays.length && audio.delays[audio.next] <= elapsed + 0.0001) {
+            const cue = audio.next++;
+            // Don't replay missed launches after a long frame stall.
+            if (elapsed - audio.delays[cue] <= 0.12) {
+                this.enqueue({ kind: 'lugia-boss-release', moveIndex: attack.moveIndex, cue });
+            }
         }
     }
 
@@ -191,6 +234,7 @@ export class CombatSfx {
         for (let offset = 0; offset < this.nPending; offset++) {
             const i = (this.roundRobin + offset) % this.nPending;
             const sound = this.pending[i];
+            if (sound.maxAge && now - sound.enqueuedAt > sound.maxAge) continue;
             if (sound.scheduledAt && now < sound.scheduledAt) {
                 waiting.push(sound);
                 continue;

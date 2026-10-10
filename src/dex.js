@@ -20,7 +20,7 @@ import { hasCompanionSignature } from './skills/active/legendary/companion-bomba
 const W = 640, H = 360;
 const at = (v, tier) => Array.isArray(v) ? v[Math.min(tier - 1, v.length - 1)] : v;
 const $ = (id) => document.getElementById(id);
-const kindName = { bullet: '弹幕', beam: '光束', field: '领域', lunge: '突进', orbit: '环绕' };
+const kindName = { bullet: '弹幕', beam: '光束', field: '领域', garden: '花园', lunge: '突进', orbit: '环绕' };
 const icon = (key) => key ? `assets/icons/${encodeURIComponent(key)}.png` : '';
 
 function indexDexTargets (enemies) {
@@ -30,6 +30,60 @@ function indexDexTargets (enemies) {
     for (let i = 0; i < enemies.n; i++) {
         if (!enemies.dead[i]) enemies.grid.insert(i, enemies.x[i], enemies.y[i]);
     }
+}
+
+function createPreviewFlora (player) {
+    const plants = [
+        [-190, -128, 4], [-46, -196, 0], [164, -132, 9],
+        [236, 42, 6], [98, 176, 2], [-174, 154, 11],
+    ].map(([dx, dy, frameIndex]) => ({
+        x: player.x + dx, y: player.y + dy, frameIndex, size: 64, scale: 1,
+    }));
+    const planted = [];
+    const scratch = [];
+    let sequence = 0;
+    return {
+        plants,
+        plant (x, y) {
+            const index = sequence++;
+            const frameIndex = index % 2 === 0 ? index % 4 : 8 + index % 4;
+            if (planted.length >= 12) {
+                plants.splice(6, 1);
+                planted.shift();
+            }
+            const plant = { x, y, frameIndex, size: 58, scale: 0.88 };
+            planted.push(plant);
+            plants.push(plant);
+            return plant;
+        },
+        firingPlants (x, y, radius, limit = 8, cursor = 0) {
+            scratch.length = 0;
+            const radius2 = radius * radius;
+            let total = 0;
+            for (const plant of plants) {
+                const dx = plant.x - x;
+                const dy = plant.y - y;
+                if (dx * dx + dy * dy <= radius2) total++;
+            }
+            scratch.total = total;
+            if (!total || limit <= 0) return scratch;
+            const start = cursor % total;
+            const wanted = Math.min(limit, total);
+            for (let pass = 0; pass < 2 && scratch.length < wanted; pass++) {
+                let index = 0;
+                for (const plant of plants) {
+                    const dx = plant.x - x;
+                    const dy = plant.y - y;
+                    if (dx * dx + dy * dy > radius2) continue;
+                    const current = index++;
+                    if (pass === 0 ? current < start : current >= start) continue;
+                    scratch.push(plant);
+                    if (scratch.length >= wanted) break;
+                }
+            }
+            return scratch;
+        },
+    };
 }
 
 export function makeDexArena (fam, tier, count, target) {
@@ -66,9 +120,10 @@ export function makeDexArena (fam, tier, count, target) {
     }
     indexDexTargets(enemies);
     const skills = new SkillSystem();
+    const flora = createPreviewFlora(player);
     const fxCount = 40;
     const arena = {
-        fam, cfg, seg, chain, enemies, skills, player,
+        fam, cfg, seg, chain, enemies, skills, player, flora,
         build: { dmg: 1, fireRate: 1, skillSize: 1, splashR: 1, stacks: Object.create(null) },
         camera: { x: player.x, y: player.y, z: DEX_PREVIEW_ZOOM },
         visibleSize: { width: W, height: H },
@@ -90,7 +145,7 @@ export function makeDexArena (fam, tier, count, target) {
 
 export function installDex (cc, isTitleVisible) {
     const dialog = $('dexDialog'), canvas = $('dexArena'), ctx = canvas.getContext('2d');
-    // The game frame is letterboxed to 16:9. The Pokédex needs the full viewport on phones.
+    // The Pokédex needs the full viewport on phones, independent of the game frame.
     document.body.append(dialog);
     const list = $('dexList'), search = $('dexSearch');
     const countInput = $('dexCount'), activeSelect = $('dexActiveForm');
@@ -99,7 +154,7 @@ export function installDex (cc, isTitleVisible) {
         .sort((a, b) => SPECIES[a.id].dex[0] - SPECIES[b.id].dex[0]);
     let fam = families[0], tier = 1, count = 1, arena = null, target = { x: 385, y: 180 };
     let formOptions = [], pendingCast = null;
-    let raf = 0, last = 0, accumulator = 0, returnFocus = null;
+    let accumulator = 0, returnFocus = null;
     function resetArena () {
         arena = makeDexArena(fam, tier, count, target);
         applySelectedForm();
@@ -144,7 +199,7 @@ export function installDex (cc, isTitleVisible) {
         $('dexLegendaryCast').hidden = !hasCompanionSignature({ fam: fam.id });
         $('dexNumber').textContent = dexText(fam.id, tier);
         $('dexName').textContent = displayName(fam.id, tier);
-        $('dexType').textContent = `${typeText(fam.id, tier)} · ${fam.kind}`;
+        $('dexType').textContent = `${typeText(fam.id, tier)} · ${fam.id === 'chikorita' ? '花园弹幕' : fam.kind}`;
         $('dexPortrait').replaceChildren();
         const img = document.createElement('img'); img.src = icon(iconKey(fam.id, tier)); img.alt = '';
         $('dexPortrait').append(img);
@@ -204,6 +259,9 @@ export function installDex (cc, isTitleVisible) {
                 : `${entry.form.name || entry.form.megaName}专属 · 冷却 ${entry.skill.cooldown || 0} 秒 · ${entry.skill.radius ? `范围 ${entry.skill.radius}px` : entry.skill.range ? `距离 ${entry.skill.range}px` : '特殊效果'}${entry.skill.duration ? ` · 持续 ${entry.skill.duration} 秒` : ''} · 使用正式技能与粒子系统，命中仅作用于训练靶`
             : '当前阶没有可释放的主动技能；部分最终形态可通过 MEGA 或超极巨化解锁。';
         $('dexCast').hidden = !entry;
+        if (entry?.skill.description) {
+            $('dexActiveInfo').textContent = `${entry.form.name || entry.form.megaName}专属 · ${entry.skill.description} · 冷却 ${entry.skill.cooldown} 秒 · 持续 ${entry.skill.duration} 秒`;
+        }
         updateCastButton();
     }
     function updateCastButton () {
@@ -227,48 +285,52 @@ export function installDex (cc, isTitleVisible) {
             arena.skills.splashMul = arena.build.splashR || 1;
             arena.skills.step(dt, arena.chain, arena.enemies,
                 arena.build.dmg * lateDamageMultiplier(arena.level), arena.player.maxSpeed,
-                arena.build.skillSize, null, arena.build.fireRate);
+                arena.build.skillSize, null, arena.build.fireRate, arena.flora);
         }
         updateCastButton();
     }
     function draw () {
+        if (dialog.hidden) return;
         const renderedGame = document.getElementById('GameCanvas');
         if (!renderedGame) return;
         try {
             ctx.clearRect(0, 0, W, H);
             // Cocos preserves this camera frame so its actual ParticleSystem2D output can be
             // downscaled into the Pokédex viewport without redrawing particles in Canvas2D.
-            ctx.drawImage(renderedGame, 0, 0, W, H);
+            // SHOW_ALL preserves the training room's 16:9 camera on every window shape.
+            // Copy only that viewport, excluding the surrounding letterbox bars.
+            const viewport = cc.view.getViewportRect();
+            if (viewport.width <= 0 || viewport.height <= 0) return;
+            ctx.drawImage(renderedGame, viewport.x,
+                renderedGame.height - viewport.y - viewport.height,
+                viewport.width, viewport.height, 0, 0, W, H);
         } catch (error) {
             console.warn('[dex] native preview capture failed:', error);
         }
-    }
-    function frame (now) {
-        if (dialog.hidden) return;
-        const dt = Math.min(.05, Math.max(0, (now - last) / 1000)); last = now;
-        draw();
-        raf = requestAnimationFrame(frame);
     }
     function open (source) {
         if (!dialog.hidden) return;
         returnFocus = source || document.activeElement;
         dialog.hidden = false; document.body.classList.add('game-modal-open', 'dex-opened');
+        window.dispatchEvent(new Event('dex-viewport-change'));
         $('wrap').setAttribute('inert', '');
         window.__game?.input?._blur?.();
         updateList(); updateDetails();
         // The title screen deliberately pauses Cocos; resume only the render loop so the isolated
         // Pokédex scene can animate. Its Game.update branch freezes the real run while this is open.
+        cc.director.on(cc.Director.EVENT_AFTER_DRAW, draw);
         cc.game.resume();
-        last = performance.now(); raf = requestAnimationFrame(frame);
         $('dexClose').focus();
     }
     function close () {
         if (dialog.hidden) return;
         dialog.hidden = true; document.body.classList.remove('dex-opened');
+        window.dispatchEvent(new Event('dex-viewport-change'));
         $('wrap').removeAttribute('inert');
         if (!isTitleVisible()) document.body.classList.remove('game-modal-open');
         setDexPreviewSimulation(null, isTitleVisible());
-        cancelAnimationFrame(raf); window.__game?.input?._blur?.();
+        cc.director.off(cc.Director.EVENT_AFTER_DRAW, draw);
+        window.__game?.input?._blur?.();
         returnFocus?.focus?.();
     }
     $('dexFromTitle').addEventListener('click', (e) => open(e.currentTarget));

@@ -1,3 +1,4 @@
+import { buildLugiaPattern, chooseLugiaMove, lugiaImpactAreas } from './lugia-attacks.js';
 import { BOSS, PLAYER } from './config.js';
 import { RAYQUAZA_ARENA_BOUNDS } from './world-mewtwo-arena.js';
 
@@ -43,8 +44,13 @@ export class LegendaryAttackSystem {
         this.sourceX = 0;
         this.sourceY = 0;
         this.attackCount = 0;
+        this.lugiaHistory = [];
+        this.lugiaShots = [0];
+        this.lugiaTravelTime = 1;
+        this.lugiaPressure = 0;
         this.locked = false;
         this.sequenceKind = '';
+        this.windupDuration = BOSS.legendaryWindup;
         this.impactDuration = BOSS.legendaryImpact;
         this.columnXs = [];
         this.columnCount = 0;
@@ -70,6 +76,7 @@ export class LegendaryAttackSystem {
 
     _buildPattern (rng, px, py, sourceX, sourceY, phaseTwo, moveIndexOverride = null) {
         this.sequenceKind = '';
+        this.windupDuration = BOSS.legendaryWindup;
         this.impactDuration = BOSS.legendaryImpact;
         this.columnXs = [];
         this.columnCount = this.shotsPerColumn = 0;
@@ -89,7 +96,8 @@ export class LegendaryAttackSystem {
         const target = { x: sourceX + ux * advance, y: sourceY + uy * advance };
         const moveCount = this.wildBoss ? 2 : this.family === 'legend-rayquaza' ? 4 : 3;
         const moveIndex = Number.isInteger(moveIndexOverride)
-            ? moveIndexOverride : this.attackCount % moveCount;
+            ? moveIndexOverride : this.family === 'legend-lugia'
+                ? chooseLugiaMove(this, rng, distance, phaseTwo) : this.attackCount % moveCount;
         const second = moveIndex === 1;
         const ultimate = this.family !== 'legend-rayquaza' && moveIndex === 2;
         const areas = [];
@@ -97,20 +105,10 @@ export class LegendaryAttackSystem {
         let name = '';
         let type = 'signature';
 
-        if (this.family === 'legend-lugia' && moveIndex === 0) {
-            // The water lane is intentionally reserved as a wide, stable route through the wave.
-            type = 'tsunami'; name = '海啸推线 · 躲进蓝色窄道';
-            this.angle = angle;
-            this.length = phaseTwo ? 700 : 650;
-            this.width = phaseTwo ? 352 : 300;
-            this.safeWidth = phaseTwo ? 80 : 92;
-            this.safeOffset = (phaseTwo ? 132 : 108) * (rng.next() < 0.5 ? -1 : 1);
-            this.x = sourceX + ux * this.length * 0.5;
-            this.y = sourceY + uy * this.length * 0.5;
-            areas.push(lane(this.x, this.y, this.length, this.width, angle));
-            this.safeAreas = [lane(this.x + nx * this.safeOffset, this.y + ny * this.safeOffset,
-                this.length - 18, this.safeWidth, angle)];
-            this.moveIndex = moveIndex;
+        if (this.family === 'legend-lugia') {
+            buildLugiaPattern(this, angle, phaseTwo, moveIndex, rng);
+            type = this.type; name = this.name;
+            areas.push(...this.areas);
         } else {
             this.angle = angle;
             this.safeWidth = this.safeOffset = 0;
@@ -142,25 +140,6 @@ export class LegendaryAttackSystem {
                         if (!phaseTwo && i === 3) continue;
                         const p = polar(target.x, target.y, radius, a);
                         areas.push(circle(p.x, p.y, phaseTwo ? 30 : 26));
-                    }
-                }
-            } else if (this.family === 'legend-lugia') {
-                if (second) {
-                    name = '气旋爆裂';
-                    for (const offset of (phaseTwo ? [-94, 0, 94] : [-76, 76])) {
-                        areas.push(lane(target.x + nx * offset, target.y + ny * offset,
-                            phaseTwo ? 560 : 500, phaseTwo ? 50 : 42, angle));
-                    }
-                } else {
-                    name = '苍穹风眼';
-                    const count = phaseTwo ? 10 : 8;
-                    areas.push(circle(target.x, target.y, phaseTwo ? 55 : 46));
-                    const ringRadius = phaseTwo ? 166 : 150;
-                    for (let i = 0; i < count; i++) {
-                        const a = angle + i * TAU / count;
-                        if (!phaseTwo && i === 2) continue;
-                        const p = polar(target.x, target.y, ringRadius, a);
-                        areas.push(circle(p.x, p.y, phaseTwo ? 34 : 30));
                     }
                 }
             } else if (this.family === 'legend-hooh') {
@@ -513,6 +492,11 @@ export class LegendaryAttackSystem {
     }
 
     _inside (shape, px, py, safe = false) {
+        if (shape.shape === 'ring') {
+            const distance = Math.hypot(px - shape.x, py - shape.y);
+            return distance <= shape.radius + PLAYER.radius
+                && distance >= Math.max(0, shape.innerRadius - PLAYER.radius);
+        }
         if (shape.shape === 'circle') {
             const radius = safe ? Math.max(0, shape.radius - PLAYER.radius) : shape.radius + PLAYER.radius;
             return Math.hypot(px - shape.x, py - shape.y) <= radius;
@@ -582,7 +566,7 @@ export class LegendaryAttackSystem {
             if (this.cooldown <= 0) {
                 this._buildPattern(rng, px, py, sourceX, sourceY, hpRatio <= 0.5);
                 this.phase = 'warning';
-                this.timeLeft = BOSS.legendaryWindup;
+                this.timeLeft = this.windupDuration;
                 this.attackCount++;
             }
             return null;
@@ -599,12 +583,27 @@ export class LegendaryAttackSystem {
             this.phase = 'impact';
             this.timeLeft = this.impactDuration;
             if (this.sequenceKind) {
-                const hit = this.sequenceKind === 'tornado' ? this._contains(px, py)
+                const hit = this.sequenceKind.startsWith('lugia-')
+                    ? lugiaImpactAreas(this, 0).some((area) => this._inside(area, px, py))
+                    : this.sequenceKind === 'tornado' ? this._contains(px, py)
                     : this.sequenceKind === 'ring' && this._ringContains(px, py, 0);
                 this.sequenceHitResolved = hit;
                 return this._result(hit, { sequenceStart: true });
             }
             return this._result(this._contains(px, py));
+        }
+        if (this.phase === 'impact' && this.sequenceKind.startsWith('lugia-') && !this.sequenceHitResolved) {
+            const elapsed = this.impactDuration - Math.max(0, this.timeLeft);
+            // Sample the swept wavefront so a slower frame cannot skip a narrow wind bolt.
+            const from = Math.max(0, elapsed - dt);
+            const samples = Math.max(1, Math.ceil((elapsed - from) / 0.012));
+            for (let i = 0; i <= samples; i++) {
+                const areas = lugiaImpactAreas(this, from + (elapsed - from) * i / samples);
+                if (areas.some((area) => this._inside(area, px, py))) {
+                    this.sequenceHitResolved = true;
+                    return this._result(true, { impactTick: true });
+                }
+            }
         }
         if (this.phase === 'impact' && this.sequenceKind === 'ring' && !this.sequenceHitResolved) {
             const elapsed = this.impactDuration - Math.max(0, this.timeLeft);
@@ -640,6 +639,9 @@ export class LegendaryAttackSystem {
             } else {
                 const mainBossRecovery = this.phaseTwo ? 1.35 + rng.next() * 0.45 : 1.85 + rng.next() * 0.5;
                 this.cooldown = mainBossRecovery + (this.moveIndex >= 2 ? 0.65 : 0);
+                if (this.family === 'legend-lugia') {
+                    this.cooldown = this.lugiaRecovery + rng.next() * 0.35;
+                }
             }
             if (this.sequenceKind) {
                 const result = this._result(false, { sequenceEnd: true, dodgeCheck: true });

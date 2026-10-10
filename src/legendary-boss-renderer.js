@@ -1,3 +1,4 @@
+import { drawLugiaAttack } from './lugia-attacks.js';
 import { BOSS } from './config.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -212,12 +213,17 @@ export function drawPrimaryLegendaryBossAttack (batch, pal, attack, wall) {
     const impact = attack.phase === 'impact';
     const progress = impact
         ? clamp(1 - attack.timeLeft / (attack.impactDuration || BOSS.legendaryImpact), 0, 1)
-        : clamp(1 - attack.timeLeft / BOSS.legendaryWindup, 0, 1);
+        : clamp(1 - attack.timeLeft / (attack.windupDuration || BOSS.legendaryWindup), 0, 1);
     const material = materialFor(attack.family, attack.moveIndex || 0);
     const alpha = Math.round(impact ? 230 - 45 * progress : 76 + progress * 90);
     const draw = (glyph, x, y, sx, sy, angle, tint = style.color, a = alpha) =>
         batch.draw(glyph, x, y, sx, sy, angle, pal.get(tint, a));
     const impactFrame = (slot) => slot + progress * 0.18;
+
+    if (attack.family === 'legend-lugia') {
+        drawLugiaAttack(batch, pal, attack, wall, progress, impact);
+        return true;
+    }
 
     if (attack.family === 'legend-rayquaza') {
         drawRayquazaAttack(batch, pal, attack, wall, progress, impact, draw);

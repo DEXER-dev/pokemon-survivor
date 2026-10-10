@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MEGA 水箭龟 · 潮汐加农预览</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101f2a;color:#edfaff;font-family:system-ui,"Microsoft YaHei",sans-serif}main{max-width:1120px;margin:26px auto;padding:0 24px}header{display:flex;align-items:center;justify-content:space-between;gap:20px}small{color:#83c8df;letter-spacing:2px}h1{font-size:30px;margin:8px 0 12px}p{color:#afc7d3;line-height:1.7}button{border:0;border-radius:9px;padding:12px 18px;background:#aeeaff;color:#15374b;font-weight:700;cursor:pointer}.secondary{background:#284655;color:#dbf5ff;margin-left:8px}canvas{width:100%;display:block;border-radius:15px;border:1px solid #52737b;cursor:crosshair;touch-action:none}.controls{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:18px 0}input[type=range]{width:220px;accent-color:#9fe6ff}.badge{padding:8px 14px;border-radius:20px;background:#264b5d;color:#bdedff}.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.phase{padding:13px;border:1px solid #32505e;border-radius:10px;color:#8faab5}.active{background:#214658;border-color:#a7eaff;color:#e8faff}.phase b{display:block;margin-bottom:5px}.phase span,footer{font-size:13px}footer{color:#97adba;margin-top:18px}.bar{height:3px;background:#294553;margin:12px 0}.bar div{height:100%;background:#aff1ff}@media(max-width:700px){header{display:block}.phases{grid-template-columns:1fr}button{margin-top:6px}}
+</style>
+<main><header><div><small>MEGA BLASTOISE / 主动技能预览</small><h1>潮汐加农</h1></div><div><button id="replay">重新释放</button><button id="speed" class="secondary">慢速观看</button></div></header>
+<p>巨炮聚水 → 高压水泡沿炮流推进 → 末端爆裂。移动鼠标或在草地上拖动，释放期间也能调整方向，玩家同时被反冲推向水泡的反方向。</p>
+<canvas id="view" width="1080" height="600"></canvas>
+<div class="bar"><div id="progress"></div></div>
+<div class="controls"><label>方向 <input aria-label="水炮方向" id="angle" type="range" min="-180" max="180" value="-12"> <output id="degrees">−12°</output></label><label><input id="loop" type="checkbox" checked> 连续演示</label><span class="badge" id="status">炮口聚水</span></div>
+<div class="phases"><div class="phase"><b>01 · 巨炮聚水</b><span>0.35 秒 / 水滴汇聚成泡</span></div><div class="phase"><b>02 · 高压推进</b><span>3 秒 / 三组大水泡随炮流前进</span></div><div class="phase"><b>03 · 泡体爆裂</b><span>水花扇形喷散 / 周期冲击环</span></div></div>
+<footer>独立动画预览，按当前技能尺寸和节奏绘制。游戏中玩家随炮流反方向移动，持续反冲 300 px/s，起步短暂增强至 430 px/s。预览位移按 40% 展示，便于在画面内观察完整效果。</footer></main>
+<script type="module">
+import { BLASTOISE_SKILL as skill } from '../src/skills/active/mega/blastoise.js';
+const c=document.querySelector('canvas'),g=c.getContext('2d'),hero=new Image(),trainer=new Image();hero.src='../assets/icons/BLASTOISE_1.png';trainer.src='../assets/player/NPC_198_Lucas.png';
+const slider=document.querySelector('#angle'),degrees=document.querySelector('#degrees'),status=document.querySelector('#status'),phases=[...document.querySelectorAll('.phase')];
+const origin={x:430,y:315};let t=0,rate=1,last=0,aim=-12*Math.PI/180,angle=aim;
+const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
+function restart(){t=0;origin.x=430;origin.y=315;}document.querySelector('#replay').onclick=restart;document.querySelector('#speed').onclick=e=>{rate=rate===1?.35:1;e.target.textContent=rate===1?'慢速观看':'正常速度'};
+slider.oninput=()=>{aim=Number(slider.value)*Math.PI/180;degrees.textContent=slider.value+'°'};
+function point(e){const r=c.getBoundingClientRect(),x=(e.clientX-r.left)*1080/r.width,y=(e.clientY-r.top)*600/r.height;const dx=x-origin.x,dy=y-origin.y;if(Math.hypot(dx,dy)<12)return;aim=Math.atan2(dy,dx);slider.value=Math.round(aim*180/Math.PI);degrees.textContent=slider.value+'°'}
+c.onpointermove=point;c.onpointerdown=e=>{c.setPointerCapture(e.pointerId);point(e)};
+function circle(x,y,r,fill,stroke,width=1){g.beginPath();g.arc(x,y,Math.max(.01,r),0,Math.PI*2);if(fill){g.fillStyle=fill;g.fill()}if(stroke){g.strokeStyle=stroke;g.lineWidth=width;g.stroke()}}
+function line(x1,y1,x2,y2,width,color){g.lineCap='round';g.lineWidth=width;g.strokeStyle=color;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke()}
+function bubble(x,y,r,alpha=1){g.save();g.globalAlpha=alpha;circle(x,y,r,'#3ca9dc28','#aff2ff',3);circle(x,y,r*.87,null,'#438cbb9c',2);g.beginPath();g.arc(x,y,r*.73,Math.PI*1.08,Math.PI*1.5);g.strokeStyle='#efffff';g.lineWidth=5;g.stroke();circle(x+r*.42,y+r*.43,r*.09,'#e9ffff');g.restore()}
+function render(){g.fillStyle='#dae9bd';g.fillRect(0,0,1080,600);for(let i=0;i<65;i++){const x=(i*137+23)%1080,y=(i*83+29)%600;circle(x,y,8+i%7*3,'#9ebd711b');line(x,y,x+3,y-6,1,'#94b56b50')}
+const ux=Math.cos(angle),uy=Math.sin(angle),nx=-uy,ny=ux;const pos=(a,s=0)=>({x:origin.x+ux*a+nx*s,y:origin.y+uy*a+ny*s});
+const tip=pos(skill.radius),muzzle=pos(26);if(trainer.complete&&trainer.naturalWidth){g.imageSmoothingEnabled=false;g.drawImage(trainer,0,0,64,64,origin.x-95,origin.y-35,48,48);}if(t>skill.charge&&t<skill.duration){const back=pos(-120);line(origin.x-50,origin.y,back.x-50,back.y,3,'#c68a48');circle(back.x-50,back.y,5,'#c68a48');g.font='bold 13px system-ui';g.fillStyle='#8a5d34';g.fillText('反冲移动',back.x-75,back.y+25);}g.setLineDash([7,10]);for(const side of [-1,1]){const a=pos(0,side*skill.width/2),b=pos(skill.radius,side*skill.width/2);line(a.x,a.y,b.x,b.y,1,'#539ba961')}g.setLineDash([]);
+circle(tip.x,tip.y,11,null,'#39728b',1);line(tip.x-16,tip.y,tip.x+16,tip.y,1,'#39728b');line(tip.x,tip.y-16,tip.x,tip.y+16,1,'#39728b');
+g.fillStyle='#496b3933';g.beginPath();g.ellipse(origin.x,origin.y+30,55,14,0,0,Math.PI*2);g.fill();if(hero.complete&&hero.naturalWidth){g.imageSmoothingEnabled=false;g.drawImage(hero,0,0,hero.naturalWidth/2,hero.naturalHeight,origin.x-60,origin.y-60,120,120)}
+const phase=t-skill.charge,env=clamp(phase/.09)*clamp((skill.duration-t)/.18);
+if(t<skill.charge){const p=t/skill.charge;bubble(muzzle.x,muzzle.y,9+p*32);for(let i=0;i<6;i++){const a=i*Math.PI/3+t*2,r=65*(1-p)+10;circle(muzzle.x+Math.cos(a)*r,muzzle.y+Math.sin(a)*r,3,'#efffff')}}
+else if(t<skill.duration){g.save();g.globalAlpha=env;const end=pos(skill.radius+8);line(muzzle.x,muzzle.y,end.x,end.y,96,'#117daf32');line(muzzle.x,muzzle.y,end.x,end.y,64,'#26b9ee60');for(const side of [-1,1]){const a=pos(26,side*15),b=pos(skill.radius,side*15);line(a.x,a.y,b.x,b.y,14,'#83eaffbb')}line(muzzle.x,muzzle.y,end.x,end.y,20,'#c7f7ffdd');line(muzzle.x,muzzle.y,end.x,end.y,6,'#fffffff0');
+for(let i=0;i<3;i++){const q=(phase*1.25+i/3)%1,p=pos(28+q*(skill.radius-28)),r=(28+Math.sin(q*Math.PI)*26)*(.92+.08*Math.sin(phase*17));bubble(p.x,p.y,r)}
+bubble(muzzle.x,muzzle.y,26*(.92+.08*Math.sin(phase*17)));bubble(tip.x,tip.y,35+.4*Math.sin(phase*13)*10,.8);
+for(let i=0;i<15;i++){const p=(phase*2.2+i/15)%1,a=angle+(i%5-2)*.38,d=p*65;const x=tip.x+Math.cos(a)*d,y=tip.y+Math.sin(a)*d;line(x,y,x-Math.cos(a)*8,y-Math.sin(a)*8,3,'#e6fcff'+Math.round(220*(1-p)).toString(16).padStart(2,'0'))}
+const ring=phase%1;circle(tip.x,tip.y,10+ring*61,null,'#beefff'+Math.round(200*(1-ring)).toString(16).padStart(2,'0'),3);g.restore()}
+g.font='bold 16px system-ui';g.fillStyle='#345f69';g.textAlign='center';g.fillText('MEGA 水箭龟',origin.x,origin.y+91);g.textAlign='left';g.font='bold 22px system-ui';g.fillText(t<skill.charge?'炮口聚水 · 高压蓄积':t<skill.duration?'潮汐加农 · 移动准星扫射':'释放结束 · 可重播',28,540);g.font='14px system-ui';g.fillText('移动鼠标 / 触屏拖动 / 下方滑杆调整方向',28,568);
+document.querySelector('#progress').style.width=clamp(t/skill.duration)*100+'%';status.textContent=t<skill.charge?'炮口聚水':t<skill.duration?'持续水炮 · 可转向':'释放结束';phases.forEach((p,i)=>p.classList.toggle('active',t<skill.charge?i===0:t<skill.duration?i>0:false));}
+function tick(now){const dt=last?Math.min((now-last)/1000,.05):0;last=now;t+=dt*rate;const diff=Math.atan2(Math.sin(aim-angle),Math.cos(aim-angle));angle+=clamp(diff,-skill.turnSpeed*dt*rate,skill.turnSpeed*dt*rate);if(t>skill.charge&&t<skill.duration){const recoil=skill.recoilSpeed+skill.recoilKickSpeed*Math.exp(-(t-skill.charge)/skill.recoilKickDecay);origin.x-=Math.cos(angle)*recoil*dt*rate*.4;origin.y-=Math.sin(angle)*recoil*dt*rate*.4;}if(t>skill.duration+1.1&&document.querySelector('#loop').checked)restart();render();requestAnimationFrame(tick)}requestAnimationFrame(tick);
+</script></html>

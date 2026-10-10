@@ -30,7 +30,7 @@ import { legendaryActiveFormForSegment } from './skills/active/legendary/other-l
 import { iconKey, iconKeys, shinyKey, BOSS_SPECIES, displayName, dexText, typeText } from './species.js';
 import { Input } from './input.js';
 import { Player } from './player.js';
-import { ChainSystem, evolveGate, lineTop } from './chain.js';
+import { ChainSystem, evolveGate, lineTop, isSlotExemptFamily } from './chain.js';
 import { EnemySystem } from './enemies.js';
 import { TrainerBossSystem } from './trainer-boss.js';
 import { CaptureSystem, EV_HIT, EV_MISS, EV_POP, EV_BOSS } from './capture.js';
@@ -185,6 +185,14 @@ function drawSkillEffects (game, batch) {
                 Math.atan2(skills.pvy[i], skills.pvx[i]), game.wall, i);
             continue;
         }
+        if (famId === 'chikorita') {
+            const flower = skills.pvariant[i] === 1;
+            const angle = Math.atan2(skills.pvy[i], skills.pvx[i]);
+            const size = skills.pr[i] / 24;
+            batch.draw(flower ? 'heart' : 'leafblade', skills.px[i], skills.py[i],
+                size, size, angle, game.pal.get(flower ? '#ffb4df' : '#caff9b', 255));
+            continue;
+        }
         if (famId !== 'tandemaus') continue;
         const variant = skills.pvariant[i] || 0;
         const baseGlyph = `MAUSHOLD_COMPANION_${variant % 4 + 1}`;
@@ -311,7 +319,8 @@ export function createGame (cc) {
                 if (this.panel) this.panel.setMegaStoneFrames(assets.frames);
             }).catch((err) => console.warn('[mega] stone art unavailable:', err && err.message));
             this.upgradeItemAssets = null;
-            this.upgradeItemAssetsPromise = loadUpgradeItemAtlas(cc, LEVELS).then((assets) => {
+            this.upgradeItemAssetsPromise = loadUpgradeItemAtlas(cc,
+                [...LEVELS, { icon: 'GIGANTAMAX' }]).then((assets) => {
                 this.upgradeItemAssets = assets;
                 if (this.panel) this.panel.setUpgradeItemFrames(assets.frames);
             }).catch((err) => console.warn('[upgrade-icons] item icons unavailable:', err && err.message));
@@ -628,6 +637,7 @@ export function createGame (cc) {
             this._trainerMegaAnnounced = false;
             this.capture.reset();
             this.skills.reset();
+            if (this.flora) this.flora.clearPlanted();
             if (this.particleBursts) this.particleBursts.clear();
             this.acc = 0;
             this.time = 0;
@@ -1853,6 +1863,11 @@ export function createGame (cc) {
                 if (fx.sustain) {
                     const active = fx.segment && fx.segment.megaSkillActive;
                     if (!(active > 0)) { fx.active = false; continue; }
+                    if (fx.shape === 'venusaur-garden') {
+                        if (!this.chain.segments.includes(fx.segment)) { fx.active = false; continue; }
+                        fx.age = fx.layout.age;
+                        continue;
+                    }
                     const origin = this.skillOrigin(fx.segment);
                     fx.x = origin.x;
                     fx.y = origin.y;
@@ -1911,7 +1926,7 @@ export function createGame (cc) {
                 if (lineTop(fam, s.tier)) finalMatch = true;
             }
             if (finalMatch) return 'top-stack';
-            if (!shiny && this.chain.normalSegmentCount >= this.chain.cap) {
+            if (!shiny && !isSlotExemptFamily(fam) && this.chain.normalSegmentCount >= this.chain.cap) {
                 const shinyFamilyMatch = this.chain.segments.some(s => s.fam === fam && s.shiny);
                 return familyMatch || shinyFamilyMatch ? 'family-stack' : 'full';
             }
@@ -2764,6 +2779,42 @@ export function createGame (cc) {
                 ? (lairBossIndex >= 0 && this.enemies.maxhp[lairBossIndex] > 0
                     ? this.enemies.hp[lairBossIndex] / this.enemies.maxhp[lairBossIndex] : 1)
                 : wildBossIndex >= 0 ? this.enemies.hp[wildBossIndex] / this.enemies.maxhp[wildBossIndex] : 1;
+            if (bossAttackActive && this.legendaryMap.species === 'legend-lugia'
+                && this.legendaryAttacks.phase === 'idle') {
+                // Reposition between actions; stop before telegraphing so the locked routes
+                // and their source remain honest throughout charge and release.
+                const side = this.legendaryAttacks.attackCount % 2 ? -1 : 1;
+                const targetX = this.legendaryMap.x + Math.max(-340, Math.min(340,
+                    (p.x - this.legendaryMap.x) * -0.45 + side * 180));
+                const targetY = this.legendaryMap.y + 120
+                    + Math.sin(this.legendaryAttacks.attackCount * 1.7) * 65;
+                const dx = targetX - legendaryX, dy = targetY - legendaryY;
+                const distance = Math.hypot(dx, dy);
+                const travel = Math.min(distance, (bossHpRatio <= 0.5 ? 155 : 115) * dt);
+                if (distance > 0) {
+                    legendaryX += dx / distance * travel;
+                    legendaryY += dy / distance * travel;
+                    this.enemies.x[lairBossIndex] = legendaryX;
+                    this.enemies.y[lairBossIndex] = legendaryY;
+                }
+            }
+            if (bossAttackActive && this.legendaryMap.species === 'legend-kyogre'
+                && this.legendaryAttacks.phase === 'idle' && lairBossIndex >= 0) {
+                // Keep Kyogre visibly swimming inside the central pool between attack sequences.
+                // It settles in place for each warning so the marked attack remains readable.
+                const phase = this.wall * 0.36;
+                const targetX = this.legendaryMap.x + Math.sin(phase) * 205;
+                const targetY = this.legendaryMap.y + 140 + Math.sin(phase * 0.68 + 0.8) * 42;
+                const dx = targetX - legendaryX, dy = targetY - legendaryY;
+                const distance = Math.hypot(dx, dy);
+                const travel = Math.min(distance, (bossHpRatio <= 0.5 ? 105 : 78) * dt);
+                if (distance > 0) {
+                    legendaryX += dx / distance * travel;
+                    legendaryY += dy / distance * travel;
+                    this.enemies.x[lairBossIndex] = legendaryX;
+                    this.enemies.y[lairBossIndex] = legendaryY;
+                }
+            }
             const hoohPhaseTrigger = this.legendaryMap.active && this.legendaryMap.species === 'legend-hooh'
                 && lairBossIndex >= 0 && !legendaryReady && this.legendaryMap.hoohIntro <= 0
                 && bossHpRatio <= 0.5 && !this.legendaryAttacks.phaseTwoAnnounced;
@@ -2831,6 +2882,7 @@ export function createGame (cc) {
             const previousLegendaryPhase = this.legendaryAttacks.phase;
             const legendaryAttack = bossAttackActive
                 ? this.legendaryAttacks.step(dt, p.x, p.y, this.rng, legendaryX, legendaryY, bossHpRatio) : null;
+            this.combatSfx.syncLugiaAttack(bossAttackActive ? this.legendaryAttacks : null);
             if (bossAttackActive
                 && previousLegendaryPhase !== 'warning' && this.legendaryAttacks.phase === 'warning') {
                 this.particleBursts.burst(this.legendaryAttacks.family, legendaryX, legendaryY,
@@ -2839,11 +2891,13 @@ export function createGame (cc) {
             if (legendaryAttack) {
                 const fam = this.legendaryAttacks.family;
                 if (!legendaryAttack.impactTick && !legendaryAttack.sequenceEnd) {
-                    this.combatSfx.enqueue({ kind: 'legendary-attack', fam });
+                    if (fam !== 'legend-lugia') this.combatSfx.enqueue({ kind: 'legendary-attack', fam });
                     this.combatSfx.flush();
                 }
                 if (!legendaryAttack.impactTick && !legendaryAttack.sequenceEnd) {
-                    for (const area of legendaryAttack.areas.slice(0, 8)) {
+                    for (const area of (fam === 'legend-lugia'
+                        ? [{ x: legendaryAttack.sourceX, y: legendaryAttack.sourceY }]
+                        : legendaryAttack.areas.slice(0, 8))) {
                         this.particleBursts.burst(fam, area.x, area.y,
                             area.angle || legendaryAttack.angle, 'legendary-attack-impact');
                     }
@@ -2873,7 +2927,7 @@ export function createGame (cc) {
             this.skills.splashMul = b.splashR || 1;
             this.skills.step(dt, this.chain, this.enemies,
                 b.dmg * lateDamageMultiplier(this.level), p.maxSpeed, b.skillSize,
-                (seg) => dynamaxProjectileScale(seg, this.dynamax.segment), b.fireRate);
+                (seg) => dynamaxProjectileScale(seg, this.dynamax.segment), b.fireRate, this.flora);
             stepLegendaryCompanionAttacks({
                 segments: this.chain.segments,
                 enemies: this.enemies,
@@ -3029,11 +3083,13 @@ export function createGame (cc) {
                     || this.legendaryMap.species === 'legend-lugia'
                     || this.legendaryMap.species === 'legend-rayquaza'
                     || this.legendaryMap.species === 'legend-hooh'
+                    || this.legendaryMap.species === 'legend-kyogre'
                     || this.legendaryMap.species === 'legend-groudon') {
                     const arenaGround = this.legendaryMap.species === 'legend-lugia' ? '#101f32'
                         : this.legendaryMap.species === 'legend-rayquaza' ? '#182943'
                             : this.legendaryMap.species === 'legend-hooh' ? '#68aaf1'
-                                : this.legendaryMap.species === 'legend-groudon' ? '#9a5a32' : '#19233a';
+                                : this.legendaryMap.species === 'legend-kyogre' ? '#d8c28d'
+                                    : this.legendaryMap.species === 'legend-groudon' ? '#9a5a32' : '#19233a';
                     g.fillColor = this.pal.get(arenaGround);
                     g.rect(-halfW, -halfH, halfW * 2, halfH * 2);
                     g.fill();
@@ -3084,14 +3140,14 @@ export function createGame (cc) {
                 drawWorldGround(g, this.cam, z,
                     { left: x0, right: x1, bottom: y0, top: y1 },
                     this.worldLayout, this.pal, this.trees.getVisibleRoots(),
-                    this.pond.geometry, this.pond.enabled);
+                    this.pond.visibleBasins, this.pond.enabled);
             }
             // World-anchored sparse grass: scrolling never makes the decoration swim or flicker.
             g.strokeColor = this.pal.get(COL.grid, 150);
             g.lineWidth = 2;
             for (let wx = Math.floor(x0 / T) * T; wx <= x1; wx += T) {
                 for (let wy = Math.floor(y0 / T) * T; wy <= y1; wy += T) {
-                    if (inPondClearing(wx, wy, 0, this.worldLayout.pond)) continue;
+                    if (inPondClearing(wx, wy, 0, this.worldLayout)) continue;
                     const seed = Math.abs(Math.imul(Math.floor(wx / T), 73856093)
                         ^ Math.imul(Math.floor(wy / T), 19349663)
                         ^ Math.imul(this.worldLayout.seed | 0, 0x27d4eb2d));
@@ -3126,6 +3182,8 @@ export function createGame (cc) {
             scene.addChild(simRoot);
             this.dexPreviewSimRoot = simRoot;
             simRoot.setScale(DEX_PREVIEW_ZOOM, DEX_PREVIEW_ZOOM, 1);
+            this.dexPreviewTrees = new WorldTrees(cc, simRoot);
+            this.dexPreviewTrees.setWorldLayout(this.worldLayout);
             this.dexPreviewFlora = new WorldFlora(cc, simRoot);
             this.dexPreviewFlora.frames = this.flora?.frames || null;
             this.floraPromise?.then(() => {
@@ -3257,17 +3315,36 @@ export function createGame (cc) {
                 -arena.player.y * DEX_PREVIEW_ZOOM + sy, 0);
             const g = this.dexPreviewGround;
             g.clear();
-            g.fillColor = new cc.Color(24, 27, 45, 255);
+            g.fillColor = this.pal.get(COL.ground);
             g.rect(-VIEW.W / 2, -VIEW.H / 2, VIEW.W, VIEW.H);
             g.fill();
-            g.strokeColor = new cc.Color(255, 255, 255, 16);
-            g.lineWidth = 1;
-            for (let x = -VIEW.W / 2; x <= VIEW.W / 2; x += 80) {
-                g.moveTo(x, -VIEW.H / 2); g.lineTo(x, VIEW.H / 2);
+            const camera = arena.camera;
+            const z = DEX_PREVIEW_ZOOM;
+            const bounds = {
+                left: camera.x - VIEW.W / (2 * z), right: camera.x + VIEW.W / (2 * z),
+                bottom: camera.y - VIEW.H / (2 * z), top: camera.y + VIEW.H / (2 * z),
+            };
+            this.dexPreviewTrees.frames = this.trees?.frames || null;
+            this.dexPreviewTrees.update(camera, VIEW.W, VIEW.H, true);
+            drawWorldGround(g, camera, z, bounds, this.worldLayout, this.pal,
+                this.dexPreviewTrees.getVisibleRoots(), null, false);
+            // Use the field's world-anchored grass strokes rather than a training grid.
+            g.strokeColor = this.pal.get(COL.grid, 150);
+            g.lineWidth = 2;
+            for (let wx = Math.floor(bounds.left / 80) * 80; wx <= bounds.right; wx += 80) {
+                for (let wy = Math.floor(bounds.bottom / 80) * 80; wy <= bounds.top; wy += 80) {
+                    const seed = Math.abs(Math.imul(Math.floor(wx / 80), 73856093)
+                        ^ Math.imul(Math.floor(wy / 80), 19349663)
+                        ^ Math.imul(this.worldLayout.seed | 0, 0x27d4eb2d));
+                    if (seed % 4 !== 0) continue;
+                    const vx = (wx + seed % 31 - camera.x) * z;
+                    const vy = (wy + seed % 23 - camera.y) * z;
+                    g.moveTo(vx - 5 * z, vy); g.lineTo(vx - 7 * z, vy + 5 * z);
+                    g.moveTo(vx, vy); g.lineTo(vx, vy + 7 * z);
+                    g.moveTo(vx + 4 * z, vy); g.lineTo(vx + 7 * z, vy + 4 * z);
+                }
             }
-            for (let y = -VIEW.H / 2; y <= VIEW.H / 2; y += 80) {
-                g.moveTo(-VIEW.W / 2, y); g.lineTo(VIEW.W / 2, y);
-            }
+            g.stroke();
             const batch = this.dexPreviewBatch;
             this._withDexPreviewArena(arena, () => {
                 this.dexPreviewFlora?.updatePreview(arena.flora?.plants || []);
@@ -3444,12 +3521,13 @@ export function createGame (cc) {
                 this.drawLegendaryCompanionWarnings(g);
                 this.drawMegaSkillPreview(g);
                 drawMegaScreenEffects(this, g);
+                // Keep live hostile shots above the allied warnings and large skill overlays.
+                this.trainerBoss.drawProjectiles(g, this.pal);
                 return;
             }
 
-            // Telegraphs occupy randomly selected, locked arena regions; they never follow the player.
-            // The one-shot impact tests the same circle/rectangle shown here, and this overlay sits above
-            // the party so even a long formation cannot hide where the strike will land.
+            // Telegraphs lock the attack route before release. Moving attacks draw their current
+            // damage footprint during impact, above the party so the wavefront stays readable.
             const attack = this.legendaryAttacks;
             if ((this.legendaryMap.active || attack.wildBoss) && attack.active
                 && (attack.phase === 'warning' || attack.phase === 'impact')) {
@@ -3855,6 +3933,9 @@ export function createGame (cc) {
                 }
             }
             for (let i = 0; i < e.n; i++) {
+                // A death can be produced by any damage source during a fixed step. Never draw a
+                // marked row, even if another system has deferred pool compaction until its cleanup pass.
+                if (e.dead[i]) continue;
                 const el = e.elite[i] === 1;
                 const bo = e.boss[i] === 1;
                 const trainer = e.trainer[i] === 1;
@@ -3884,11 +3965,24 @@ export function createGame (cc) {
                     * (e.wildBoss[i] ? 1.14 : 1)
                     * (trainerMega ? 1.16 : 1);
                 const body = icon ? (e.shiny[i] ? ICON_TINT
+                    : lugiaEncounter ? '#edfaff'
+                    : kyogreEncounter ? '#e6fbff'
                     : bo && enemyFamily && enemyFamily.id === 'legend-hooh' ? '#fff4d6'
                         : bo ? HORDE_TINT_BOSS : trainer ? '#e7a1a1' : el ? HORDE_TINT_ELITE : HORDE_TINT)
                     : (trainer ? '#bd4c5a' : el || bo ? COL.enemyElite : COL.enemy);
                 const bob = Math.sin(this.time * 7 + i * 1.3) * (bo ? 0.6 : el ? 1.2 : 2);
                 let drawY = e.y[i] + bob;
+                let lugiaLean = 0;
+                if (lugiaEncounter && !e.intro[i] && !e.legendaryReady[i]) {
+                    const attack = this.legendaryAttacks;
+                    const charge = attack.phase === 'warning'
+                        ? Math.max(0, Math.min(1, 1 - attack.timeLeft / attack.windupDuration)) : 0;
+                    drawY += Math.sin(this.wall * 2.6) * 5 + charge * 7;
+                    lugiaLean = Math.cos(attack.angle) * Math.sin(charge * Math.PI) * 0.085;
+                }
+                if (kyogreEncounter && !e.legendaryReady[i]) {
+                    drawY += Math.sin(this.wall * 2.1) * 2.8;
+                }
                 const trainerMegaOutline = trainerMega && drawMegaFormOutline(b, this.pal,
                     this.atlas.glyphs, trainerForm, icon, e.x[i], e.y[i] + bob, scale,
                     scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), this.wall, i);
@@ -4036,7 +4130,7 @@ export function createGame (cc) {
                     }
                 }
                 b.draw(icon || (bo ? 'blob' : el ? 'diamond' : MOB_GLYPH[Math.min(3, e.tier[i] - 1)]),
-                    e.x[i], drawY, scale, scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), 0,
+                    e.x[i], drawY, scale, scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), lugiaLean,
                     this.pal.get(lit ? COL.heroTrim : body));
                 if (el && !bo) {
                     // The 精英 used to be the only diamond on the field. Now that its 2 阶 silhouette is
@@ -4159,7 +4253,6 @@ export function createGame (cc) {
                 activeSkillModuleForForm,
                 drawMegaActiveArea,
             });
-            this.trainerBoss.drawProjectiles(b, this.pal);
             this.trainerBoss.drawTrainer(b, this.pal, this.atlas.glyphs, this.time);
             drawCakePickups(this, b);
             for (let i = 0; i < c.n; i++) {
@@ -4690,6 +4783,10 @@ export function createGame (cc) {
                 }
             }
 
+            // Keep this render boundary safe if a future update path marks a body dead without
+            // reaching the usual end-of-step cull.
+            if (this.enemies.dirty) this.enemies.cull();
+
             this.particleBursts.update(dt);
             this.particleBursts.updateRillaboomGroves(dt, this.rillaboomFields);
             this.particleBursts.updateGigantamaxMeowth(dt, this.chain);
@@ -4737,7 +4834,8 @@ export function createGame (cc) {
             this.hoohArena.update(this.cam, this.legendaryMap,
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-hooh', dt,
                 this.legendaryMap.hoohSpecial.active ? 9 : 1);
-            this.pond.setActive(!this.legendaryMap.active && !this.trainerBoss.active);
+            this.pond.updateView(this.cam, floraView.width, floraView.height,
+                !this.legendaryMap.active && !this.trainerBoss.active);
             this.flora.update(this.cam, floraView.width, floraView.height,
                 !this.legendaryMap.active && !this.trainerBoss.active);
             this.trees.update(this.cam, floraView.width, floraView.height,
@@ -4836,7 +4934,10 @@ export function createGame (cc) {
                 !this.legendaryMap.active && !this.player.dead, nearLair ? lairTarget : null);
             if (this.trainerBoss.active) {
                 const vitals = this.trainerBoss.vitals(this.enemies);
-                const party = this.trainerBoss.party.map((p) => displayName(p.fam, p.tier)).join(' / ');
+                const party = this.trainerBoss.commandRecovery > 0 ? '攻势暂歇 · 抓紧反击'
+                    : this.trainerBoss.commandRole.some(role => role !== -1) && this.trainerBoss.commandName
+                        ? this.trainerBoss.commandName
+                        : this.trainerBoss.party.map((p) => displayName(p.fam, p.tier)).join(' / ');
                 this.hud.setBoss(this.trainerBoss.encounter.name, vitals.hp, vitals.maxHp,
                     party, this.trainerBoss.party.length);
             } else if (this.legendaryMap.active) {
@@ -4861,7 +4962,8 @@ export function createGame (cc) {
                     : this.legendaryAttacks.phase === 'impact'
                             ? (this.legendaryAttacks.type === 'tsunami'
                                 ? '海啸扫过 · 留在蓝色安全窄道内' : `${this.legendaryAttacks.label}冲击中 · 立即避开预警区域`)
-                        : '神兽 · 击败后可捕捉';
+                        : lugia && this.legendaryAttacks.attackCount > 0
+                            ? '风势暂歇 · 趁收招反击，留意洛奇亚换位' : '神兽 · 击败后可捕捉';
                 this.hud.setBoss(index >= 0
                     ? mewtwo && !ready && !intro ? 'MEGA超梦Y' : FAMILIES[this.enemies.fam[index]].name
                     : '神兽',

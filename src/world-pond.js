@@ -1,4 +1,4 @@
-import { DEFAULT_WORLD_LAYOUT, POND_ART_SCALE, createPondContours, inPondClearing } from './world-map-layout.js';
+import { DEFAULT_WORLD_LAYOUT, POND_ART_SCALE, createPondContours, inPondClearing, pondsInBounds } from './world-map-layout.js';
 import { makeRng } from './rng.js';
 
 const SHORE_PLANT_KEYS = [
@@ -170,8 +170,8 @@ function makeShorePlants (pond) {
 }
 
 /** Seeded, source-textured basin. Only the trainer collides with the water. */
-export class WorldPond {
-    constructor (cc, world) {
+class PondInstance {
+    constructor (cc, world, pond) {
         this.cc = cc;
         this.lakeNode = new cc.Node('Lake');
         this.lakeNode.layer = cc.Layers.Enum.UI_2D;
@@ -188,7 +188,7 @@ export class WorldPond {
         this.plantNodes = [];
         this.plantFrames = null;
         this.lakeAssets = null;
-        this.layout = DEFAULT_WORLD_LAYOUT;
+        this.layout = { pond };
         this.geometry = createPondContours(this.layout.pond);
         this.waterWinding = signedPolygonArea(this.geometry.water);
         this.spawnTimer = 3;
@@ -206,7 +206,7 @@ export class WorldPond {
     }
 
     setWorldLayout (layout) {
-        this.layout = layout || DEFAULT_WORLD_LAYOUT;
+        this.layout = layout;
         this.geometry = createPondContours(this.layout.pond);
         this.waterWinding = signedPolygonArea(this.geometry.water);
         this.rebuildLake();
@@ -215,10 +215,15 @@ export class WorldPond {
 
     rebuildLake () {
         if (!this.lakeAssets) return;
+        const oldFrame = this.lakeSprite.spriteFrame;
+        const oldTexture = oldFrame && oldFrame.texture;
         const canvas = createTexturedLakeCanvas(this.lakeAssets, this.geometry);
         const frame = this.cc.SpriteFrame.createWithImage(canvas);
         if (frame.texture && typeof frame.texture.setFilters === 'function') frame.texture.setFilters(1, 1);
         this.lakeSprite.spriteFrame = frame;
+        // Recycled lake nodes own their generated texture; release it when changing regions.
+        if (oldFrame) oldFrame.destroy();
+        if (oldTexture) oldTexture.destroy();
         this.lakeTransform.setContentSize(canvas.width, canvas.height);
         const position = this.layout.pond;
         const artScale = POND_ART_SCALE * (Number.isFinite(position.scale) ? position.scale : 1);
@@ -361,10 +366,124 @@ export class WorldPond {
         player.y = startY;
         resolveAtCurrentPosition();
         for (let step = 0; step < steps; step++) {
-            player.x = startX + dx * (step + 1) / steps;
-            player.y = startY + dy * (step + 1) / steps;
+            player.x += dx / steps;
+            player.y += dy / steps;
             resolveAtCurrentPosition();
         }
+    }
+}
+
+/** Stream the nearby region's basins through a reusable pool instead of retaining every visited lake. */
+export class WorldPond {
+    constructor (cc, world) {
+        this.cc = cc;
+        this.root = new cc.Node('WorldLakes');
+        this.root.layer = cc.Layers.Enum.UI_2D;
+        world.addChild(this.root);
+        this.layout = DEFAULT_WORLD_LAYOUT;
+        this.active = new Map();
+        this.pool = [];
+        this.visibleBasins = [];
+        this.enabled = true;
+        this.familyIndex = -1;
+        this.spawnTimer = 3;
+        this.lakeAssets = null;
+        this.plantFrames = null;
+    }
+
+    setWorldLayout (layout) {
+        this.layout = layout || DEFAULT_WORLD_LAYOUT;
+        for (const entry of this.active.values()) entry.setActive(false);
+        this.active.clear();
+        this.visibleBasins.length = 0;
+    }
+
+    reset () { this.spawnTimer = 3; }
+
+    setFamilyIndex (index) {
+        this.familyIndex = index;
+        for (const entry of this.pool) entry.setFamilyIndex(index);
+    }
+
+    setLakeAssets (assets) {
+        this.lakeAssets = assets;
+        for (const entry of this.pool) entry.setLakeAssets(assets);
+    }
+
+    setPlantFrames (frames) {
+        this.plantFrames = frames;
+        for (const entry of this.pool) entry.setPlantFrames(frames);
+    }
+
+    setActive (enabled) {
+        this.enabled = !!enabled;
+        this.root.active = this.enabled;
+    }
+
+    ensurePond (pond) {
+        let entry = this.active.get(pond.id);
+        if (entry) return entry;
+        const used = new Set(this.active.values());
+        entry = this.pool.find((candidate) => !used.has(candidate));
+        if (entry) {
+            entry.setWorldLayout({ pond });
+        } else {
+            entry = new PondInstance(this.cc, this.root, pond);
+            entry.setFamilyIndex(this.familyIndex);
+            if (this.lakeAssets) entry.setLakeAssets(this.lakeAssets);
+            if (this.plantFrames) entry.setPlantFrames(this.plantFrames);
+            this.pool.push(entry);
+        }
+        entry.setActive(true);
+        this.active.set(pond.id, entry);
+        return entry;
+    }
+
+    updateView (camera, viewWidth, viewHeight, enabled) {
+        this.setActive(enabled);
+        if (!enabled) { this.visibleBasins.length = 0; return; }
+        const halfW = viewWidth / Math.max(0.01, camera.z) / 2 + 80;
+        const halfH = viewHeight / Math.max(0.01, camera.z) / 2 + 80;
+        const ponds = pondsInBounds(this.layout, { left: camera.x - halfW, right: camera.x + halfW,
+            bottom: camera.y - halfH, top: camera.y + halfH });
+        const wanted = new Set(ponds.map((pond) => pond.id));
+        for (const [id, entry] of this.active) {
+            if (wanted.has(id)) continue;
+            entry.setActive(false);
+            this.active.delete(id);
+        }
+        this.visibleBasins.length = 0;
+        for (const pond of ponds) {
+            const entry = this.ensurePond(pond);
+            this.visibleBasins.push({ pond, geometry: entry.geometry });
+        }
+    }
+
+    drawGround () { /* Water sprites live below the field entities. */ }
+
+    updateEncounters (dt, x, y, enemies, minute, enabled) {
+        if (!enabled || this.familyIndex < 0) return;
+        const ponds = pondsInBounds(this.layout, { left: x - 540, right: x + 540,
+            bottom: y - 540, top: y + 540 });
+        if (!ponds.length) return;
+        this.spawnTimer -= dt;
+        if (this.spawnTimer > 0) return;
+        for (const pond of ponds) {
+            const entry = this.ensurePond(pond);
+            entry.spawnTimer = 0;
+            entry.updateEncounters(0, x, y, enemies, minute, true);
+        }
+        this.spawnTimer = 15;
+    }
+
+    resolvePlayer (player, radius, enabled = true, previousPosition = null) {
+        if (!enabled) return;
+        const start = previousPosition || player;
+        const ponds = pondsInBounds(this.layout, {
+            left: Math.min(start.x, player.x) - radius, right: Math.max(start.x, player.x) + radius,
+            bottom: Math.min(start.y, player.y) - radius, top: Math.max(start.y, player.y) + radius,
+        });
+        for (const pond of ponds) this.ensurePond(pond).resolvePlayer(player, radius, true, previousPosition);
     }
 }
 

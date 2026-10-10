@@ -41,6 +41,13 @@ export class TrainerBossSystem {
         this.damageMul = 1;
         this.phaseTwo = false;
         this.commandCooldown = BOSS.commandPeriod;
+        this.volleySpec = new Array(MAX_PARTY).fill(null);
+        this.volleyClock = new Float32Array(MAX_PARTY);
+        this.commandRole = new Int8Array(MAX_PARTY).fill(-1);
+        this.commandCount = 0;
+        this.commandName = '';
+        this.lastCommandMode = -1;
+        this.commandRecovery = 0;
     }
 
     reset (enemies) {
@@ -59,6 +66,13 @@ export class TrainerBossSystem {
         this.cooldown.fill(0);
         this.warning.fill(0);
         this.aim.fill(0);
+        this.volleySpec.fill(null);
+        this.volleyClock.fill(0);
+        this.commandRole.fill(-1);
+        this.commandCount = 0;
+        this.commandName = '';
+        this.lastCommandMode = -1;
+        this.commandRecovery = 0;
         if (enemies) {
             enemies.trainerActive = false;
             enemies.trainerIntro = 0;
@@ -72,7 +86,7 @@ export class TrainerBossSystem {
         const rank = Math.min(10, this.encounterIndex);
         const hpScale = 1 + rank * 0.24;
         const periodScale = 1.12 + Math.min(0.48, rank * 0.055);
-        const speedScale = 1 + Math.min(0.36, rank * 0.04);
+        const speedScale = 1.3 + Math.min(0.32, rank * 0.035);
         this.damageMul = 1 + Math.min(0.55, rank * 0.06);
         this.phaseTwo = false;
         this.commandCooldown = BOSS.commandPeriod;
@@ -147,16 +161,22 @@ export class TrainerBossSystem {
         this._placeParty(enemies);
     }
 
-    _placeParty (enemies) {
+    _placeParty (enemies, dt = 0) {
         for (let i = 0; i < enemies.n; i++) {
             if (!enemies.trainer[i]) continue;
             const slot = enemies.trainerSlot[i];
+            if (this.warning[slot] > 0) continue;
             const members = Math.max(1, this.party.length);
             const orbitSpeed = this.phaseTwo ? BOSS.phaseTwoOrbitSpeed : BOSS.formationOrbitSpeed;
             const angle = -Math.PI / 2 + TAU * slot / members + this.clock * orbitSpeed;
             const radius = this.arenaR * (this.phaseTwo ? 0.7 : 0.67);
-            enemies.x[i] = this.cx + Math.cos(angle) * radius;
-            enemies.y[i] = this.cy + Math.sin(angle) * radius + Math.sin(this.clock * 2.1 + slot) * 3;
+            const tx = this.cx + Math.cos(angle) * radius;
+            const ty = this.cy + Math.sin(angle) * radius + Math.sin(this.clock * 2.1 + slot) * 3;
+            const dx = tx - enemies.x[i], dy = ty - enemies.y[i];
+            const distance = Math.hypot(dx, dy);
+            const fraction = dt > 0 && distance > 0 ? Math.min(1, 115 * dt / distance) : 1;
+            enemies.x[i] += dx * fraction;
+            enemies.y[i] += dy * fraction;
             enemies.vx[i] = enemies.vy[i] = 0;
         }
     }
@@ -184,7 +204,7 @@ export class TrainerBossSystem {
         const speed = Math.max(1, spec.speed * (this.phaseTwo ? BOSS.phaseTwoSpeedMul : 1));
         const dx = player.x - sx;
         const dy = player.y - sy;
-        const lead = Math.min(0.32, Math.hypot(dx, dy) / speed * 0.35);
+        const lead = Math.min(0.55, Math.hypot(dx, dy) / speed * 0.65);
         const vx = Number.isFinite(player.vx) ? player.vx : 0;
         const vy = Number.isFinite(player.vy) ? player.vy : 0;
         return Math.atan2(dy + vy * lead, dx + vx * lead);
@@ -199,13 +219,34 @@ export class TrainerBossSystem {
             rows.push([slot, row]);
         }
         if (!rows.length) return false;
-        for (const [slot, row] of rows) {
+        const moving = Math.hypot(player.vx || 0, player.vy || 0) > 60;
+        const edge = Math.hypot(player.x - this.cx, player.y - this.cy) > this.arenaR * 0.62;
+        let mode = edge ? 0 : moving ? 1 : 2;
+        if (mode === this.lastCommandMode) mode = (mode + 1 + this.encounterIndex % 2) % 3;
+        this.lastCommandMode = mode;
+        this.commandCount++;
+        this.commandName = ['包夹指令 · 封路后追击', '交叉指令 · 错拍夹击', '强攻指令 · 集中压迫'][mode];
+        rows.sort(([a], [b]) => ((a - this.commandCount + this.party.length) % this.party.length)
+            - ((b - this.commandCount + this.party.length) % this.party.length));
+        for (let index = 0; index < rows.length; index++) {
+            const [slot, row] = rows[index];
             const spec = this.party[slot];
-            this.aim[slot] = this._leadAim(slot, enemies.x[row], enemies.y[row], player);
-            this.warning[slot] = BOSS.commandWarning;
+            const blocker = mode === 0 && index < rows.length - 1;
+            this.volleySpec[slot] = { ...spec, pattern: blocker || mode === 1 ? 'fan' : 'focus',
+                spread: blocker ? 1.15 : mode === 1 ? 0.9 : 0.7 };
+            this.commandRole[slot] = blocker ? (index % 2 ? 1 : -2) : 0;
+            this.volleyClock[slot] = this.clock;
+            this.aim[slot] = this._commandAim(slot, enemies.x[row], enemies.y[row], player);
+            this.warning[slot] = BOSS.commandWarning + index * (this.phaseTwo ? 0.22 : 0.32);
             this.cooldown[slot] = spec.period * (this.phaseTwo ? BOSS.phaseTwoPeriodMul : 1);
         }
         return true;
+    }
+
+    _commandAim (slot, sx, sy, player) {
+        const base = this._leadAim(slot, sx, sy, player);
+        const role = this.commandRole[slot];
+        return base + (role === -2 ? -0.32 : role === 1 ? 0.32 : 0);
     }
 
     _updatePhase (enemies) {
@@ -223,7 +264,7 @@ export class TrainerBossSystem {
     step (dt, enemies, player, iFrame = PLAYER.iFrame, tryShield = null) {
         if (!this.active) return 0;
         this.clock += dt;
-        this._placeParty(enemies);
+        this._placeParty(enemies, dt);
         if (this.formationLeft > 0) {
             this.formationLeft = Math.max(0, this.formationLeft - dt);
             enemies.trainerIntro = this.formationLeft;
@@ -231,8 +272,14 @@ export class TrainerBossSystem {
         }
         this._tryMega(enemies, player);
         this._updatePhase(enemies);
+        this.commandRecovery = Math.max(0, this.commandRecovery - dt);
+        let living = 0;
+        for (let slot = 0; slot < this.party.length; slot++) {
+            if (this._liveRow(slot, enemies) >= 0) living++;
+            else { this.warning[slot] = 0; this.commandRole[slot] = -1; this.volleySpec[slot] = null; }
+        }
         this.commandCooldown = Math.max(0, this.commandCooldown - dt);
-        if (this.commandCooldown <= 0) {
+        if (this.commandCooldown <= 0 && this.commandRecovery <= 0) {
             if (this._startCommand(enemies, player)) {
                 this.commandCooldown = this.phaseTwo ? BOSS.phaseTwoCommandPeriod : BOSS.commandPeriod;
             } else this.commandCooldown = 0.15;
@@ -242,13 +289,29 @@ export class TrainerBossSystem {
             const source = this._liveRow(slot, enemies);
             if (source < 0) continue;
             if (this.warning[slot] > 0) {
+                // Follow movement during the tell, then commit for the final 0.28 seconds.
+                if (this.warning[slot] > 0.28) this.aim[slot] = this.commandRole[slot] !== -1
+                    ? this._commandAim(slot, enemies.x[source], enemies.y[source], player)
+                    : this._leadAim(slot, enemies.x[source], enemies.y[source], player);
                 this.warning[slot] -= dt;
-                if (this.warning[slot] <= 0) this._fire(slot, enemies.x[source], enemies.y[source]);
-            } else {
+                if (this.warning[slot] <= 0) {
+                    const commanded = this.commandRole[slot] !== -1;
+                    this._fire(slot, enemies.x[source], enemies.y[source]);
+                    this.volleySpec[slot] = null;
+                    this.commandRole[slot] = -1;
+                    if (commanded && !this.commandRole.some(role => role !== -1)) {
+                        this.commandRecovery = this.phaseTwo ? 1.15 : 1.5;
+                        for (let other = 0; other < this.party.length; other++) {
+                            this.cooldown[other] = Math.max(this.cooldown[other], this.commandRecovery);
+                        }
+                    }
+                }
+            } else if (this.commandRecovery <= 0) {
                 this.cooldown[slot] -= dt;
                 if (this.cooldown[slot] <= 0) {
                     this.cooldown[slot] = this.party[slot].period
-                        * (this.phaseTwo ? BOSS.phaseTwoPeriodMul : 1);
+                        * (this.phaseTwo ? BOSS.phaseTwoPeriodMul : 1) * (living === 1 ? 0.68 : 1);
+                    this.volleyClock[slot] = this.clock;
                     this.warning[slot] = BOSS.projectileWarning;
                     this.aim[slot] = this._leadAim(slot, enemies.x[source], enemies.y[source], player);
                 }
@@ -277,13 +340,13 @@ export class TrainerBossSystem {
     }
 
     _fire (slot, sx, sy) {
-        const spec = this.party[slot];
+        const spec = this.volleySpec[slot] || this.party[slot];
         const mega = this.megaActive && slot === this.megaSlot;
         const base = this.aim[slot];
         const count = spec.shots;
         const speed = spec.speed;
         for (let i = 0; i < count && this.n < CAP; i++) {
-            const angle = this._shotAngle(spec, base, i, count);
+            const angle = this._shotAngle(spec, base, i, count, this.volleyClock[slot]);
             const n = this.n++;
             this.x[n] = sx;
             this.y[n] = sy;
@@ -343,6 +406,9 @@ export class TrainerBossSystem {
         enemies.r[row] *= 1.25;
         this.megaX = enemies.x[row];
         this.megaY = enemies.y[row];
+        this.volleySpec[this.megaSlot] = null;
+        this.commandRole[this.megaSlot] = -1;
+        this.volleyClock[this.megaSlot] = this.clock;
         this.cooldown[this.megaSlot] = 0.2;
         this.warning[this.megaSlot] = BOSS.projectileWarning + 0.42;
         this.aim[this.megaSlot] = Math.atan2(player.y - enemies.y[row], player.x - enemies.x[row]);
@@ -439,18 +505,19 @@ export class TrainerBossSystem {
             const slot = enemies.trainerSlot[i];
             const warning = this.warning[slot];
             if (warning <= 0 || enemies.dead[i]) continue;
-            const alpha = Math.round(210 * Math.min(1, warning / Math.max(BOSS.projectileWarning, BOSS.commandWarning)));
-            const spec = this.party[slot];
+            const locked = warning <= 0.28;
+            const alpha = locked ? 255 : 170;
+            const spec = this.volleySpec[slot] || this.party[slot];
             const shots = Math.max(1, spec.shots);
             const color = this.isMegaSlot(slot) ? this.megaForm.color : this.phaseTwo ? '#ff596d' : '#d84a55';
             g.strokeColor = pal.get(color, alpha);
-            g.lineWidth = this.isMegaSlot(slot) ? 3 : 2;
+            g.lineWidth = locked ? 4 : this.isMegaSlot(slot) ? 3 : 2;
             const fromX = enemies.x[i];
             const fromY = enemies.y[i];
             const relX = fromX - this.cx;
             const relY = fromY - this.cy;
             for (let shot = 0; shot < shots; shot++) {
-                const angle = this._shotAngle(spec, this.aim[slot], shot, shots);
+                const angle = this._shotAngle(spec, this.aim[slot], shot, shots, this.volleyClock[slot]);
                 const dot = relX * Math.cos(angle) + relY * Math.sin(angle);
                 const remain = Math.max(0, dot * dot + this.arenaR * this.arenaR - relX * relX - relY * relY);
                 const length = Math.max(0, -dot + Math.sqrt(remain));
@@ -463,8 +530,67 @@ export class TrainerBossSystem {
         }
     }
 
-    drawProjectiles (batch, palette) {
-        // Hostile moving shots are rendered by NativeParticleBursts.updateTrainerProjectileTrails.
+    drawProjectiles (g, palette) {
+        if (!this.active || this.n <= 0) return;
+        const colors = this.party.map((spec) => {
+            const species = FAMILIES.find((candidate) => candidate.id === spec.fam);
+            return ELEMENT[species?.element] || '#fff0c2';
+        });
+        for (let i = 0; i < this.n; i++) {
+            const x = this.x[i];
+            const y = this.y[i];
+            const speed = Math.hypot(this.vx[i], this.vy[i]) || 1;
+            const ux = this.vx[i] / speed;
+            const uy = this.vy[i] / speed;
+            const nx = -uy;
+            const ny = ux;
+            const radius = Math.max(8, this.r[i]);
+            const color = colors[this.slot[i]] || '#fff0c2';
+            const trail = radius * 2.2;
+
+            // Dark backing keeps the moving streak and body distinct from both the pale arena
+            // floor and the dense allied effects. The colored center still identifies its element.
+            g.strokeColor = palette.get('#241d32', 245);
+            g.lineWidth = Math.max(7, radius * 0.9);
+            g.moveTo(x - ux * trail, y - uy * trail);
+            g.lineTo(x, y);
+            g.stroke();
+            g.strokeColor = palette.get(color, 245);
+            g.lineWidth = Math.max(3, radius * 0.42);
+            g.moveTo(x - ux * trail, y - uy * trail);
+            g.lineTo(x - ux * radius * 0.45, y - uy * radius * 0.45);
+            g.stroke();
+
+            g.fillColor = palette.get(color, 75);
+            g.circle(x, y, radius * 1.8);
+            g.fill();
+
+            // A directional diamond gives each shot a clear silhouette even when its particle
+            // trail is hidden by the party or a large special-move animation.
+            const points = [
+                [x + ux * radius * 1.8, y + uy * radius * 1.8],
+                [x + ux * radius * 0.25 + nx * radius * 0.9,
+                    y + uy * radius * 0.25 + ny * radius * 0.9],
+                [x - ux * radius * 1.25, y - uy * radius * 1.25],
+                [x + ux * radius * 0.25 - nx * radius * 0.9,
+                    y + uy * radius * 0.25 - ny * radius * 0.9],
+            ];
+            g.fillColor = palette.get(color, 255);
+            g.moveTo(...points[0]);
+            for (let point = 1; point < points.length; point++) g.lineTo(...points[point]);
+            g.close();
+            g.fill();
+            g.strokeColor = palette.get('#241d32', 255);
+            g.lineWidth = 3;
+            g.moveTo(...points[0]);
+            for (let point = 1; point < points.length; point++) g.lineTo(...points[point]);
+            g.close();
+            g.stroke();
+
+            g.fillColor = palette.get('#fff9e8', 255);
+            g.circle(x + ux * radius * 0.18, y + uy * radius * 0.18, radius * 0.38);
+            g.fill();
+        }
     }
 
     drawTrainer (batch, palette, glyphs, time = 0) {

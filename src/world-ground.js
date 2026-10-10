@@ -26,7 +26,7 @@ function makePatch (gx, gy, layout) {
 
     // Keep the immediate spawn area calm, and never paint over the lake's bank.
     if (Math.hypot(centerX, centerY) < 155) return null;
-    if (inPondClearing(centerX, centerY, Math.max(rx, ry) * 0.8 + 24, layout.pond)) return null;
+    if (inPondClearing(centerX, centerY, Math.max(rx, ry) * 0.8 + 24, layout)) return null;
 
     const count = 12 + ((hash >>> 25) % 5);
     const phase = unit(gx, gy, layout.seed, 0x49a42c1d) * TAU;
@@ -135,5 +135,9 @@ export function drawWorldGround (g, camera, zoom, bounds, layout, palette, treeR
     }
     if (treeRoots && treeRoots.length) g.fill();
 
-    if (pondEnabled) fillPondMoisture(g, camera, zoom, layout, pondGeometry, palette);
+    if (pondEnabled) {
+        for (const basin of pondGeometry || []) {
+            fillPondMoisture(g, camera, zoom, { pond: basin.pond }, basin.geometry, palette);
+        }
+    }
 }

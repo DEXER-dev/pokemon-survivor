@@ -1,6 +1,7 @@
 /* Adventure HUD: compact edge panels with cached readouts. */
 import { HUD, color, card, gauge } from './hud-theme.js';
 import { VIEW, COL } from './config.js';
+import { isSlotExemptFamily } from './chain.js';
 import { hexToRgb } from './batch.js';
 import { legendaryGuideLayout } from './lair-guide-layout.js';
 import { drawLegendaryGuideIcon, legendaryGuideStyle } from './legendary-guide-icons.js';
@@ -558,7 +559,7 @@ export class Hud {
         let legendaryCount = 0;
         for (const segment of segments) {
             if (segment.shiny) shinyCount++;
-            if (typeof segment.fam === 'string' && segment.fam.startsWith('legend-')) legendaryCount++;
+            if (isSlotExemptFamily(segment.fam)) legendaryCount++;
             else if (!segment.shiny) normalCount++;
         }
         const summaryKey = `${normalCount}|${legendaryCount}|${cap}|${petTotal}|${shinyCount}|${this.partyExpanded}`;

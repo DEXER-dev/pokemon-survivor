@@ -514,35 +514,73 @@ const TAU = Math.PI * 2;
     }
     console.log(`捕捉叫声：${cryKeys.length} 个图鉴形态素材齐全、异步懒加载、捕捉揭晓时播放 PASS`);
 }
-// Lugia's lair attack is a directed, telegraphed tsunami with a narrow safe corridor.
+// Lugia's damage travels from the boss, locks at warning start, and leaves a safe eye.
 {
     const rng = makeRng(271828183);
-    const makeWarning = (px, py) => {
-        const system = new LegendaryAttackSystem();
-        system.start(0, 0, 'legend-lugia');
-        system.step(1.2, px, py, rng);
-        if (system.type !== 'tsunami' || system.phase !== 'warning' || system.safeWidth <= 0
-            || !system.label.includes('蓝色窄道')) {
-            throw new Error('Lugia must announce a directed tsunami and safe strip before impact');
+    for (const phaseTwo of [false, true]) {
+        for (let move = 0; move < 5; move++) {
+            const system = new LegendaryAttackSystem();
+            system.start(20, 30, 'legend-lugia');
+            system.attackCount = move;
+            system.cooldown = 0;
+            system._buildPattern(rng, 320, 30, 20, 30, phaseTwo, move);
+            system.phase = 'warning'; system.timeLeft = system.windupDuration;
+            const geometry = JSON.stringify(system.areas);
+            system.step(0.4, -300, -200, rng, 20, 30);
+            if (JSON.stringify(system.areas) !== geometry) throw new Error('Lugia warning must stay locked');
+            const release = system.step(system.timeLeft + 0.01, 320, 30, rng);
+            if (!release?.sequenceStart || release.hit) throw new Error('Lugia must not hit a distant target at release');
+            let hits = 0;
+            for (let tick = 0; tick < 420 && system.phase === 'impact'; tick++) {
+                if (system.step(1 / 120, 320, 30, rng)?.hit) hits++;
+            }
+            if (hits !== 1) throw new Error('Each Lugia attack must hit once when its wavefront arrives');
+            system.attackCount = move; system.cooldown = 0;
+            system._buildPattern(rng, 320, 30, 20, 30, phaseTwo, move);
+            system.phase = 'warning'; system.timeLeft = system.windupDuration;
+            const gapAngle = move !== 1 ? Math.PI / 2 : phaseTwo ? 0.16 : 0.22;
+            const sx = move === 2 ? 20 : 20 + Math.cos(gapAngle) * 400;
+            const sy = move === 2 ? 30 : 30 + Math.sin(gapAngle) * 400;
+            if (system.step(system.timeLeft + 0.01, sx, sy, rng)?.hit) throw new Error('Lugia safe space hit on release');
+            for (let tick = 0; tick < 420 && system.phase === 'impact'; tick++) {
+                if (system.step(1 / 120, sx, sy, rng)?.hit) throw new Error('Lugia wind gaps and inner eye must stay safe');
+            }
         }
-        return system;
+    }
+    console.log('洛奇亚重置：五招双阶段、预警锁定、飞行命中、每招单次伤害与风眼安全 PASS');
+}
+// Adaptive choices must be reproducible, reactive, and never repeat the two latest actions.
+{
+    const sample = (seed, distance) => {
+        const rng = makeRng(seed), system = new LegendaryAttackSystem();
+        system.start(0, 0, 'legend-lugia');
+        const moves = [];
+        for (let i = 0; i < 80; i++) {
+            system._buildPattern(rng, distance, 0, 0, 0, i >= 40);
+            if (moves.slice(-2).includes(system.moveIndex)) throw new Error('Lugia repeats a recent tactic');
+            moves.push(system.moveIndex); system.attackCount++;
+        }
+        return moves;
     };
-    const aimX = -250;
-    const safe = makeWarning(aimX, 0);
-    const nx = -Math.sin(safe.angle);
-    const ny = Math.cos(safe.angle);
-    const safeX = safe.x + nx * safe.safeOffset;
-    const safeY = safe.y + ny * safe.safeOffset;
-    const safeResult = safe.step(1.36, safeX, safeY, rng);
-    if (!safeResult || safeResult.hit || safeResult.type !== 'tsunami') {
-        throw new Error('Lugia tsunami safe corridor must match the actual collision test');
+    const near = sample(4321, 80), far = sample(4321, 600), mid = sample(9876, 300);
+    if (JSON.stringify(near) !== JSON.stringify(sample(4321, 80))) throw new Error('Lugia AI must respect the run seed');
+    if (near.includes(2) || far.includes(2)) throw new Error('Lugia should not waste a tide on players outside its danger area');
+    if (JSON.stringify(near) === JSON.stringify(far) || new Set(mid).size !== 5) throw new Error('Lugia must react to distance and use all five tactics');
+    const rng = makeRng(7654), system = new LegendaryAttackSystem();
+    system.start(0, 0, 'legend-lugia');
+    for (let move = 0; move < 5; move++) {
+        system._buildPattern(rng, 300, 0, 0, 0, true, move);
+        const batchCalls = [], geometryCalls = [];
+        const batch = { draw: (...args) => batchCalls.push(args) };
+        const pal = { get: (color, alpha) => ({ color, alpha }) };
+        const graphics = new Proxy({}, { get: (_, key) => (...args) => geometryCalls.push([key, ...args]), set: () => true });
+        system.phase = 'impact'; system.timeLeft = system.impactDuration * 0.45;
+        drawPrimaryLegendaryBossAttack(batch, pal, system, 2);
+        drawLegendaryAttackPattern(graphics, system, pal, 0.8, true);
+        if (batchCalls.length > 100 || batchCalls.some((call) => call.slice(1, 6).some((v) => !Number.isFinite(v)))) throw new Error('Lugia varied volleys must stay within the render budget');
+        if (move !== 2 && geometryCalls.some(([name]) => name === 'moveTo')) throw new Error('Lugia flying bolts must not regain collision boxes');
     }
-    const danger = makeWarning(aimX, 0);
-    const dangerResult = danger.step(1.36, danger.x, danger.y, rng);
-    if (!dangerResult || !dangerResult.hit || dangerResult.safeWidth !== danger.safeWidth) {
-        throw new Error('Lugia tsunami must damage the announced red area while preserving the lane');
-    }
-    console.log('洛奇亚神兽战：定向海啸预警、蓝色长条安全道与命中判定一致 PASS');
+    console.log('洛奇亚战术：距离选招、两招去重、随机可复现、五种攻势与无矩形弹幕 PASS');
 }
 // Every legendary encounter receives a locked, collision-matched signature pattern and an HP phase change.
 {
@@ -599,7 +637,10 @@ const TAU = Math.PI * 2;
         if (wildBoss && bossSpriteCalls.length - warningDrawStart > 40) {
             throw new Error(`${family.id} warning material pass should have a bounded sprite budget`);
         }
-        const impact = system.step(1.36, system.areas[0].x, system.areas[0].y, rng, 0, 0, 1);
+        let impact = system.step(system.windupDuration + 0.01, system.areas[0].x, system.areas[0].y, rng, 0, 0, 1);
+        if (family.id === 'legend-lugia' && !impact?.hit) {
+            impact = system.step(system.impactDuration * 0.5, system.areas[0].x, system.areas[0].y, rng);
+        }
         if (!impact || !impact.hit || impact.name !== system.name) {
             throw new Error(`${family.id} collision must match its visible warning area`);
         }
@@ -661,7 +702,7 @@ const TAU = Math.PI * 2;
     };
     const moves = {
         'legend-mewtwo': ['念力陨石', '精神冲击', '心灵封域'],
-        'legend-lugia': ['海啸推线 · 躲进蓝色窄道', '气旋爆裂', '苍穹风眼'],
+        'legend-lugia': ['气旋攻击 · 横向闪避', '翼风齐射 · 穿过风隙', '潮汐之环 · 靠近风眼'],
         'legend-hooh': ['凤凰翼焰', '圣焰坠羽', '日轮焚天'],
         'legend-rayquaza': ['天穹俯冲 · 画龙点睛', '苍天环斩 · 双环回旋',
             '苍天裂界 · 绿辉流星雨', '苍天龙卷 · 翡翠风暴'],
@@ -686,6 +727,7 @@ const TAU = Math.PI * 2;
         ? Math.PI * area.radius * area.radius : area.length * area.width), 0);
 
     for (const family of LEGENDARY_BOSSES) {
+        if (family.id === 'legend-lugia') continue;
         const system = new LegendaryAttackSystem();
         system.start(0, 0, family.id);
         let firstPhaseFootprint = 0;
@@ -712,14 +754,18 @@ const TAU = Math.PI * 2;
             if (!drawPrimaryLegendaryBossAttack(batch, palette, system, 1.2)
                 || calls.length > 100
                 || !calls.some(([glyph]) => typeof glyph === 'string'
-                    && glyph.startsWith(materialPrefix[family.id][moveSlot]))) {
+                    && (family.id === 'legend-lugia' ? glyph === 'diamond' : glyph.startsWith(materialPrefix[family.id][moveSlot])))) {
                 throw new Error(`${family.id} boss warning must use its move-matched material or native dragon glyph within budget`);
             }
-            const impact = system.step(BOSS.legendaryWindup + 0.01,
+            const impact = system.step(system.windupDuration + 0.01,
                 system.areas[0].x, system.areas[0].y, rng, 0, 0, hpRatio);
             let hit = impact;
             if (impact?.sequenceStart && !impact.hit) {
-                if (system.sequenceKind === 'meteor-columns') {
+                if (family.id === 'legend-lugia') {
+                    const targetX = moveSlot === 2 ? system.sourceX + 300 : system.areas[0].x;
+                    const targetY = moveSlot === 2 ? system.sourceY : system.areas[0].y;
+                    hit = system.step(system.impactDuration * 0.65, targetX, targetY, rng);
+                } else if (system.sequenceKind === 'meteor-columns') {
                     hit = system.step(0.015, system.columnXs[0], system.topY, rng, 0, 0, hpRatio);
                 } else if (system.sequenceKind === 'ring') {
                     const a = system.ringAngle;
@@ -759,7 +805,7 @@ const TAU = Math.PI * 2;
             throw new Error('primary-boss ultimates should have a deliberate recovery beat after their larger pattern');
         }
     }
-    console.log('一级神战斗：九只三招轮换、半血扩大命中图形、素材预警/冲击渲染与终极招式回气 PASS');
+    console.log('一级神战斗：固定轮换首领的招式、半血强化、素材渲染与回气 PASS');
 }
 // Rayquaza phase-two Sky Dive follows the live player during the tell, then commits to the final position.
 {
@@ -3942,13 +3988,15 @@ skills.on = SKILL;
     const inside = hitRect(targets, 0, 0, 100, 20, 0, 10);
     const waterCannon = MEGA_ACTIVE_SKILLS.blastoise;
     const waterModule = activeSkillModuleForForm({ id: 'blastoise' });
-    if (inside.hits !== 3 || waterCannon.shape !== 'rect-beam' || waterCannon.duration !== 3
+    if (inside.hits !== 3 || waterCannon.shape !== 'rect-beam' || waterCannon.firingDuration !== 3
+        || waterCannon.charge !== 0.35
+        || Math.abs(waterCannon.duration - waterCannon.charge - waterCannon.firingDuration) > 1e-9
         || !(waterCannon.radius > 0 && waterCannon.width > 0 && waterCannon.tick > 0)
         || !waterModule || typeof waterModule.cast !== 'function'
         || typeof waterModule.step !== 'function' || typeof waterModule.drawEffect !== 'function') {
         throw new Error('Mega Blastoise sustained rectangular cannon footprint regression');
     }
-    console.log('Mega Blastoise module registry: 3-second 440x142 rectangular water cannon and exact rotated-box hit test: PASS');
+    console.log('Mega Blastoise module registry: 0.35-second charge, 3-second 440x142 water cannon and exact rotated-box hit test: PASS');
 }
 {
     const form = MEGA_FORMS.find((entry) => entry.id === 'charizard-x');

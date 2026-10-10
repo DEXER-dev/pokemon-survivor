@@ -3,7 +3,7 @@ export const STARTER_POKEMON = [
     { generation: 1, family: 'mush', name: '妙蛙种子', icon: 'BULBASAUR', style: '草系 · 孢子弹幕' },
     { generation: 1, family: 'lizard', name: '小火龙', icon: 'CHARMANDER', style: '火系 · 炽焰弹' },
     { generation: 1, family: 'turtle', name: '杰尼龟', icon: 'SQUIRTLE', style: '水系 · 扫射水柱' },
-    { generation: 2, family: 'chikorita', name: '菊草叶', icon: 'CHIKORITA', style: '草系 · 治愈叶环' },
+    { generation: 2, family: 'chikorita', name: '菊草叶', icon: 'CHIKORITA', style: '草系 · 花草共鸣' },
     { generation: 2, family: 'cyndaquil', name: '火球鼠', icon: 'CYNDAQUIL', style: '火系 · 爆炎火球' },
     { generation: 2, family: 'totodile', name: '小锯鳄', icon: 'TOTODILE', style: '水系 · 潮汐冲击' },
     { generation: 3, family: 'grove', name: '木守宫', icon: 'TREECKO', style: '草系 · 叶刃扇射' },

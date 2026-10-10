@@ -88,7 +88,7 @@ function buildPatchAt (centerX, centerY, hash, layout, forcedKind = null) {
     // Leave room around the initial trainer and companion, rather than cutting holes
     // through patches that happen to straddle the spawn clearing.
     if (Math.hypot(centerX, centerY) < START_CLEARING + 74) return [];
-    if (inPondClearing(centerX, centerY, 110, layout.pond)) return [];
+    if (inPondClearing(centerX, centerY, 110, layout)) return [];
 
     const plants = [];
     for (let index = 0; index < count; index++) {
@@ -102,7 +102,7 @@ function buildPatchAt (centerX, centerY, hash, layout, forcedKind = null) {
         const y = Math.round(centerY + (lobe.y + jitterY) * patchScale);
         if (Math.hypot(x, y) < START_CLEARING + 30) continue;
         // A generous edge margin keeps decorative clusters from touching the water art.
-        if (inPondClearing(x, y, 36, layout.pond)) continue;
+        if (inPondClearing(x, y, 36, layout)) continue;
         plants.push(floraPlacement(x, y, memberHash, patchFrameIndex(kind, palette, memberHash), patchScale));
     }
     return plants;
@@ -126,7 +126,7 @@ function buildStartingPatches (layout) {
         const angle = baseAngle + index * TAU / START_PATCH_COUNT + angleJitter;
         const centerX = Math.round(Math.cos(angle) * radius);
         const centerY = Math.round(Math.sin(angle) * radius);
-        if (inPondClearing(centerX, centerY, 110, layout.pond)) continue;
+        if (inPondClearing(centerX, centerY, 110, layout)) continue;
         if (Math.hypot(centerX - layout.grove.x, centerY - layout.grove.y) < 150) continue;
         const plants = buildPatchAt(centerX, centerY, hash, layout, index % 3);
         if (!plants.length) continue;
@@ -140,7 +140,7 @@ function buildSoloAccent (gx, gy, hash, layout) {
     const x = gx * PATCH_GRID + ((hash >>> 8) % (PATCH_JITTER * 2 + 1)) - PATCH_JITTER;
     const y = gy * PATCH_GRID + ((hash >>> 16) % (PATCH_JITTER * 2 + 1)) - PATCH_JITTER;
     if (Math.hypot(x, y) < START_CLEARING + 30) return null;
-    if (inPondClearing(x, y, 36, layout.pond)) return null;
+    if (inPondClearing(x, y, 36, layout)) return null;
     const roll = (hash >>> 7) % 100;
     const frameIndex = roll < 40 ? hash % 4 : roll < 65 ? 4 + ((hash >>> 12) % 4) : 8 + ((hash >>> 12) % 4);
     return floraPlacement(x, y, hash, frameIndex);
@@ -156,6 +156,10 @@ export class WorldFlora {
         this.pool = [];
         this.frames = null;
         this.layout = DEFAULT_WORLD_LAYOUT;
+        this.planted = [];
+        this.visiblePlants = [];
+        this._plantSequence = 0;
+        this._shooterScratch = [];
     }
 
     setWorldLayout (layout) {
@@ -165,6 +169,66 @@ export class WorldFlora {
     setFrames (glyphs) {
         const frames = FLORA_FRAME_NAMES.map((name) => glyphs[name] && glyphs[name].frame);
         this.frames = frames.every(Boolean) ? frames : null;
+    }
+
+    plant (x, y) {
+        if (inPondClearing(x, y, 36, this.layout)) return null;
+        const sequence = this._plantSequence++;
+        // Reuse the field atlas: alternate meadow grass and its existing mixed flower clumps.
+        const frameIndex = sequence % 2 === 0 ? sequence % 4 : 8 + sequence % 4;
+        const plant = floraPlacement(Math.round(x), Math.round(y),
+            cellHash(x | 0, y | 0, sequence), frameIndex, 0.88);
+        if (this.planted.length >= 12) this.planted.shift();
+        this.planted.push(plant);
+        return plant;
+    }
+
+    clearPlanted () {
+        this.planted.length = 0;
+        this._plantSequence = 0;
+    }
+
+    updatePreview (placements) {
+        if (!this.frames) {
+            this.root.active = false;
+            this.visiblePlants.length = 0;
+            return;
+        }
+        this.root.active = true;
+        this.visiblePlants = placements;
+        this._renderPlacements(placements);
+    }
+
+    /** Nearby scenery fires in rotating batches so every plant gets a turn without flooding the projectile pool. */
+    firingPlants (x, y, radius, limit = 8, cursor = 0) {
+        const result = this._shooterScratch;
+        result.length = 0;
+        const radius2 = radius * radius;
+        let total = 0;
+        for (const plant of this.visiblePlants) {
+            const dx = plant.x - x;
+            const dy = plant.y - y;
+            if (dx * dx + dy * dy <= radius2) total++;
+        }
+        if (!total || limit <= 0) { result.total = total; return result; }
+        const start = cursor % total;
+        for (let pass = 0; pass < 2 && result.length < Math.min(limit, total); pass++) {
+            let eligibleIndex = 0;
+            for (const plant of this.visiblePlants) {
+                const dx = plant.x - x;
+                const dy = plant.y - y;
+                if (dx * dx + dy * dy > radius2) continue;
+                const index = eligibleIndex++;
+                if (pass === 0 ? index < start : index >= start) continue;
+                const entry = result[result.length] || (result[result.length] = { x: 0, y: 0 });
+                entry.x = plant.x;
+                entry.y = plant.y;
+                result.length++;
+                if (result.length >= Math.min(limit, total)) break;
+            }
+        }
+        result.total = total;
+        return result;
     }
 
     _spawn () {
@@ -183,6 +247,7 @@ export class WorldFlora {
     update (camera, viewWidth, viewHeight, enabled) {
         if (!enabled || !this.frames) {
             if (this.root.active) this.root.active = false;
+            this.visiblePlants.length = 0;
             return;
         }
         this.root.active = true;
@@ -212,9 +277,17 @@ export class WorldFlora {
                 }
             }
         }
+        placements.length = Math.min(placements.length, MAX_PLANTS - this.planted.length);
+        placements.push(...this.planted);
+        this.visiblePlants = placements;
 
         // Modest camera shifts should not leave partially clipped patch members in the pool.
         const visible = Math.min(placements.length, MAX_PLANTS);
+        this._renderPlacements(placements, visible);
+    }
+
+    _renderPlacements (placements, count = Math.min(placements.length, MAX_PLANTS)) {
+        const visible = count;
         for (let index = 0; index < visible; index++) {
             const placement = placements[index];
             let plant = this.pool[index];

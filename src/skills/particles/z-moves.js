@@ -24,13 +24,13 @@ const makePreset = (theme, impact) => Object.freeze({
     glyph: theme.glyph,
     duration: impact ? 0.08 : 0.04,
     emissionRate: impact ? 300 : 200,
-    totalParticles: impact ? 12 : 4,
-    life: impact ? 0.28 : 0.13,
+    totalParticles: impact ? 24 : 10,
+    life: impact ? 0.5 : 0.26,
     lifeVar: impact ? 0.07 : 0.035,
     angleVar: impact ? 180 : 30,
-    speed: impact ? 84 : 24,
+    speed: impact ? 160 : 55,
     speedVar: impact ? 28 : 8,
-    startSize: impact ? 12 : 7,
+    startSize: impact ? 22 : 15,
     startSizeVar: impact ? 4 : 2,
     tangentialAccel: theme.spin,
     radialAccel: impact ? theme.pull : -8,
@@ -40,9 +40,9 @@ const makePreset = (theme, impact) => Object.freeze({
 
 const makeTrail = (theme) => Object.freeze({
     particleClass: 'z-trail', glyph: theme.glyph, color: theme.color,
-    duration: 0.012, emissionRate: 90, totalParticles: 1,
-    life: 0.11, lifeVar: 0.025, angleVar: 18,
-    speed: 16, speedVar: 5, startSize: 6, startSizeVar: 2, endSize: 1,
+    duration: 0.025, emissionRate: 120, totalParticles: 3,
+    life: 0.28, lifeVar: 0.045, angleVar: 24,
+    speed: 30, speedVar: 10, startSize: 14, startSizeVar: 4, endSize: 2,
     tangentialAccel: theme.spin * 0.45, radialAccel: -8, gravityY: theme.gravityY * 0.35, posVar: 2,
 });
 
