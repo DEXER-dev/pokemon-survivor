@@ -15,7 +15,8 @@ import { WorldPond } from './world-pond.js';
 import { WorldMewtwoArena, WorldLugiaArena, WorldRayquazaArena, MEWTWO_ARENA_BOUNDS, MEWTWO_ARENA_SIZE,
     LUGIA_ARENA_BOUNDS, LUGIA_ARENA_SIZE, RAYQUAZA_ARENA_BOUNDS, RAYQUAZA_ARENA_SIZE,
     WorldKyogreArena, KYOGRE_ARENA_BOUNDS, KYOGRE_ARENA_SIZE,
-    KYOGRE_ARENA_SQUARE_BOUNDS, KYOGRE_ARENA_SQUARE_SIZE } from './world-mewtwo-arena.js';
+    KYOGRE_ARENA_SQUARE_BOUNDS, KYOGRE_ARENA_SQUARE_SIZE,
+    constrainKyogrePlayerToShore } from './world-mewtwo-arena.js';
 import { WorldHoOhArena } from './world-mewtwo-arena.js';
 import { createHoOhSpecialState, startHoOhSpecial, stepHoOhSpecial } from './hooh-special.js';
 import { drawWorldGround } from './world-ground.js';
@@ -2658,6 +2659,10 @@ export function createGame (cc) {
                         p.y = this.legendaryMap.y + dy / d * limit;
                         p.vx = p.vy = 0;
                     }
+                }
+                if (this.legendaryMap.species === 'legend-kyogre') {
+                    constrainKyogrePlayerToShore(p, this.legendaryMap.x, this.legendaryMap.y,
+                        kyogreSquareView, PLAYER.radius);
                 }
             }
             this.chain.update(dt, p.x, p.y, Math.min(1, p.speed / p.maxSpeed));
