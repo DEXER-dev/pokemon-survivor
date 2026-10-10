@@ -1,0 +1,16 @@
+Asset: 16:9 top-down battle map background for Groudon's Terra Cave scene.
+Tool: built-in image_gen.
+Reference: ../kyogre-river-concept/cave-pool-background.png, used for pixel-art density, top-down framing, and environmental texture only. Water composition was not reused.
+Design: dry enclosed earthen cave chamber; broad open ochre and reddish-brown ground; irregular rock borders and sparse perimeter boulders; warm entrance light from the upper edge; no character, UI, water, or lava.
+Source reference: https://bulbapedia.bulbagarden.net/wiki/Terra_Cave (Groudon appears deep in Terra Cave in Pokémon Emerald).
+
+Prompt:
+Use case: stylized-concept
+Asset type: standalone full-screen 2D game boss map background for a preview.
+Primary request: Create an original, complete map background for Groudon's encounter in Pokémon Emerald's Terra Cave (Land Cave), using the attached approved Marine Cave map only as a reference for clean pixel-art density, straight-down framing, and polished environmental texture; do not copy its water layout.
+Scene/backdrop: a dry, enclosed earthen cave chamber, seen from a strict 90-degree orthographic top-down camera. Terra Cave is the place where Groudon waits deep in the cave in Emerald. Show a broad, open central floor of packed ochre earth and worn reddish-brown stone, with irregular dark cave-rock borders and a few natural boulder clusters near the perimeter. The room should feel like a clear, navigable game battle map, not an endless player-centered texture. Keep the middle open for the boss and player to be added later.
+Style/medium: crisp, cohesive 16-bit pixel-art map background, matching the reference's chunky, clean pixel clusters and readable tiled-game scale. Strong readable silhouettes, restrained texture density; no faux CRT/GBA scanlines or blur.
+Composition/framing: landscape 16:9; fill the entire frame edge-to-edge with the cave floor and boundary. Wide open arena in the center, rough stone edges framing it, light cave entrance hint near upper edge.
+Lighting/mood: warm amber light from the upper cave opening, lower area slightly darker, enough value contrast to read the open floor without making it dirty.
+Color palette: dry sandstone, burnt ochre, muted terracotta, deep umber rock, small restrained warm highlights.
+Constraints: background only; no character or Pokémon, no Groudon, no player, no text, no labels, no UI, no health bars, no frames, no circles, no water, no river, no lake, no lava pool, no magma river, no perspective, no horizon, no front-facing cliff walls, no dramatic 3D lighting, no excessive cracks, no clutter in the central play space.

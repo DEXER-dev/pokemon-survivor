@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#35251d">
+  <title>陆之窟 · 固拉多场景预览</title>
+  <style>
+    @font-face{font-family:FusionPixel;src:url('../../assets/fonts/fusion-pixel/fusion-pixel-12px-proportional-zh_hans.otf.woff2') format('woff2');font-display:swap}
+    :root{color-scheme:dark;--ink:#f9e9d0;--muted:#c6a98d;--line:#8a6045;--deep:#2b211d;--ember:#ffbd69;--sand:#d89c58}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:FusionPixel,"Microsoft YaHei",sans-serif;color:var(--ink)}
+    body{min-height:100vh;padding:20px;background:radial-gradient(ellipse at 50% 0,#70513b,#362a24 58%,#211c1a);display:grid;place-items:center}
+    button{font:inherit}.page{width:min(1260px,100%)}
+    .heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 12px}.title{display:flex;gap:11px;align-items:center}.sigil{display:grid;place-items:center;width:42px;height:42px;border:2px solid #e5a967;border-radius:50%;background:#533729;box-shadow:inset 0 0 0 4px #30221c;color:#ffd293;font-size:23px}.eyebrow{font:700 9px/1.3 system-ui,sans-serif;letter-spacing:.16em;color:#edb878}.heading h1{margin:3px 0 0;font-size:20px;color:#fff0d7}.heading p{margin:4px 0 0;color:#d4b89b;font:11px/1.45 system-ui,sans-serif}.badge{padding:7px 10px;border:1px solid #946b4b;border-radius:999px;background:#3a2b23;color:#f3d8b1;font:10px system-ui,sans-serif;white-space:nowrap}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:12px;align-items:stretch}
+    .stage{position:relative;overflow:hidden;aspect-ratio:16/9;min-width:0;border:3px solid #30221a;border-radius:15px;background:#8b5b35 url('./terra-cave-background.png') center/100% 100% no-repeat;box-shadow:0 7px 0 #140d0b99,0 20px 48px #130e0b77,inset 0 0 0 1px #ffe0a633;isolation:isolate}
+    .stage:before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,#ffe0a022,#36201508 44%,#1c120d44)}
+    .entrance-light{position:absolute;z-index:2;left:39%;top:0;width:23%;height:48%;pointer-events:none;background:radial-gradient(ellipse at 50% 0,#fff0ba55,transparent 74%);mix-blend-mode:screen}
+    .dust-field{position:absolute;z-index:3;inset:0;pointer-events:none}.dust{position:absolute;width:4px;height:4px;border-radius:50%;background:#ffe1a9;box-shadow:0 0 5px #ffc06a;opacity:0;animation:dust-drift var(--dur) ease-out var(--delay) infinite}.d1{left:41%;top:49%;--dur:3.8s;--delay:-1s}.d2{left:58%;top:43%;--dur:4.6s;--delay:-2.2s}.d3{left:50%;top:35%;--dur:3.6s;--delay:-.8s;width:3px;height:3px}.d4{left:63%;top:53%;--dur:4.3s;--delay:-3s}.d5{left:37%;top:42%;--dur:5s;--delay:-1.8s;width:3px;height:3px}.d6{left:54%;top:58%;--dur:4.1s;--delay:-2.7s}
+    .boss{position:absolute;z-index:5;left:50%;top:45%;width:clamp(126px,15vw,184px);height:clamp(126px,15vw,184px);transform:translate(-50%,-50%);animation:deep-patrol 18s ease-in-out infinite;filter:drop-shadow(0 10px 5px #26150d99)}
+    .boss-shadow{position:absolute;left:17%;top:70%;width:66%;height:18%;border-radius:50%;background:#24170f77;filter:blur(2px);animation:heavy-step 1.4s ease-in-out infinite alternate}
+    .groudon-sprite{position:absolute;inset:0;background:url('../../assets/icons/GROUDON.png') left top/200% 100% no-repeat;image-rendering:pixelated;animation:groudon-breathe 1.4s ease-in-out infinite alternate;transform-origin:50% 72%}
+    .step-dust{position:absolute;left:18%;right:18%;bottom:12%;height:22%;pointer-events:none}.step-dust:before,.step-dust:after{content:"";position:absolute;bottom:0;width:32%;height:32%;border-radius:50%;background:#e2a76b99;filter:blur(3px);animation:stomp-puff 2.2s ease-out infinite}.step-dust:before{left:0}.step-dust:after{right:0;animation-delay:.28s}
+    .corner-hud{position:absolute;z-index:8;left:12px;top:12px;padding:8px 10px;border:1px solid #dfb27a;border-radius:9px;background:#fff0d7ef;color:#473326;box-shadow:0 3px 0 #34211688;min-width:168px}.corner-hud strong{display:block;font-size:11px}.corner-hud small{display:block;margin-top:4px;color:#886547;font:9px/1.4 system-ui,sans-serif}
+    .side{display:flex;flex-direction:column;gap:9px}.card{padding:12px;border:1px solid #76563e;border-radius:12px;background:linear-gradient(155deg,#49362b,#32251f);box-shadow:0 4px 0 #1d151277}.card h2{margin:0 0 8px;color:#fff0d7;font-size:13px}.card p{margin:0;color:#d7bea4;font:11px/1.6 system-ui,sans-serif}.stats{display:grid;gap:7px}.stat{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#d2b89b;font:10px system-ui,sans-serif}.stat b{color:#ffdfb4;font-weight:600}.controls{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px}.controls button{min-height:34px;border:1px solid #8c684b;border-radius:8px;background:#422f24;color:#f5ddbd;font-size:10px;cursor:pointer}.controls button:hover{background:#5b4030;border-color:#d5a46e}.controls button.primary{grid-column:span 2;background:linear-gradient(#f6d39a,#c98243);border-color:#ffe4b0;color:#382317;box-shadow:0 3px #80502e;font-weight:bold}.controls button.primary:active{transform:translateY(2px);box-shadow:0 1px #80502e}
+    .footer{display:flex;justify-content:space-between;gap:10px;margin-top:10px;color:#c3a48a;font:10px/1.5 system-ui,sans-serif}.footer strong{color:#efdbc2}.footer a{color:#ffd08f;text-decoration:none}.footer a:hover{text-decoration:underline}
+    .stage.paused *{animation-play-state:paused!important}
+    @keyframes dust-drift{0%{opacity:0;transform:translate(0,12px) scale(.45)}20%{opacity:.58}100%{opacity:0;transform:translate(12px,-30px) scale(1.1)}}
+    @keyframes deep-patrol{0%,100%{left:50%;top:45%}20%{left:57%;top:42%}42%{left:60%;top:48%}64%{left:53%;top:53%}82%{left:44%;top:49%}}
+    @keyframes groudon-breathe{from{translate:0 1px;scale:1 .98}to{translate:0 -2px;scale:1 1.02}}
+    @keyframes heavy-step{from{opacity:.45;scale:.94 .88}to{opacity:.62;scale:1.05 1.12}}
+    @keyframes stomp-puff{0%,55%,100%{opacity:0;transform:translateY(0) scale(.6)}65%{opacity:.56}85%{opacity:0;transform:translateY(-9px) scale(1.25)}}
+    @media(max-width:900px){body{padding:12px}.layout{grid-template-columns:1fr}.stage{aspect-ratio:16/9}.side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.card:first-child{grid-row:span 2}.footer{flex-direction:column}}
+    @media(max-width:560px){body{padding:8px}.heading{align-items:flex-start}.heading h1{font-size:16px}.heading p{font-size:10px}.sigil{width:35px;height:35px}.badge{font-size:8px;padding:5px 7px}.stage{aspect-ratio:16/9;border-radius:11px}.boss{width:clamp(104px,27vw,148px);height:clamp(104px,27vw,148px)}.side{grid-template-columns:1fr 1fr}.card{padding:9px}.card h2{font-size:11px}.card p{font-size:10px}.stats{gap:5px}.stat{font-size:9px}.controls button{font-size:9px}.corner-hud{left:7px;top:7px;min-width:0;padding:6px 8px}.corner-hud strong{font-size:9px}.corner-hud small{font-size:8px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:24s!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="heading"><div class="title"><span class="sigil" aria-hidden="true">◆</span><div><div class="eyebrow">GROUDON · TERRA CAVE</div><h1>固拉多 · 陆之窟</h1><p>干燥岩土洞窟，中央留出开阔的对战场地。</p></div></div><span class="badge">场景动画预览 · 静音</span></header>
+    <section class="layout" aria-label="固拉多陆之窟场景预览">
+      <div class="stage" id="stage">
+        <div class="entrance-light" aria-hidden="true"></div>
+        <div class="dust-field" aria-hidden="true"><i class="dust d1"></i><i class="dust d2"></i><i class="dust d3"></i><i class="dust d4"></i><i class="dust d5"></i><i class="dust d6"></i></div>
+        <div class="corner-hud"><strong>陆之窟 · 深处</strong><small>地面微震 · 固拉多现身</small></div>
+        <div class="boss" id="boss" role="img" aria-label="固拉多在洞窟深处沉重巡行">
+          <i class="boss-shadow"></i><i class="step-dust"></i><div class="groudon-sprite"></div>
+        </div>
+      </div>
+      <aside class="side">
+        <section class="card"><h2>场景依据</h2><p>参考《绿宝石》的陆之窟：固拉多在洞窟深处等待。这里保留大块干燥岩土地面和边缘岩壁，不添加熔岩河或额外机关。</p></section>
+        <section class="card"><h2>场景方向</h2><div class="stats"><div class="stat"><span>镜头</span><b>正俯视</b></div><div class="stat"><span>地面</span><b>干燥岩土</b></div><div class="stat"><span>场地</span><b>开阔洞窟</b></div></div><div class="controls"><button class="primary" id="toggle" type="button">暂停演出</button><button id="replay" type="button">重播演出</button><button id="speed" type="button">巡行速度：标准</button></div></section>
+      </aside>
+    </section>
+    <footer class="footer"><span><strong>演示内容：</strong>固拉多沉重巡行 · 地面尘粒 · 脚步震动</span><span>原作场景参考：<a href="https://bulbapedia.bulbagarden.net/wiki/Terra_Cave" target="_blank" rel="noreferrer">Terra Cave</a> · 当前为独立预览。</span></footer>
+  </main>
+  <script>
+    (()=>{
+      const stage=document.getElementById('stage');
+      const boss=document.getElementById('boss');
+      const toggle=document.getElementById('toggle');
+      const replay=document.getElementById('replay');
+      const speed=document.getElementById('speed');
+      let paused=false,fast=false;
+      toggle.addEventListener('click',()=>{paused=!paused;stage.classList.toggle('paused',paused);toggle.textContent=paused?'继续演出':'暂停演出'});
+      replay.addEventListener('click',()=>{boss.style.animation='none';void boss.offsetWidth;boss.style.animation='';if(paused){paused=false;stage.classList.remove('paused');toggle.textContent='暂停演出'}});
+      speed.addEventListener('click',()=>{fast=!fast;boss.style.animationDuration=fast?'11s':'18s';speed.textContent=`巡行速度：${fast?'快速':'标准'}`});
+    })();
+  </script>
+</body>
+</html>
