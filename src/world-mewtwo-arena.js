@@ -5,6 +5,10 @@ export const LUGIA_ARENA_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 34
 export const LUGIA_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 1024 / 1536 });
 export const RAYQUAZA_ARENA_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 310 });
 export const RAYQUAZA_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 941 / 1672 });
+export const KYOGRE_ARENA_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 310 });
+export const KYOGRE_ARENA_SIZE = Object.freeze({ width: 1200, height: 1200 * 941 / 1672 });
+export const KYOGRE_ARENA_SQUARE_BOUNDS = Object.freeze({ halfWidth: 550, halfHeight: 550 });
+export const KYOGRE_ARENA_SQUARE_SIZE = Object.freeze({ width: 1200, height: 1200 });
 const ARENA_WORLD_WIDTH = 1200;
 
 /** Shared finite-room renderer; each legendary still owns a distinct map image and bounds. */
@@ -68,6 +72,34 @@ export class WorldLugiaArena extends WorldArenaBackdrop {
 export class WorldRayquazaArena extends WorldArenaBackdrop {
     constructor (cc, gameRoot) {
         super(cc, gameRoot, 'RayquazaSkyPillarBackdrop');
+    }
+}
+
+/** Finite Marine Cave pool and surrounding sand for Kyogre's legendary encounter. */
+export class WorldKyogreArena extends WorldArenaBackdrop {
+    constructor (cc, gameRoot) {
+        super(cc, gameRoot, 'KyogreMarineCaveBackdrop');
+        this.backdrops = null;
+        this.layout = '';
+    }
+
+    setBackdrops (backdrops) {
+        this.backdrops = backdrops;
+        this.layout = '';
+    }
+
+    update (camera, center, enabled) {
+        if (!this.backdrops) {
+            super.update(camera, center, enabled);
+            return;
+        }
+        const view = this.cc.view.getVisibleSize();
+        const layout = view.width / Math.max(1, view.height) < 1.35 ? 'square' : 'landscape';
+        if (layout !== this.layout) {
+            this.layout = layout;
+            this.setBackdrop(this.backdrops[layout]);
+        }
+        super.update(camera, center, enabled);
     }
 }
 

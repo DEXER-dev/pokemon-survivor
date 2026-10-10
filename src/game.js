@@ -8,12 +8,14 @@ import {
     PLAYER_HP, BOSS, SUPPORT_SKILLS, LEGENDARY_BOSSES, WILD_BOSSES, family,
 } from './config.js';
 import { SpriteBatch, Palette } from './batch.js';
-import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLugiaArenaBackdrop, loadRayquazaArenaBackdrop, loadHoOhArenaAssets, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
+import { buildGreyboxAtlas, loadIconAtlas, loadMegaMewtwoYIcon, loadMewtwoArenaBackdrop, loadLugiaArenaBackdrop, loadRayquazaArenaBackdrop, loadKyogreArenaBackdrop, loadHoOhArenaAssets, loadLucasAtlas, loadTrainerAtlas, loadPokeball, loadMegaStoneAtlas, loadUpgradeItemAtlas, loadHoohVfxAtlas, loadFloraAtlas, loadPondAtlas, loadTreeAtlas, loadLegendaryVfxAtlas, loadSubLegendaryVfxAtlas, loadZMoveVfxAtlas } from './atlas.js';
 import { WorldFlora } from './world-flora.js';
 import { WorldTrees } from './world-trees.js';
 import { WorldPond } from './world-pond.js';
 import { WorldMewtwoArena, WorldLugiaArena, WorldRayquazaArena, MEWTWO_ARENA_BOUNDS, MEWTWO_ARENA_SIZE,
-    LUGIA_ARENA_BOUNDS, LUGIA_ARENA_SIZE, RAYQUAZA_ARENA_BOUNDS, RAYQUAZA_ARENA_SIZE } from './world-mewtwo-arena.js';
+    LUGIA_ARENA_BOUNDS, LUGIA_ARENA_SIZE, RAYQUAZA_ARENA_BOUNDS, RAYQUAZA_ARENA_SIZE,
+    WorldKyogreArena, KYOGRE_ARENA_BOUNDS, KYOGRE_ARENA_SIZE,
+    KYOGRE_ARENA_SQUARE_BOUNDS, KYOGRE_ARENA_SQUARE_SIZE } from './world-mewtwo-arena.js';
 import { WorldHoOhArena } from './world-mewtwo-arena.js';
 import { createHoOhSpecialState, startHoOhSpecial, stepHoOhSpecial } from './hooh-special.js';
 import { drawWorldGround } from './world-ground.js';
@@ -350,6 +352,10 @@ export function createGame (cc) {
             this.rayquazaArenaPromise = loadRayquazaArenaBackdrop(cc).then((assets) => {
                 this.rayquazaArena.setBackdrop(assets);
             }).catch((err) => console.warn('[rayquaza-map] using fallback arena ground:', err && err.message));
+            this.kyogreArena = new WorldKyogreArena(cc, this.node);
+            this.kyogreArenaPromise = loadKyogreArenaBackdrop(cc).then((assets) => {
+                this.kyogreArena.setBackdrops(assets);
+            }).catch((err) => console.warn('[kyogre-map] using fallback cave ground:', err && err.message));
             this.hoohArena = new WorldHoOhArena(cc, this.node);
             this.hoohArenaPromise = loadHoOhArenaAssets(cc).then((assets) => {
                 this.hoohArena.setAssets(assets);
@@ -980,10 +986,11 @@ export function createGame (cc) {
             const mewtwoEncounter = site.species === 'legend-mewtwo';
             const lugiaEncounter = site.species === 'legend-lugia';
             const rayquazaEncounter = site.species === 'legend-rayquaza';
+            const kyogreEncounter = site.species === 'legend-kyogre';
             const hoohEncounter = site.species === 'legend-hooh';
             this.legendaryMap.active = true;
             this.legendaryMap.x = this.player.x + (mewtwoEncounter ? 170 : hoohEncounter ? 150 : 0);
-            this.legendaryMap.y = this.player.y + (mewtwoEncounter ? 75 : lugiaEncounter ? 130
+            this.legendaryMap.y = this.player.y + (mewtwoEncounter ? 75 : lugiaEncounter ? 130 : kyogreEncounter ? 160
                 : rayquazaEncounter ? 100 : hoohEncounter ? 55 : 0);
             this.legendaryMap.famIdx = famIdx;
             this.legendaryMap.species = site.species;
@@ -1000,11 +1007,12 @@ export function createGame (cc) {
             this.build.balls += 5;
             const bossX = mewtwoEncounter ? this.legendaryMap.x + 260
                 : lugiaEncounter || hoohEncounter ? this.legendaryMap.x : rayquazaEncounter ? this.legendaryMap.x + 64
-                    : this.player.x + 250;
+                    : kyogreEncounter ? this.legendaryMap.x : this.player.x + 250;
             const bossY = mewtwoEncounter ? this.legendaryMap.y + 100
                     : lugiaEncounter ? this.legendaryMap.y + 150
                     : rayquazaEncounter ? this.legendaryMap.y + 110
                         : hoohEncounter ? this.legendaryMap.y + 40
+                    : kyogreEncounter ? this.legendaryMap.y + 140
                     : this.player.y + 24;
             const boss = this.enemies.spawn(bossX, bossY,
                 famIdx, 1, false, this.time / 60, 1, -1, BOSS.party.length, BOSS.hpMul, true);
@@ -2625,11 +2633,15 @@ export function createGame (cc) {
             if (this.legendaryMap.active) {
                 const dx = p.x - this.legendaryMap.x;
                 const dy = p.y - this.legendaryMap.y;
+                const arenaView = cc.view.getVisibleSize();
+                const kyogreSquareView = arenaView.width / Math.max(1, arenaView.height) < 1.35;
                 const arenaBounds = this.legendaryMap.species === 'legend-mewtwo'
                     ? MEWTWO_ARENA_BOUNDS
                     : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_BOUNDS
                         : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_BOUNDS
-                            : this.legendaryMap.species === 'legend-hooh' ? HOOH_ARENA_BOUNDS : null;
+                            : this.legendaryMap.species === 'legend-hooh' ? HOOH_ARENA_BOUNDS
+                                : this.legendaryMap.species === 'legend-kyogre'
+                                    ? (kyogreSquareView ? KYOGRE_ARENA_SQUARE_BOUNDS : KYOGRE_ARENA_BOUNDS) : null;
                 if (arenaBounds) {
                     const boundedX = Math.max(-arenaBounds.halfWidth, Math.min(arenaBounds.halfWidth, dx));
                     const boundedY = Math.max(-arenaBounds.halfHeight, Math.min(arenaBounds.halfHeight, dy));
@@ -2961,18 +2973,24 @@ export function createGame (cc) {
 
             // In normal play the hero stays centered. Mewtwo's finite chamber instead locks the
             // camera to the room so the player can move within its visible walls.
+            const arenaView = cc.view.getVisibleSize();
+            const kyogreSquareView = arenaView.width / Math.max(1, arenaView.height) < 1.35;
             const fixedArenaSize = this.legendaryMap.species === 'legend-mewtwo'
                 ? MEWTWO_ARENA_SIZE
                 : this.legendaryMap.species === 'legend-lugia' ? LUGIA_ARENA_SIZE
                     : this.legendaryMap.species === 'legend-rayquaza' ? RAYQUAZA_ARENA_SIZE
-                        : this.legendaryMap.species === 'legend-hooh' ? HOOH_ARENA_SIZE : null;
+                        : this.legendaryMap.species === 'legend-hooh' ? HOOH_ARENA_SIZE
+                            : this.legendaryMap.species === 'legend-kyogre'
+                                ? (kyogreSquareView ? KYOGRE_ARENA_SQUARE_SIZE : KYOGRE_ARENA_SIZE) : null;
             const fixedArenaCamera = this.legendaryMap.active && fixedArenaSize;
             this.cam.x = fixedArenaCamera ? this.legendaryMap.x : p.x;
             this.cam.y = fixedArenaCamera ? this.legendaryMap.y : p.y;
             if (fixedArenaCamera) {
                 const visible = cc.view.getVisibleSize();
+                const arenaFit = this.legendaryMap.species === 'legend-kyogre' && kyogreSquareView
+                    ? 1.02 : 0.92;
                 this.cam.z = Math.min(visible.width / fixedArenaSize.width,
-                    visible.height / fixedArenaSize.height) * 0.92;
+                    visible.height / fixedArenaSize.height) * arenaFit;
             } else {
                 const kz = 1 - Math.exp(-3 * dt);
                 this.cam.z += (CHAIN.zoom(this.chain.nCount) - this.cam.z) * kz;
@@ -3835,6 +3853,7 @@ export function createGame (cc) {
                 const enemyFamily = FAMILIES[e.fam[i]];
                 const mewtwoEncounter = bo && e.legendary[i] && enemyFamily && enemyFamily.id === 'legend-mewtwo';
                 const lugiaEncounter = bo && e.legendary[i] && enemyFamily && enemyFamily.id === 'legend-lugia';
+                const kyogreEncounter = bo && e.legendary[i] && enemyFamily && enemyFamily.id === 'legend-kyogre';
                 const mewtwoMegaY = mewtwoEncounter && !e.intro[i]
                     && (!e.legendaryReady[i] || this.legendaryMap.mewtwoRevert > 0.52)
                     && this.atlas.glyphs.MEWTWO_MEGA_Y;
@@ -3989,6 +4008,16 @@ export function createGame (cc) {
                             this.pal.get(particle % 4 === 0 ? '#e2ffff' : '#74dcff', alpha));
                     }
                 }
+                if (kyogreEncounter && !e.legendaryReady[i]) {
+                    // Animated ellipses sit below Kyogre like widening surface ripples instead of
+                    // the generic opaque legendary aura, which reads as a bubble on the water art.
+                    for (let ripple = 0; ripple < 2; ripple++) {
+                        const phase = (this.wall * 0.36 + ripple * 0.5) % 1;
+                        b.draw('ring', e.x[i], drawY - scale * 0.12,
+                            scale * (1.0 + phase * 1.25), scale * (0.46 + phase * 0.36), 0,
+                            this.pal.get(ripple ? '#8be9ff' : '#d0fbff', Math.round(92 * (1 - phase))));
+                    }
+                }
                 b.draw(icon || (bo ? 'blob' : el ? 'diamond' : MOB_GLYPH[Math.min(3, e.tier[i] - 1)]),
                     e.x[i], drawY, scale, scale * (1 - 0.06 * Math.sin(this.time * 7 + i)), 0,
                     this.pal.get(lit ? COL.heroTrim : body));
@@ -4018,11 +4047,11 @@ export function createGame (cc) {
                     const bossVisualY = hoohEncounter ? drawY : e.y[i];
                     if (!icon) b.draw('cross', e.x[i], bossVisualY, scale * 0.78, scale * 0.78, 0,
                         this.pal.get(lit ? COL.ink : COL.gold, 235));
-                    if (!hoohEncounter) {
+                    if (!hoohEncounter && !kyogreEncounter) {
                         b.draw('ring', e.x[i], bossVisualY, scale * 1.16, scale * 1.16, 0,
                             this.pal.get(COL.ink, 210));
                     }
-                    if ((e.legendary[i] || e.wildBoss[i]) && !hoohEncounter) {
+                    if ((e.legendary[i] || e.wildBoss[i]) && !hoohEncounter && !kyogreEncounter) {
                         const pulse = 1 + 0.08 * Math.sin(this.wall * 5);
                         const color = ELEMENT[FAMILIES[e.fam[i]].element];
                         const ready = e.legendaryReady[i] || e.wildBossReady[i];
@@ -4684,6 +4713,8 @@ export function createGame (cc) {
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-lugia');
             this.rayquazaArena.update(this.cam, this.legendaryMap,
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-rayquaza');
+            this.kyogreArena.update(this.cam, this.legendaryMap,
+                this.legendaryMap.active && this.legendaryMap.species === 'legend-kyogre');
             this.hoohArena.update(this.cam, this.legendaryMap,
                 this.legendaryMap.active && this.legendaryMap.species === 'legend-hooh', dt,
                 this.legendaryMap.hoohSpecial.active ? 9 : 1);

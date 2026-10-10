@@ -1,6 +1,12 @@
 /** Player-facing release notes. Add the newest, concise entry here with every shipped update. */
 export const UPDATE_LOG_ENTRIES = Object.freeze([
     {
+        date: '2026-10-10',
+        category: '神兽关卡',
+        title: '盖欧卡加入海之洞窟专属战场',
+        description: '战斗切换到中央水池与环绕沙岸组成的有限场地；盖欧卡会沿水域巡游，并在招式预警时停下。',
+    },
+    {
         date: '2026-10-09',
         category: '战斗 HUD',
         title: 'BOSS 血条改为顶端紧凑显示',

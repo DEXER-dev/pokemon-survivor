@@ -608,6 +608,25 @@ export async function loadRayquazaArenaBackdrop (cc) {
     return { frame, width: image.width, height: image.height };
 }
 
+/** Marine Cave pool and sandy shore backdrop for Kyogre's dedicated encounter. */
+export async function loadKyogreArenaBackdrop (cc) {
+    const loadBackdrop = async (path) => {
+        const image = await loadPng(path);
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        canvas.getContext('2d').drawImage(image, 0, 0);
+        const frame = cc.SpriteFrame.createWithImage(canvas);
+        if (frame.texture && typeof frame.texture.setFilters === 'function') frame.texture.setFilters(1, 1);
+        return { frame, width: image.width, height: image.height };
+    };
+    const [landscape, square] = await Promise.all([
+        loadBackdrop('assets/maps/marine-cave-kyogre-arena.png'),
+        loadBackdrop('assets/maps/marine-cave-kyogre-arena-square.png'),
+    ]);
+    return { landscape, square };
+}
+
 /** Individually layered Ho-Oh summit clouds plus the transparent Bell Tower foreground. */
 export async function loadHoOhArenaAssets (cc) {
     const paths = [
